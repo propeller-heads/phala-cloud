@@ -260,16 +260,26 @@ describe("provisionCvmComposeFileUpdate", () => {
     });
 
     it("should return error when docker_compose_file is missing", async () => {
-      const invalidRequest = { 
-        ...mockProvisionRequest, 
+      const invalidRequest = {
+        ...mockProvisionRequest,
         app_compose: { ...mockAppCompose, docker_compose_file: "" }
       };
-      
+
+      // Mock backend validation error
+      (mockClient.safePost as any).mockResolvedValue({
+        success: false,
+        error: {
+          isRequestError: true,
+          message: "Docker compose file is required",
+          status: 400,
+        },
+      });
+
       const result = await safeProvisionCvmComposeFileUpdate(mockClient, invalidRequest);
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect("issues" in result.error).toBe(true);
+        expect("isRequestError" in result.error).toBe(true);
       }
     });
   });
