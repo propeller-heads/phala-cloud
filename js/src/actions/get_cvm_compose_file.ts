@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 import { ActionParameters, ActionReturnType } from "../types/common";
+import { LooseAppComposeSchema } from "../types/app_compose";
 
 /**
  * Get CVM compose file configuration
@@ -70,25 +71,12 @@ import { ActionParameters, ActionReturnType } from "../types/common";
  * ```
  */
 
-export const GetCvmComposeFileResultSchema = z
-  .object({
-    allowed_envs: z.array(z.string()).optional(),
-    docker_compose_file: z.string(),
-    features: z.array(z.string()).optional(),
-    name: z.string().optional(),
-    manifest_version: z.number().optional(),
-    kms_enabled: z.boolean().optional(),
-    public_logs: z.boolean().optional(),
-    public_sysinfo: z.boolean().optional(),
-    tproxy_enabled: z.boolean().optional(),
-    pre_launch_script: z.string().optional(),
-  })
-  .passthrough();
+// export const GetCvmComposeFileResultSchema = LooseAppComposeSchema;
 
 // Legacy alias for backwards compatibility
-export const CvmComposeFileSchema = GetCvmComposeFileResultSchema;
-export type CvmComposeFile = z.infer<typeof CvmComposeFileSchema>;
-export type GetCvmComposeFileResult = z.infer<typeof GetCvmComposeFileResultSchema>;
+// export const CvmComposeFileSchema = GetCvmComposeFileResultSchema;
+// export type CvmComposeFile = z.infer<typeof CvmComposeFileSchema>;
+export type GetCvmComposeFileResult = z.infer<typeof LooseAppComposeSchema>;
 
 export const GetCvmComposeFileRequestSchema = z
   .object({
@@ -150,7 +138,7 @@ export async function getCvmComposeFile<T extends z.ZodSchema | false | undefine
     return response as GetCvmComposeFileReturnType<T>;
   }
 
-  const schema = (parameters?.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || LooseAppComposeSchema) as z.ZodSchema;
   return schema.parse(response) as GetCvmComposeFileReturnType<T>;
 }
 
@@ -173,6 +161,6 @@ export async function safeGetCvmComposeFile<T extends z.ZodSchema | false | unde
     return { success: true, data: httpResult.data } as SafeResult<GetCvmComposeFileReturnType<T>>;
   }
 
-  const schema = (parameters?.schema || GetCvmComposeFileResultSchema) as z.ZodSchema;
+  const schema = (parameters?.schema || LooseAppComposeSchema) as z.ZodSchema;
   return schema.safeParse(httpResult.data) as SafeResult<GetCvmComposeFileReturnType<T>>;
 }

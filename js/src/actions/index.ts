@@ -66,7 +66,6 @@ export {
   safeGetCvmComposeFile,
   type GetCvmComposeFileParameters,
   type GetCvmComposeFileReturnType,
-  GetCvmComposeFileResultSchema,
   type GetCvmComposeFileResult,
 } from "./get_cvm_compose_file";
 
