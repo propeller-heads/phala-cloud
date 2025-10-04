@@ -1,21 +1,22 @@
-import { getApiKey } from "@/src/utils/credentials";
 import { createClient } from "@phala/cloud";
-import { z } from "zod";
-import { API_ENDPOINTS } from "../utils/constants";
 import {
-	type Image,
 	TEEPod,
-	type TeepodResponse,
-	imageSchema,
-	teepodResponseSchema,
+	Image,
 	teepodSchema,
+	imageSchema,
+	TeepodResponse,
+	teepodResponseSchema,
 } from "./types";
+import { z } from "zod";
+import { getApiKey } from "@/src/utils/credentials";
 
 /**
  * Get all TEEPods with their images
  * @returns List of TEEPods with embedded images
  */
-export async function getTeepods(v03x_only = false): Promise<TeepodResponse> {
+export async function getTeepods(
+	v03x_only: boolean = false,
+): Promise<TeepodResponse> {
 	try {
 		const apiKey = getApiKey();
 		const apiClient = createClient({ apiKey: apiKey });
@@ -52,13 +53,13 @@ export async function getTeepodImages(teepodId: string): Promise<Image[]> {
 		);
 
 		// If we found the TEEPod and it has images, return them
-		if (teepod?.images && teepod.images.length > 0) {
+		if (teepod && teepod.images && teepod.images.length > 0) {
 			return teepod.images;
 		}
 
 		// Fallback to the original implementation
 		const response = await (await apiClient).get<Image[]>(
-			API_ENDPOINTS.TEEPOD_IMAGES(teepodId),
+			`teepods/${teepodId}/images`,
 		);
 		return z.array(imageSchema).parse(response);
 	} catch (error) {
