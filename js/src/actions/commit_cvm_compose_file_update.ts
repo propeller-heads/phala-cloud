@@ -98,6 +98,7 @@ export const CommitCvmComposeFileUpdateRequestSchema = z
     compose_hash: z.string().min(1, "Compose hash is required"),
     encrypted_env: z.string().optional(),
     env_keys: z.array(z.string()).optional(),
+    update_env_vars: z.boolean().optional().nullable(),
   })
   .refine(
     (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
@@ -108,6 +109,7 @@ export const CommitCvmComposeFileUpdateRequestSchema = z
     compose_hash: data.compose_hash,
     encrypted_env: data.encrypted_env,
     env_keys: data.env_keys,
+    update_env_vars: !!data.update_env_vars,
     _raw: data,
   }));
 
@@ -115,11 +117,12 @@ export const CommitCvmComposeFileUpdateSchema = z.any().transform(() => undefine
 
 export type CommitCvmComposeFileUpdateRequest = Omit<z.infer<
   typeof CommitCvmComposeFileUpdateRequestSchema
->, "cvmId" | "_raw"> & {
+>, "cvmId" | "_raw" | "update_env_vars"> & {
   id?: string;
   uuid?: string;
   app_id?: string;
   instance_id?: string;
+  update_env_vars?: boolean | null;
 };
 export type CommitCvmComposeFileUpdate = undefined;
 

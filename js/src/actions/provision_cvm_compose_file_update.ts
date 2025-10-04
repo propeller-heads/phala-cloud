@@ -106,6 +106,7 @@ export const ProvisionCvmComposeFileUpdateRequestSchema = z
       .transform((val) => (val.startsWith("instance_") ? val : `instance_${val}`))
       .optional(),
     app_compose: LooseAppComposeSchema,
+    update_env_vars: z.boolean().optional().nullable(),
   })
   .refine(
     (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
@@ -114,6 +115,7 @@ export const ProvisionCvmComposeFileUpdateRequestSchema = z
   .transform((data) => ({
     cvmId: data.id || data.uuid || data.app_id || data.instance_id,
     request: data.app_compose,
+    update_env_vars: data.update_env_vars,
     _raw: data,
   }));
 
