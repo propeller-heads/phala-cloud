@@ -115,9 +115,10 @@ export const CommitCvmComposeFileUpdateRequestSchema = z
 
 export const CommitCvmComposeFileUpdateSchema = z.any().transform(() => undefined);
 
-export type CommitCvmComposeFileUpdateRequest = Omit<z.infer<
-  typeof CommitCvmComposeFileUpdateRequestSchema
->, "cvmId" | "_raw" | "update_env_vars"> & {
+export type CommitCvmComposeFileUpdateRequest = Omit<
+  z.infer<typeof CommitCvmComposeFileUpdateRequestSchema>,
+  "cvmId" | "_raw" | "update_env_vars"
+> & {
   id?: string;
   uuid?: string;
   app_id?: string;
