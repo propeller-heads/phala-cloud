@@ -9,4 +9,13 @@ export default defineConfig({
   minify: true,
   target: "esnext",
   outDir: "dist",
+  platform: "node",
+  bundle: true,
+  splitting: false,
+  noExternal: ["@phala/cloud"],
+  esbuildOptions(options) {
+    options.banner = {
+      js: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
+    }
+  },
 })
