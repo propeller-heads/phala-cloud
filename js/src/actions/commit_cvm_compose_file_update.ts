@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { type Client, type SafeResult } from "../client";
 import { ActionParameters, ActionReturnType } from "../types/common";
-import { RequestError } from "../types/client";
 
 /**
  * Commit CVM compose file update
@@ -114,9 +113,14 @@ export const CommitCvmComposeFileUpdateRequestSchema = z
 
 export const CommitCvmComposeFileUpdateSchema = z.any().transform(() => undefined);
 
-export type CommitCvmComposeFileUpdateRequest = z.infer<
+export type CommitCvmComposeFileUpdateRequest = Omit<z.infer<
   typeof CommitCvmComposeFileUpdateRequestSchema
->;
+>, "cvmId" | "_raw"> & {
+  id?: string;
+  uuid?: string;
+  app_id?: string;
+  instance_id?: string;
+};
 export type CommitCvmComposeFileUpdate = undefined;
 
 export type CommitCvmComposeFileUpdateParameters<T = undefined> = ActionParameters<T>;
