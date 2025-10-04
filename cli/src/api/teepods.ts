@@ -17,21 +17,15 @@ import { getApiKey } from "@/src/utils/credentials";
 export async function getTeepods(
 	v03x_only: boolean = false,
 ): Promise<TeepodResponse> {
-	try {
-		const apiKey = getApiKey();
-		const apiClient = createClient({ apiKey: apiKey });
-		let url = "teepods/available";
-		if (v03x_only) {
-			url += "?v03x_only=1";
-		}
-		const response = await (await apiClient).get<TeepodResponse>(url);
-		const parsedResponse = teepodResponseSchema.parse(response);
-		return parsedResponse;
-	} catch (error) {
-		throw new Error(
-			`Failed to get TEEPods: ${error instanceof Error ? error.message : String(error)}`,
-		);
+	const apiKey = getApiKey();
+	const apiClient = createClient({ apiKey: apiKey });
+	let url = "teepods/available";
+	if (v03x_only) {
+		url += "?v03x_only=1";
 	}
+	const response = await (await apiClient).get<TeepodResponse>(url);
+	const parsedResponse = teepodResponseSchema.parse(response);
+	return parsedResponse;
 }
 
 /**
@@ -43,28 +37,22 @@ export async function getTeepods(
  * @returns List of images for the TEEPod
  */
 export async function getTeepodImages(teepodId: string): Promise<Image[]> {
-	try {
-		const apiKey = getApiKey();
-		const apiClient = createClient({ apiKey: apiKey });
-		// First try to get TEEPod with embedded images
-		const teepodsResponse = await getTeepods();
-		const teepod = teepodsResponse.nodes.find(
-			(pod) => pod.teepod_id === Number(teepodId),
-		);
+	const apiKey = getApiKey();
+	const apiClient = createClient({ apiKey: apiKey });
+	// First try to get TEEPod with embedded images
+	const teepodsResponse = await getTeepods();
+	const teepod = teepodsResponse.nodes.find(
+		(pod) => pod.teepod_id === Number(teepodId),
+	);
 
-		// If we found the TEEPod and it has images, return them
-		if (teepod && teepod.images && teepod.images.length > 0) {
-			return teepod.images;
-		}
-
-		// Fallback to the original implementation
-		const response = await (await apiClient).get<Image[]>(
-			`teepods/${teepodId}/images`,
-		);
-		return z.array(imageSchema).parse(response);
-	} catch (error) {
-		throw new Error(
-			`Failed to get TEEPod images: ${error instanceof Error ? error.message : String(error)}`,
-		);
+	// If we found the TEEPod and it has images, return them
+	if (teepod && teepod.images && teepod.images.length > 0) {
+		return teepod.images;
 	}
+
+	// Fallback to the original implementation
+	const response = await (await apiClient).get<Image[]>(
+		`teepods/${teepodId}/images`,
+	);
+	return z.array(imageSchema).parse(response);
 }

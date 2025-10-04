@@ -21,26 +21,17 @@ function safeStringify(obj: any): string {
 export async function getUserInfo(
 	apiKey?: string,
 ): Promise<GetUserInfoResponse> {
-	try {
-		logger.debug(`Fetching user info from auth/me`);
-		const apiClient = createClient({ apiKey: apiKey });
-		const response = await apiClient.get<any>("auth/me");
-		logger.debug(`Received response: ${safeStringify(response)}`);
+	logger.debug(`Fetching user info from auth/me`);
+	const apiClient = createClient({ apiKey: apiKey });
+	const response = await apiClient.get<any>("auth/me");
+	logger.debug(`Received response: ${safeStringify(response)}`);
 
-		// Try to parse the response with the schema
-		try {
-			return getUserInfoResponseSchema.parse(response);
-		} catch (parseError) {
-			logger.error(`Failed to parse user info response: ${parseError}`);
-			logger.debug(`Response structure: ${safeStringify(response)}`);
-			throw parseError;
-		}
-	} catch (error) {
-		logger.error(
-			`Failed to get user info: ${error instanceof Error ? error.message : String(error)}`,
-		);
-		throw new Error(
-			`Failed to get user info: ${error instanceof Error ? error.message : String(error)}`,
-		);
+	// Try to parse the response with the schema
+	try {
+		return getUserInfoResponseSchema.parse(response);
+	} catch (parseError) {
+		logger.error(`Failed to parse user info response: ${parseError}`);
+		logger.debug(`Response structure: ${safeStringify(response)}`);
+		throw parseError;
 	}
 }
