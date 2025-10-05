@@ -1,18 +1,20 @@
-import fs from "node:fs";
-import { getCvmByAppId, upgradeCvm } from "@/src/api/cvms";
-import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
-import { logger } from "@/src/utils/logger";
-import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
-import { parseEnv } from "@/src/utils/secrets";
-import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
-import { type EnvVar, encryptEnvVars } from "@phala/cloud";
 import { Command } from "commander";
 import { FetchError } from "ofetch";
+import { upgradeCvm, getCvmByAppId } from "@/src/api/cvms";
+import { logger } from "@/src/utils/logger";
+import fs from "node:fs";
+import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
+import { parseEnv } from "@/src/utils/secrets";
+import { encryptEnvVars, type EnvVar } from "@phala/cloud";
+import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
+import { resolveCvmAppId } from "@/src/utils/cvms";
+import { CLOUD_URL } from "@/src/utils/constants";
 
 export const upgradeCommand = new Command()
 	.name("upgrade")
-	.description("Upgrade a CVM to a new version")
+	.description(
+		'[DEPRECATED] Upgrade a CVM to a new version (use "phala deploy" instead)',
+	)
 	.argument(
 		"[app-id]",
 		"CVM app ID to upgrade (will prompt for selection if not provided)",
@@ -22,6 +24,13 @@ export const upgradeCommand = new Command()
 	.option("--debug", "Enable debug mode", false)
 	.action(async (appId, options) => {
 		try {
+			logger.warn(
+				'⚠️  This command is deprecated. Please use "phala deploy" instead.',
+			);
+			logger.warn(
+				"⚠️  This legacy API will be maintained but may have limited support.\n",
+			);
+
 			const resolvedAppId = await resolveCvmAppId(appId);
 
 			// Get current CVM configuration
@@ -154,10 +163,9 @@ export const upgradeCommand = new Command()
 			// 1. instanceof check (standard but may fail due to module loading)
 			// 2. Check constructor.name (works across module boundaries)
 			// 3. Check for FetchError-specific properties (status, statusText, data, request)
-			const errorObj = error as { constructor?: { name?: string } };
 			const isFetchError =
 				error instanceof FetchError ||
-				errorObj.constructor?.name === "FetchError" ||
+				(error as any)?.constructor?.name === "FetchError" ||
 				(error &&
 					typeof error === "object" &&
 					"status" in error &&

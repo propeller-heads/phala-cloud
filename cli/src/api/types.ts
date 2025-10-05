@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ZodDecimal as zodDecimal } from "../utils/types";
+
 // Docker Config Schema
 export const dockerConfigSchema = z.object({
 	password: z.string(),
@@ -24,65 +24,6 @@ export const composeFileSchema = z
 		version: z.string().optional(),
 	})
 	.passthrough();
-
-// Configuration Schema
-export const configurationSchema = z
-	.object({
-		name: z.string(),
-		image: z.string(),
-		compose_file: composeFileSchema.nullable().optional(),
-		vcpu: z.number(),
-		memory: z.number(),
-		disk_size: z.number(),
-		ports: z.array(z.any()),
-	})
-	.passthrough();
-
-// Hosted Schema
-export const hostedSchema = z
-	.object({
-		id: z.string(),
-		name: z.string(),
-		status: z.string(),
-		uptime: z.string(),
-		app_url: z.string().nullable(),
-		app_id: z.string(),
-		instance_id: z.string().nullable(),
-		configuration: configurationSchema.nullable().optional(),
-		exited_at: z.string().nullable(),
-		boot_progress: z.string().nullable(),
-		boot_error: z.string().nullable(),
-		shutdown_progress: z.string().nullable(),
-		image_version: z.string().nullable(),
-	})
-	.passthrough();
-
-// Managed User Schema
-export const managedUserSchema = z.object({
-	id: z.number(),
-	username: z.string(),
-});
-
-// Node Schema
-export const nodeSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	region_identifier: z.string().optional(),
-});
-
-// CVM Instance Schema
-export const cvmInstanceSchema = z.object({
-	hosted: hostedSchema,
-	name: z.string(),
-	managed_user: managedUserSchema,
-	node: nodeSchema,
-	listed: z.boolean(),
-	status: z.string(),
-	in_progress: z.boolean(),
-	dapp_dashboard_url: z.string().nullable(),
-	syslog_endpoint: z.string(),
-	allow_upgrade: z.boolean(),
-});
 
 // POST request CVM Response Schema
 export const postCvmResponseSchema = z.object({
@@ -114,123 +55,10 @@ export const postCvmResponseSchema = z.object({
 	encrypted_env_pubkey: z.string(),
 });
 
-// Get Pubkey From CVM Response Schema
-export const getPubkeyFromCvmResponseSchema = z.object({
-	app_env_encrypt_pubkey: z.string(),
-	app_id_salt: z.string(),
-});
-
-// Get CVM By App ID Response Schema
-export const getCvmByAppIdResponseSchema = z.object({
-	id: z.number(),
-	teepod_id: z.number().nullable(),
-	teepod: z
-		.object({
-			id: z.number(),
-			name: z.string(),
-		})
-		.nullable(),
-	name: z.string(),
-	status: z.string(),
-	in_progress: z.boolean(),
-	app_id: z.string(),
-	vm_uuid: z.string(),
-	instance_id: z.string().nullable(),
-	vcpu: z.number(),
-	memory: z.number(),
-	disk_size: z.number(),
-	base_image: z.string(),
-	encrypted_env_pubkey: z.string(),
-	listed: z.boolean(),
-	project_id: z.string(),
-	project_type: z.string().nullable(),
-});
-
-// Get User Info Response Schema
-export const getUserInfoResponseSchema = z
-	.object({
-		username: z.string(),
-		email: z.string(),
-		credits: zodDecimal.create({ coerce: true }),
-		granted_credits: zodDecimal.create({ coerce: true }),
-		avatar: z.string(),
-	})
-	.passthrough();
-
-// Get CVMs By User ID Response Schema
-export const getCvmsByUserIdResponseSchema = z.array(cvmInstanceSchema);
-
-// Upgrade CVM Response Schema
-export const upgradeCvmResponseSchema = z.object({
-	detail: z.string(),
-});
-
 // Encrypted Env Item Schema
 export const encryptedEnvItemSchema = z.object({
 	key: z.string(),
 	value: z.string(),
-});
-
-// Image Schema
-export const imageSchema = z.object({
-	name: z.string(),
-	description: z.string().optional(),
-	version: z.array(z.number()).optional(),
-	is_dev: z.boolean().optional(),
-	os_image_hash: z.string().nullable().optional(),
-	rootfs_hash: z.string().optional(),
-	shared_ro: z.boolean().optional(),
-	cmdline: z.string().optional(),
-	kernel: z.string().optional(),
-	initrd: z.string().optional(),
-	hda: z.string().nullable().optional(),
-	rootfs: z.string().optional(),
-	bios: z.string().optional(),
-});
-
-// TEEPod Schema with extended properties
-export const teepodSchema = z.object({
-	teepod_id: z.number().nullable(),
-	id: z.number().optional(),
-	name: z.string(),
-	listed: z.boolean().optional(),
-	resource_score: z.number().optional(),
-	remaining_vcpu: z.number().optional(),
-	remaining_memory: z.number().optional(),
-	remaining_cvm_slots: z.number().optional(),
-	images: z.array(imageSchema).optional(),
-	region_identifier: z.string().optional(),
-	dedicated_for_team_id: z.number().nullable().optional(),
-	support_onchain_kms: z.boolean().optional(),
-	fmspc: z.string().nullable().optional(),
-	device_id: z.string().nullable().optional(),
-});
-
-// Capacity Schema
-export const capacitySchema = z.object({
-	max_instances: z.number().nullable(),
-	max_vcpu: z.number().nullable(),
-	max_memory: z.number().nullable(),
-	max_disk: z.number().nullable(),
-});
-
-// KMS List Item Schema
-export const kmsListItemSchema = z.object({
-	id: z.string(),
-	slug: z.string(),
-	url: z.string(),
-	version: z.string(),
-	chain_id: z.number(),
-	kms_contract_address: z.string(),
-	gateway_app_id: z.string().nullable().optional(),
-});
-
-// TeepodResponse Schema
-export const teepodResponseSchema = z.object({
-	tier: z.string(),
-	capacity: capacitySchema,
-	nodes: z.array(teepodSchema),
-	kms_list: z.array(kmsListItemSchema).optional(),
 });
 
 // Get CVM Network Response Schema
@@ -249,29 +77,10 @@ export const getCvmNetworkResponseSchema = z.object({
 });
 
 // Type exports
-export type KmsListItem = z.infer<typeof kmsListItemSchema>;
 export type DockerConfig = z.infer<typeof dockerConfigSchema>;
 export type ComposeFile = z.infer<typeof composeFileSchema>;
-export type Configuration = z.infer<typeof configurationSchema>;
-export type Hosted = z.infer<typeof hostedSchema>;
-export type ManagedUser = z.infer<typeof managedUserSchema>;
-export type Node = z.infer<typeof nodeSchema>;
-export type CvmInstance = z.infer<typeof cvmInstanceSchema>;
 export type PostCvmResponse = z.infer<typeof postCvmResponseSchema>;
-export type GetPubkeyFromCvmResponse = z.infer<
-	typeof getPubkeyFromCvmResponseSchema
->;
-export type GetCvmByAppIdResponse = z.infer<typeof getCvmByAppIdResponseSchema>;
-export type GetUserInfoResponse = z.infer<typeof getUserInfoResponseSchema>;
-export type GetCvmsByUserIdResponse = z.infer<
-	typeof getCvmsByUserIdResponseSchema
->;
-export type UpgradeCvmResponse = z.infer<typeof upgradeCvmResponseSchema>;
 export type EncryptedEnvItem = z.infer<typeof encryptedEnvItemSchema>;
-export type TEEPod = z.infer<typeof teepodSchema>;
-export type Image = z.infer<typeof imageSchema>;
-export type Capacity = z.infer<typeof capacitySchema>;
-export type TeepodResponse = z.infer<typeof teepodResponseSchema>;
 export type CvmAttestationResponse = z.infer<
 	typeof cvmAttestationResponseSchema
 >;
@@ -328,34 +137,6 @@ export interface TCBInfo {
 	rtmr3: string;
 	event_log: TCBEventLogEntry[];
 }
-
-// CVM Compose Configuration Schema
-export const cvmComposeConfigSchema = z.object({
-	compose_file: z.object({
-		bash_script: z.string().nullable(),
-		docker_compose_file: z.string(),
-		docker_config: z.object({
-			password: z.string(),
-			registry: z.string().nullable(),
-			username: z.string(),
-		}),
-		features: z.array(z.string()),
-		kms_enabled: z.boolean(),
-		manifest_version: z.number(),
-		name: z.string(),
-		pre_launch_script: z.string(),
-		public_logs: z.boolean(),
-		public_sysinfo: z.boolean(),
-		runner: z.string(),
-		salt: z.string(),
-		tproxy_enabled: z.boolean(),
-		version: z.string(),
-	}),
-	env_pubkey: z.string(),
-	salt: z.string(),
-});
-
-export type CvmComposeConfig = z.infer<typeof cvmComposeConfigSchema>;
 
 // Replicate CVM Response Schema
 export const replicateCvmResponseSchema = z.object({
@@ -440,3 +221,44 @@ export const cvmAttestationResponseSchema = z.object({
 		.nullable(),
 	compose_file: z.string().nullable(),
 });
+// ============================================
+// Legacy Types (for create/upgrade commands)
+// ============================================
+
+// Image Schema
+export const imageSchema = z.object({
+	name: z.string(),
+	description: z.string().optional(),
+	version: z.array(z.number()).optional(),
+	is_dev: z.boolean().optional(),
+	os_image_hash: z.string().nullable().optional(),
+	rootfs_hash: z.string().optional(),
+	shared_ro: z.boolean().optional(),
+	cmdline: z.string().optional(),
+	kernel: z.string().optional(),
+	initrd: z.string().optional(),
+	hda: z.string().nullable().optional(),
+	rootfs: z.string().optional(),
+	bios: z.string().optional(),
+});
+
+// TEEPod Schema with extended properties
+export const teepodSchema = z.object({
+	teepod_id: z.number().nullable(),
+	id: z.number().optional(),
+	name: z.string(),
+	listed: z.boolean().optional(),
+	resource_score: z.number().optional(),
+	remaining_vcpu: z.number().optional(),
+	remaining_memory: z.number().optional(),
+	remaining_cvm_slots: z.number().optional(),
+	images: z.array(imageSchema).optional(),
+	region_identifier: z.string().optional(),
+	dedicated_for_team_id: z.number().nullable().optional(),
+	support_onchain_kms: z.boolean().optional(),
+	fmspc: z.string().nullable().optional(),
+	device_id: z.string().nullable().optional(),
+});
+
+export type TEEPod = z.infer<typeof teepodSchema>;
+export type Image = z.infer<typeof imageSchema>;

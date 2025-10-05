@@ -1,14 +1,10 @@
-import {
-	checkCvmExists,
-	getCvmByAppId,
-	getCvms,
-	selectCvm,
-} from "@/src/api/cvms";
-import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
-import { logger } from "@/src/utils/logger";
-import chalk from "chalk";
 import { Command } from "commander";
+import { safeGetCvmInfo } from "@phala/cloud";
+import { getClient } from "@/src/lib/client";
+import { logger } from "@/src/utils/logger";
+import { CLOUD_URL } from "@/src/utils/constants";
+import chalk from "chalk";
+import { resolveCvmAppId } from "@/src/utils/cvms";
 
 export const getCommand = new Command()
 	.name("get")
@@ -19,13 +15,23 @@ export const getCommand = new Command()
 		try {
 			const resolvedAppId = await resolveCvmAppId(appId);
 
+			// Remove app_ prefix if present, SDK will add it back
+			const cleanAppId = resolvedAppId?.replace(/^app_/, "") || "";
+
 			const spinner = logger.startSpinner(
-				`Fetching CVM with App ID app_${resolvedAppId}`,
+				`Fetching CVM with App ID app_${cleanAppId}`,
 			);
 
-			const cvm = await getCvmByAppId(resolvedAppId);
+			const client = await getClient();
+			const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
 
 			spinner.stop(true);
+
+			if (!result.success) {
+				throw new Error(result.error.message);
+			}
+
+			const cvm = result.data;
 			logger.break();
 
 			if (!cvm) {

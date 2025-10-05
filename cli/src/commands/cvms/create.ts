@@ -1,28 +1,28 @@
-import { createCvm, getPubkeyFromCvm } from "@/src/api/cvms";
-import { getTeepods } from "@/src/api/teepods";
-import type { Image, TEEPod } from "@/src/api/types";
-import {
-	CLOUD_URL,
-	DEFAULT_DISK_SIZE,
-	DEFAULT_IMAGE,
-	DEFAULT_MEMORY,
-	DEFAULT_VCPU,
-} from "@/src/utils/constants";
-import { logger } from "@/src/utils/logger";
-import { type EnvVar, encryptEnvVars } from "@phala/cloud";
 import { Command } from "commander";
 import { FetchError } from "ofetch";
+import { encryptEnvVars, type EnvVar } from "@phala/cloud";
+import { getClient } from "@/src/lib/client";
+import { logger } from "@/src/utils/logger";
+import { getTeepods, getPubkeyFromCvm, createCvm } from "@/src/api/cvms";
+import type { TEEPod, Image } from "@/src/api/types";
+import {
+	DEFAULT_VCPU,
+	DEFAULT_MEMORY,
+	DEFAULT_DISK_SIZE,
+	CLOUD_URL,
+	DEFAULT_IMAGE,
+} from "@/src/utils/constants";
 
 import fs from "node:fs";
 import path from "node:path";
-import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
-import { parseEnv } from "@/src/utils/secrets";
-import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
 import inquirer from "inquirer";
+import { parseEnv } from "@/src/utils/secrets";
+import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
+import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
 
 export const createCommand = new Command()
 	.name("create")
-	.description("Create a new CVM")
+	.description('[DEPRECATED] Create a new CVM (use "phala deploy" instead)')
 	.option("-n, --name <name>", "Name of the CVM")
 	.option("-c, --compose <compose>", "Path to Docker Compose file")
 	.option("--vcpu <vcpu>", `Number of vCPUs, default is ${DEFAULT_VCPU}`)
@@ -44,6 +44,13 @@ export const createCommand = new Command()
 	.option("--debug", "Enable debug mode", false)
 	.action(async (options) => {
 		try {
+			logger.warn(
+				'⚠️  This command is deprecated. Please use "phala deploy" instead.',
+			);
+			logger.warn(
+				"⚠️  This legacy API will be maintained but may have limited support.\n",
+			);
+
 			// Prompt for required options if not provided
 			if (!options.name) {
 				const { name } = await inquirer.prompt([
