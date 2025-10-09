@@ -482,10 +482,44 @@
     "author": "PrimusLabs",
     "icon": "primuslabs.svg",
     "envs": [
-      { "key": "PRIVATE_KEY", "required": true, "description": "Wallet to report task result." },
-      { "key": "BASE_RPC_CHAIN", "required": true, "description": "Rpc for base chain." }
+      {
+        "key": "PRIVATE_KEY",
+        "required": true,
+        "description": "Wallet to report task result."
+      },
+      {
+        "key": "BASE_RPC_CHAIN",
+        "required": true,
+        "description": "Rpc for base chain."
+      },
+      {
+        "key": "BASE_TASK_CONTRACT_ADDRESS",
+        "required": true,
+        "description": "Task contract address on base chain.",
+        "default": "0xC02234058caEaA9416506eABf6Ef3122fCA939E8"
+      },
+      {
+        "key": "BASE_CHAIN_ID",
+        "required": true,
+        "description": "Chain id for base.",
+        "default": "84532"
+      },
+      {
+        "key": "IMAGE_TAG",
+        "required": true,
+        "description": "Docker image tag for primus network",
+        "default": "latest"
+      }
     ],
-    "defaultResource": { "vCPU": 4, "memory": 8192, "diskSize": 20 },
-    "tags": ["ZKTLS","TEE","PrimusLabs"]
+    "defaultResource": {
+      "vCPU": 4,
+      "memory": 8192,
+      "diskSize": 20
+    },
+    "tags": [
+      "ZKTLS",
+      "TEE",
+      "PrimusLabs"
+    ]
   }
 ]
