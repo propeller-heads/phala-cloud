@@ -1,8 +1,8 @@
-import { Command } from "commander";
 import { checkCvmExists, restartCvm, selectCvm } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
-import { resolveCvmAppId } from "@/src/utils/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 
 export const restartCommand = new Command()
 	.name("restart")

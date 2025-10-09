@@ -1,9 +1,9 @@
-import { Command } from "commander";
-import { replicateCvm, getCvmComposeConfig } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
-import { encryptEnvVars } from "@phala/cloud";
 import fs from "node:fs";
 import path from "node:path";
+import { getCvmComposeConfig, replicateCvm } from "@/src/api/cvms";
+import { logger } from "@/src/utils/logger";
+import { encryptEnvVars } from "@phala/cloud";
+import { Command } from "commander";
 
 export const replicateCommand = new Command()
 	.name("replicate")
@@ -14,7 +14,7 @@ export const replicateCommand = new Command()
 	.action(async (cvmId, options) => {
 		try {
 			let encryptedEnv: string | undefined;
-			cvmId = cvmId.replace(/-/g, "");
+			const normalizedCvmId = cvmId.replace(/-/g, "");
 
 			// Handle environment variables if provided
 			if (options.envFile) {
@@ -37,7 +37,7 @@ export const replicateCommand = new Command()
 					});
 
 				// Get CVM compose config which includes the public key
-				const cvmConfig = await getCvmComposeConfig(cvmId);
+				const cvmConfig = await getCvmComposeConfig(normalizedCvmId);
 
 				// Encrypt the environment variables
 				logger.info("Encrypting environment variables...");
@@ -55,17 +55,17 @@ export const replicateCommand = new Command()
 			} = {};
 
 			if (options.teepodId) {
-				requestBody.teepod_id = parseInt(options.teepodId, 10);
+				requestBody.teepod_id = Number.parseInt(options.teepodId, 10);
 			}
 			if (encryptedEnv) {
 				requestBody.encrypted_env = encryptedEnv;
 			}
 
 			// Call the API to create the replica
-			const replica = await replicateCvm(cvmId, requestBody);
+			const replica = await replicateCvm(normalizedCvmId, requestBody);
 
 			logger.success(
-				`Successfully created replica of CVM UUID: ${cvmId} with App ID: ${replica.app_id}`,
+				`Successfully created replica of CVM UUID: ${normalizedCvmId} with App ID: ${replica.app_id}`,
 			);
 
 			const tableData = {

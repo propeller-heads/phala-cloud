@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createTestEnvironment } from "../utils/test-helper";
 
 describe("CVM Commands E2E Tests", () => {

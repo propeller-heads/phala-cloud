@@ -1,11 +1,11 @@
+import {
+	getSimulatorEndpoint,
+	getSimulatorPid,
+	isSimulatorRunning,
+} from "@/src/utils/simulator";
 import { Command } from "commander";
 import { startCommand } from "./start";
 import { stopCommand } from "./stop";
-import {
-	isSimulatorRunning,
-	getSimulatorPid,
-	getSimulatorEndpoint,
-} from "@/src/utils/simulator";
 
 const simulatorCommands = new Command()
 	.name("simulator")

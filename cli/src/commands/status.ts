@@ -1,8 +1,8 @@
 import { createClient } from "@phala/cloud";
+import { safeGetCurrentUser } from "@phala/cloud";
 import { Command } from "commander";
 import { getApiKey } from "../utils/credentials.js";
 import { logger } from "../utils/logger.js";
-import { safeGetCurrentUser } from "@phala/cloud";
 
 export async function checkStatus(
 	options: { debug?: boolean; json?: boolean; apiKey?: string } = {},
@@ -36,7 +36,7 @@ export async function checkStatus(
 				return;
 			}
 
-			const userInfo = result.data as any;
+			const userInfo = result.data as { username?: string; team_name?: string };
 			const apiUrl =
 				process.env.PHALA_CLOUD_API_PREFIX ||
 				"https://cloud-api.phala.network/api/v1";

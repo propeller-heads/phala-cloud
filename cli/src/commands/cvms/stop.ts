@@ -1,8 +1,8 @@
-import { Command } from "commander";
-import { stopCvm, selectCvm, checkCvmExists } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
-import { resolveCvmAppId } from "@/src/utils/cvms";
+import { checkCvmExists, selectCvm, stopCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 
 export const stopCommand = new Command()
 	.name("stop")

@@ -1,8 +1,8 @@
-import { Command } from "commander";
 import { getCvms } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { logger } from "@/src/utils/logger";
 import chalk from "chalk";
+import { Command } from "commander";
 
 export const listCommand = new Command()
 	.name("list")

@@ -1,10 +1,10 @@
 import { createClient } from "@phala/cloud";
 import { API_ENDPOINTS } from "../utils/constants";
-import { GetUserInfoResponse, getUserInfoResponseSchema } from "./types";
 import { logger } from "../utils/logger";
+import { type GetUserInfoResponse, getUserInfoResponseSchema } from "./types";
 
 // Helper function to safely stringify objects that might contain cyclic references
-function safeStringify(obj: any): string {
+function safeStringify(obj: unknown): string {
 	try {
 		return JSON.stringify(obj);
 	} catch (error) {
@@ -25,7 +25,7 @@ export async function getUserInfo(
 	try {
 		logger.debug(`Fetching user info from ${API_ENDPOINTS.USER_INFO}`);
 		const apiClient = createClient({ apiKey: apiKey });
-		const response = await apiClient.get<any>(API_ENDPOINTS.USER_INFO);
+		const response: unknown = await apiClient.get(API_ENDPOINTS.USER_INFO);
 		logger.debug(`Received response: ${safeStringify(response)}`);
 
 		// Try to parse the response with the schema

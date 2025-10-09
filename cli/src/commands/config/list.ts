@@ -1,6 +1,6 @@
-import { Command } from "commander";
 import { listConfigValues } from "@/src/utils/config";
 import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 
 export const listCommand = new Command()
 	.name("list")

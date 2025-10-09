@@ -1,8 +1,8 @@
-import { Command } from "commander";
 import { checkCvmExists, deleteCvm, selectCvm } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
-import inquirer from "inquirer";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
+import inquirer from "inquirer";
 
 export const deleteCommand = new Command()
 	.name("delete")

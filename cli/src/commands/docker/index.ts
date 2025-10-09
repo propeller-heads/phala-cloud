@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { loginCommand } from "./login";
 import { buildCommand } from "./build";
-import { pushCommand } from "./push";
 import { generateCommand } from "./generate";
+import { loginCommand } from "./login";
+import { pushCommand } from "./push";
 
 export const dockerCommands = new Command()
 	.name("docker")

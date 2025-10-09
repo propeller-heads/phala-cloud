@@ -1,6 +1,6 @@
+import { stopSimulator } from "@/src/utils/simulator";
 import { Command } from "commander";
 import { logger } from "../../utils/logger";
-import { stopSimulator } from "@/src/utils/simulator";
 
 export const stopCommand = new Command()
 	.name("stop")

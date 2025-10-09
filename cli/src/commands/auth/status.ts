@@ -1,8 +1,8 @@
-import { createClient } from "@phala/cloud";
-import { Command } from "commander";
 import { getApiKey } from "@/src/utils/credentials";
 import { logger } from "@/src/utils/logger";
+import { createClient } from "@phala/cloud";
 import { safeGetCurrentUser } from "@phala/cloud";
+import { Command } from "commander";
 
 export const statusCommand = new Command()
 	.name("status")
@@ -40,7 +40,7 @@ export const statusCommand = new Command()
 					return;
 				}
 
-				const userInfo = result.data as any;
+				const userInfo = result.data as { username?: string; team_name?: string };
 				const apiUrl =
 					process.env.PHALA_CLOUD_API_PREFIX ||
 					"https://cloud-api.phala.network/api/v1";

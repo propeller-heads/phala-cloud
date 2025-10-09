@@ -1,24 +1,24 @@
-import { Command } from "commander";
-import { FetchError } from "ofetch";
 import { createCvm, getPubkeyFromCvm } from "@/src/api/cvms";
 import { getTeepods } from "@/src/api/teepods";
-import { logger } from "@/src/utils/logger";
-import type { TEEPod, Image } from "@/src/api/types";
+import type { Image, TEEPod } from "@/src/api/types";
 import {
-	DEFAULT_VCPU,
-	DEFAULT_MEMORY,
-	DEFAULT_DISK_SIZE,
 	CLOUD_URL,
+	DEFAULT_DISK_SIZE,
 	DEFAULT_IMAGE,
+	DEFAULT_MEMORY,
+	DEFAULT_VCPU,
 } from "@/src/utils/constants";
-import { encryptEnvVars, type EnvVar } from "@phala/cloud";
+import { logger } from "@/src/utils/logger";
+import { type EnvVar, encryptEnvVars } from "@phala/cloud";
+import { Command } from "commander";
+import { FetchError } from "ofetch";
 
 import fs from "node:fs";
 import path from "node:path";
-import inquirer from "inquirer";
-import { parseEnv } from "@/src/utils/secrets";
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
+import { parseEnv } from "@/src/utils/secrets";
 import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
+import inquirer from "inquirer";
 
 export const createCommand = new Command()
 	.name("create")

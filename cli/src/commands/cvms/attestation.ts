@@ -1,8 +1,8 @@
-import { Command } from "commander";
 import { checkCvmExists, getCvmAttestation, selectCvm } from "@/src/api/cvms";
+import type { CvmAttestationResponse } from "@/src/api/types";
 import { logger } from "@/src/utils/logger";
 import chalk from "chalk";
-import type { CvmAttestationResponse } from "@/src/api/types";
+import { Command } from "commander";
 
 export const attestationCommand = new Command()
 	.name("attestation")

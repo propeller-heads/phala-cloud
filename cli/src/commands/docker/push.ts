@@ -1,7 +1,7 @@
-import { Command } from "commander";
-import { DockerService } from "@/src/utils/docker";
 import { getDockerCredentials } from "@/src/utils/credentials";
+import { DockerService } from "@/src/utils/docker";
 import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 import inquirer from "inquirer";
 
 export const pushCommand = new Command()

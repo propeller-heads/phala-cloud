@@ -1,11 +1,11 @@
-import { Command } from "commander";
-import { DockerService } from "@/src/utils/docker";
-import { getDockerCredentials } from "@/src/utils/credentials";
-import { logger } from "@/src/utils/logger";
-import path from "node:path";
-import inquirer from "inquirer";
 import fs from "node:fs";
+import path from "node:path";
+import { getDockerCredentials } from "@/src/utils/credentials";
+import { DockerService } from "@/src/utils/docker";
+import { logger } from "@/src/utils/logger";
 import { promptForFile } from "@/src/utils/prompts";
+import { Command } from "commander";
+import inquirer from "inquirer";
 
 export const buildCommand = new Command()
 	.name("build")

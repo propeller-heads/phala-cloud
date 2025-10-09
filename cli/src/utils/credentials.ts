@@ -1,7 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
-import os from "node:os";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { logger } from "./logger";
 
 // Define the directory and file for storing credentials
@@ -52,7 +52,7 @@ function encrypt(text: string): string {
 		encrypted += cipher.final("hex");
 
 		// Return IV + encrypted data
-		return iv.toString("hex") + ":" + encrypted;
+		return `${iv.toString("hex")}:${encrypted}`;
 	} catch (error) {
 		logger.error("Encryption failed:", error);
 		throw new Error("Failed to encrypt data");

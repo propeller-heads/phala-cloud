@@ -1,22 +1,22 @@
-import { execa } from "execa";
+import { exec, spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { logger } from "./logger";
+import { promisify } from "node:util";
+import { execa } from "execa";
+import Handlebars from "handlebars";
 import {
 	DOCKER_COMPOSE_BASIC_TEMPLATE,
 	DOCKER_COMPOSE_ELIZA_V2_TEMPLATE,
 } from "./constants";
 import { getDockerCredentials } from "./credentials";
-import Handlebars from "handlebars";
-import { exec, spawn } from "node:child_process";
-import { promisify } from "node:util";
-import os from "node:os";
+import { logger } from "./logger";
 import { validateFileExists } from "./prompts";
-import { ComposeTemplateSchema } from "./types";
 import {
 	deleteSimulatorEndpointEnv,
 	setSimulatorEndpointEnv,
 } from "./simulator";
+import { ComposeTemplateSchema } from "./types";
 const execAsync = promisify(exec);
 
 const LOGS_DIR = ".phala-cloud/logs";
@@ -377,13 +377,13 @@ export class DockerService {
 				.split("\n")
 				.filter((line) => line && !line.startsWith("#"))
 				.map((line) => {
-					// Remove inline comments
-					const commentIndex = line.indexOf("#");
-					if (commentIndex > 0) {
-						line = line.substring(0, commentIndex).trim();
-					}
-					return line.trim();
-				})
+				// Remove inline comments
+				const commentIndex = line.indexOf("#");
+				const cleanedLine = commentIndex > 0
+					? line.substring(0, commentIndex).trim()
+					: line.trim();
+				return cleanedLine;
+			})
 				.filter((line) => line.includes("="))
 				.map((line) => {
 					const [key, value] = line.split("=", 2);

@@ -1,15 +1,15 @@
-import { Command } from "commander";
 import {
 	checkCvmExists,
 	getCvmByAppId,
 	resizeCvm,
 	selectCvm,
 } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
-import inquirer from "inquirer";
-import chalk from "chalk";
-import { resolveCvmAppId } from "@/src/utils/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logger } from "@/src/utils/logger";
+import chalk from "chalk";
+import { Command } from "commander";
+import inquirer from "inquirer";
 
 export const resizeCommand = new Command()
 	.name("resize")
@@ -45,14 +45,14 @@ export const resizeCommand = new Command()
 						name: "vcpu",
 						message: "Enter number of vCPUs:",
 						validate: (input) => {
-							const num = parseInt(input);
-							if (isNaN(num) || num < 0) {
+							const num = Number.parseInt(input);
+							if (Number.isNaN(num) || num < 0) {
 								return "Please enter a valid non-negative number";
 							}
 							return true;
 						},
 						default: cvm.vcpu,
-						filter: (input) => parseInt(input),
+						filter: (input) => Number.parseInt(input),
 					},
 				]);
 				vcpu = response.vcpu;
@@ -66,14 +66,14 @@ export const resizeCommand = new Command()
 						name: "memory",
 						message: "Enter memory in MB:",
 						validate: (input) => {
-							const num = parseInt(input);
-							if (isNaN(num) || num < 0) {
+							const num = Number.parseInt(input);
+							if (Number.isNaN(num) || num < 0) {
 								return "Please enter a valid non-negative number";
 							}
 							return true;
 						},
 						default: cvm.memory,
-						filter: (input) => parseInt(input),
+						filter: (input) => Number.parseInt(input),
 					},
 				]);
 				memory = response.memory;
@@ -87,14 +87,14 @@ export const resizeCommand = new Command()
 						name: "diskSize",
 						message: "Enter disk size in GB:",
 						validate: (input) => {
-							const num = parseInt(input);
-							if (isNaN(num) || num < 0) {
+							const num = Number.parseInt(input);
+							if (Number.isNaN(num) || num < 0) {
 								return "Please enter a valid non-negative number";
 							}
 							return true;
 						},
 						default: cvm.disk_size,
-						filter: (input) => parseInt(input),
+						filter: (input) => Number.parseInt(input),
 					},
 				]);
 				diskSize = response.diskSize;

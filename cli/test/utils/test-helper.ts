@@ -1,6 +1,6 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import { execa } from "execa";
-import * as path from "path";
-import * as os from "os";
 import { createMockDir, deleteMockDir } from "./mock";
 
 const CLI_PATH = "./dist/index.js";
@@ -28,11 +28,12 @@ export function createTestEnvironment(testName: string) {
 				},
 			});
 			return { stdout, stderr, exitCode: 0 };
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const execaError = error as { stdout?: string; stderr?: string; exitCode?: number };
 			return {
-				stdout: error.stdout || "",
-				stderr: error.stderr || "",
-				exitCode: error.exitCode || 1,
+				stdout: execaError.stdout || "",
+				stderr: execaError.stderr || "",
+				exitCode: execaError.exitCode || 1,
 			};
 		}
 	}

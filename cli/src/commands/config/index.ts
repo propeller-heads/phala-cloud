@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { getCommand } from "./get";
-import { setCommand } from "./set";
 import { listCommand } from "./list";
+import { setCommand } from "./set";
 
 export const configCommands = new Command()
 	.name("config")

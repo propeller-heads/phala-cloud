@@ -1,14 +1,17 @@
-import fs from "fs-extra";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+import fs from "fs-extra";
 import { logger } from "./logger";
 
 // Define the directory and file for storing configuration
 const PHALA_CLOUD_DIR = path.join(os.homedir(), ".phala-cloud");
 const CONFIG_FILE = path.join(PHALA_CLOUD_DIR, "config.json");
 
+type ConfigValue = string | number | boolean | null | undefined;
+type Config = Record<string, ConfigValue>;
+
 // Default configuration
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: Config = {
 	apiUrl: "https://cloud-api.phala.network",
 	cloudUrl: "https://cloud.phala.network",
 	defaultTeepodId: 3,
@@ -31,7 +34,7 @@ function ensureDirectoryExists(): void {
 }
 
 // Load configuration
-export function loadConfig(): Record<string, any> {
+export function loadConfig(): Config {
 	try {
 		if (fs.existsSync(CONFIG_FILE)) {
 			const configData = fs.readFileSync(CONFIG_FILE, "utf8");
@@ -45,7 +48,7 @@ export function loadConfig(): Record<string, any> {
 }
 
 // Save configuration
-export function saveConfig(config: Record<string, any>): void {
+export function saveConfig(config: Config): void {
 	ensureDirectoryExists();
 	try {
 		fs.writeFileSync(
@@ -61,24 +64,24 @@ export function saveConfig(config: Record<string, any>): void {
 }
 
 // Get a configuration value
-export function getConfigValue(key: string): any {
+export function getConfigValue(key: string): ConfigValue {
 	const config = loadConfig();
 	return config[key];
 }
 
 // Set a configuration value
-export function setConfigValue(key: string, value: any): void {
+export function setConfigValue(key: string, value: ConfigValue): void {
 	const config = loadConfig();
 	config[key] = value;
 	saveConfig(config);
 }
 
 // List all configuration values
-export function listConfigValues(): Record<string, any> {
+export function listConfigValues(): Config {
 	return loadConfig();
 }
 
-import { join } from "path";
+import { join } from "node:path";
 function getConfigPath(): string {
 	return join(process.cwd(), ".phala", "config");
 }
@@ -93,12 +96,12 @@ function ensureConfigExists(): void {
 	}
 }
 
-function readConfig(): Record<string, any> {
+function readConfig(): Config {
 	ensureConfigExists();
 	return fs.readJsonSync(getConfigPath());
 }
 
-function writeConfig(config: Record<string, any>): void {
+function writeConfig(config: Config): void {
 	ensureConfigExists();
 	fs.writeJsonSync(getConfigPath(), config, { spaces: 2 });
 }
@@ -116,5 +119,5 @@ export function getCvmUuid(): string | undefined {
 	}
 	// Fall back to config file
 	const config = readConfig();
-	return config.cvmUuid;
+	return config.cvmUuid as string | undefined;
 }

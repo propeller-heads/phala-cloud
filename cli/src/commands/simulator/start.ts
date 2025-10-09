@@ -1,4 +1,3 @@
-import { Command } from "commander";
 import { logger } from "@/src/utils/logger";
 import {
 	installSimulator,
@@ -6,6 +5,7 @@ import {
 	isSimulatorRunning,
 	runSimulator,
 } from "@/src/utils/simulator";
+import { Command } from "commander";
 
 export const startCommand = new Command()
 	.name("start")

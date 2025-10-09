@@ -1,31 +1,31 @@
-import { createClient } from "@phala/cloud";
 import { API_ENDPOINTS } from "@/src/utils/constants";
+import { getApiKey } from "@/src/utils/credentials";
 import { logger } from "@/src/utils/logger";
+import { createClient } from "@phala/cloud";
+import inquirer from "inquirer";
+import { z } from "zod";
 import {
+	type CvmComposeConfig,
+	type ReplicateCvmResponse,
+	cvmAttestationResponseSchema,
+	cvmComposeConfigSchema,
 	cvmInstanceSchema,
 	getCvmByAppIdResponseSchema,
+	getCvmNetworkResponseSchema,
 	getPubkeyFromCvmResponseSchema,
 	postCvmResponseSchema,
-	upgradeCvmResponseSchema,
-	cvmAttestationResponseSchema,
-	getCvmNetworkResponseSchema,
 	replicateCvmResponseSchema,
-	ReplicateCvmResponse,
-	CvmComposeConfig,
-	cvmComposeConfigSchema,
+	upgradeCvmResponseSchema,
 } from "./types";
 import type {
+	CvmAttestationResponse,
 	CvmInstance,
 	GetCvmByAppIdResponse,
+	GetCvmNetworkResponse,
 	GetPubkeyFromCvmResponse,
 	PostCvmResponse,
 	UpgradeCvmResponse,
-	CvmAttestationResponse,
-	GetCvmNetworkResponse,
 } from "./types";
-import inquirer from "inquirer";
-import { z } from "zod";
-import { getApiKey } from "@/src/utils/credentials";
 
 /**
  * Get all CVMs for the current user

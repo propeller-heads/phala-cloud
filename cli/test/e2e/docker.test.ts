@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { createTestEnvironment } from "../utils/test-helper";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import * as path from "node:path";
 import { createMockFile } from "../utils/mock";
-import * as path from "path";
+import { createTestEnvironment } from "../utils/test-helper";
 
 describe("Docker Commands E2E Tests", () => {
 	const { runCommand, setup, teardown, testConfigDir } =

@@ -1,14 +1,14 @@
 import {
 	INVALID,
-	ParseContext,
-	ParseInput,
-	ParseReturnType,
+	type ParseContext,
+	type ParseInput,
+	type ParseReturnType,
 	ParseStatus,
-	RawCreateParams,
+	type RawCreateParams,
 	ZodIssueCode,
 	ZodParsedType,
 	ZodType,
-	ZodTypeDef,
+	type ZodTypeDef,
 	addIssueToContext,
 	z,
 } from "zod";
@@ -29,8 +29,7 @@ export interface ZodDecimalDef extends ZodTypeDef {
 }
 
 const precisionRegex = /(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class ZodDecimal extends ZodType<number, ZodDecimalDef, any> {
+export class ZodDecimal extends ZodType<number, ZodDecimalDef, number | string> {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	_parse(input: ParseInput): ParseReturnType<number> {
 		// detect decimal js object
@@ -64,7 +63,7 @@ export class ZodDecimal extends ZodType<number, ZodDecimalDef, any> {
 				const parts = input.data.toString().match(precisionRegex);
 				const decimals = Math.max(
 					(parts[1] ? parts[1].length : 0) -
-						(parts[2] ? parseInt(parts[2], 10) : 0),
+						(parts[2] ? Number.parseInt(parts[2], 10) : 0),
 					0,
 				);
 				if (decimals > check.value) {
@@ -293,7 +292,8 @@ export class ZodDecimal extends ZodType<number, ZodDecimalDef, any> {
 		for (const ch of this._def.checks) {
 			if (ch.kind === "finite") {
 				return true;
-			} else if (ch.kind === "min") {
+			}
+			if (ch.kind === "min") {
 				if (min === null || ch.value > min) min = ch.value;
 			} else if (ch.kind === "max") {
 				if (max === null || ch.value < max) max = ch.value;

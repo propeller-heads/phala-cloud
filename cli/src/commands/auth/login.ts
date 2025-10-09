@@ -1,9 +1,9 @@
-import { Command } from "commander";
-import { removeApiKey, saveApiKey } from "@/src/utils/credentials";
-import { logger } from "@/src/utils/logger";
-import prompts from "prompts";
 import { getUserInfo } from "@/src/api/auth";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { removeApiKey, saveApiKey } from "@/src/utils/credentials";
+import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
+import prompts from "prompts";
 
 export const loginCommand = new Command()
 	.name("login")
@@ -12,8 +12,9 @@ export const loginCommand = new Command()
 	.action(async (apiKey?: string): Promise<void> => {
 		try {
 			let checkUserInfo;
+			let actualApiKey = apiKey;
 			// If no API key is provided, prompt for it
-			if (!apiKey) {
+			if (!actualApiKey) {
 				const response = await prompts({
 					type: "password",
 					name: "apiKey",
@@ -36,11 +37,11 @@ export const loginCommand = new Command()
 					},
 				});
 
-				apiKey = response.apiKey;
+				actualApiKey = response.apiKey;
 			} else {
-				await saveApiKey(apiKey);
+				await saveApiKey(actualApiKey);
 				// Validate the API key
-				checkUserInfo = await getUserInfo(apiKey);
+				checkUserInfo = await getUserInfo(actualApiKey);
 				if (!checkUserInfo.username) {
 					await removeApiKey();
 					throw new Error("Invalid API key");

@@ -1,14 +1,14 @@
-import { Command } from "commander";
 import {
 	checkCvmExists,
 	getCvmByAppId,
 	getCvms,
 	selectCvm,
 } from "@/src/api/cvms";
-import { logger } from "@/src/utils/logger";
 import { CLOUD_URL } from "@/src/utils/constants";
-import chalk from "chalk";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logger } from "@/src/utils/logger";
+import chalk from "chalk";
+import { Command } from "commander";
 
 export const getCommand = new Command()
 	.name("get")

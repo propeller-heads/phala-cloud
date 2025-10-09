@@ -1,6 +1,6 @@
-import inquirer from "inquirer";
 import fs from "node:fs";
 import path from "node:path";
+import inquirer from "inquirer";
 import { logger } from "./logger";
 
 /**

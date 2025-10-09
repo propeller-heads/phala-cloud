@@ -1,16 +1,16 @@
 import { Command } from "commander";
-import { listCommand } from "./list";
-import { getCommand } from "./get";
-import { startCommand } from "./start";
-import { stopCommand } from "./stop";
-import { restartCommand } from "./restart";
 import { attestationCommand } from "./attestation";
 import { createCommand } from "./create";
 import { deleteCommand } from "./delete";
-import { upgradeCommand } from "./upgrade";
-import { resizeCommand } from "./resize";
+import { getCommand } from "./get";
+import { listCommand } from "./list";
 import { listNodesCommand } from "./list-node";
 import { replicateCommand } from "./replicate";
+import { resizeCommand } from "./resize";
+import { restartCommand } from "./restart";
+import { startCommand } from "./start";
+import { stopCommand } from "./stop";
+import { upgradeCommand } from "./upgrade";
 
 export const cvmsCommand = new Command()
 	.name("cvms")

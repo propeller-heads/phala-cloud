@@ -1,17 +1,17 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { logo } from "./utils/banner";
 import { authCommands } from "./commands/auth";
-import { dockerCommands } from "./commands/docker";
-import { simulatorCommands } from "./commands/simulator";
-import { logger } from "./utils/logger";
 import { cvmsCommand } from "./commands/cvms";
-import { nodesCommand } from "./commands/nodes";
-import { statusCommand } from "./commands/status";
 import { deployCommand } from "./commands/deploy";
-import { readFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { dockerCommands } from "./commands/docker";
+import { nodesCommand } from "./commands/nodes";
+import { simulatorCommands } from "./commands/simulator";
+import { statusCommand } from "./commands/status";
+import { logo } from "./utils/banner";
+import { logger } from "./utils/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

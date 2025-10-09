@@ -1,8 +1,8 @@
+import { type StdioOptions, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import { execSync, spawn, type StdioOptions } from "node:child_process";
 import * as net from "node:net";
+import * as os from "node:os";
+import * as path from "node:path";
 import { logger } from "./logger";
 
 // Configuration for simulator
@@ -172,7 +172,7 @@ export async function installSimulator(
 		} catch (error) {
 			logger.error(`Failed to extract ${platformConfig.filename}:`, error);
 			throw new Error(
-				`Failed to extract simulator archive. Make sure you have sufficient permissions and disk space.`,
+				"Failed to extract simulator archive. Make sure you have sufficient permissions and disk space.",
 			);
 		}
 
@@ -210,7 +210,7 @@ export function getSimulatorPid(): number | null {
 	try {
 		const pidFile = getPidFilePath();
 		if (fs.existsSync(pidFile)) {
-			const pid = parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
+			const pid = Number.parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
 			// Verify the process is still running
 			try {
 				process.kill(pid, 0); // Check if process exists
@@ -511,9 +511,10 @@ export async function stopSimulator(): Promise<boolean> {
 					execSync("taskkill /F /IM dstack-simulator.exe", { stdio: "ignore" });
 				}
 				success = true;
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// Process might already be stopped
-				if (error.code !== "ESRCH") {
+				const nodeError = error as { code?: string };
+				if (nodeError.code !== "ESRCH") {
 					// No such process
 					logger.error("Failed to stop simulator:", error);
 					return false;
@@ -530,9 +531,10 @@ export async function stopSimulator(): Promise<boolean> {
 					execSync("pkill -f dstack-simulator", { stdio: "ignore" });
 				}
 				success = true;
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// Process might already be stopped
-				if (error.code !== "ESRCH") {
+				const nodeError = error as { code?: string };
+				if (nodeError.code !== "ESRCH") {
 					// No such process
 					logger.error("Failed to stop simulator:", error);
 					return false;
@@ -618,7 +620,7 @@ export function getSimulatorEndpoint(): string {
 	}
 
 	// Use the socket path from platform config, or fallback to default
-	const socketPath = platformConfig.socketPath || `/tmp/dstack.sock`;
+	const socketPath = platformConfig.socketPath || "/tmp/dstack.sock";
 	return `${socketPath}`;
 }
 

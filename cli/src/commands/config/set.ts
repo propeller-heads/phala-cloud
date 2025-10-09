@@ -1,6 +1,6 @@
-import { Command } from "commander";
 import { setConfigValue } from "@/src/utils/config";
 import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 
 export const setCommand = new Command()
 	.name("set")
@@ -16,7 +16,7 @@ export const setCommand = new Command()
 				value.startsWith("[") ||
 				value === "true" ||
 				value === "false" ||
-				!isNaN(Number(value))
+				!Number.isNaN(Number(value))
 			) {
 				try {
 					parsedValue = JSON.parse(value);

@@ -1,7 +1,7 @@
-import { Command } from "commander";
-import { DockerService } from "@/src/utils/docker";
 import { saveDockerCredentials } from "@/src/utils/credentials";
+import { DockerService } from "@/src/utils/docker";
 import { logger } from "@/src/utils/logger";
+import { Command } from "commander";
 import prompts from "prompts";
 
 export const loginCommand = new Command()

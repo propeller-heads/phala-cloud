@@ -22,7 +22,7 @@ export function parseSizeWithUnit(
 		);
 	}
 
-	const value = parseFloat(match[1]);
+	const value = Number.parseFloat(match[1]);
 	const unit = (match[2] || defaultUnit).toUpperCase().replace("B", "");
 
 	// Convert to bytes based on unit
