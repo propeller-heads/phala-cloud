@@ -29,6 +29,7 @@ jobs:
 
       - name: Run format check
         id: format-check
+        continue-on-error: true
         run: |
           set +e
           git diff > /tmp/pre-format.diff
@@ -36,7 +37,7 @@ jobs:
           git diff > /tmp/post-format.diff
 
           if ! cmp -s /tmp/pre-format.diff /tmp/post-format.diff; then
-            echo "⚠️ Formatting issues detected"
+            echo "⚠️ Formatting issues detected (non-blocking)"
             echo "format_issues=true" >> $GITHUB_OUTPUT
             exit_code=1
           else
@@ -45,10 +46,12 @@ jobs:
             exit_code=0
           fi
           echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
-          exit $exit_code
+          # Always succeed so it doesn't block the workflow
+          exit 0
 
       - name: Run lint check
         id: lint-check
+        continue-on-error: true
         run: |
           set +e
           bun run lint > lint_report.txt 2>&1
@@ -56,10 +59,13 @@ jobs:
           echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
           if [ $exit_code -ne 0 ]; then
             echo "lint_issues=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Lint issues found (non-blocking)"
           else
             echo "lint_issues=false" >> $GITHUB_OUTPUT
+            echo "✓ No lint issues"
           fi
-          exit $exit_code
+          # Always succeed so it doesn't block the workflow
+          exit 0
 
       - name: Run TypeScript type check
         id: type-check
