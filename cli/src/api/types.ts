@@ -262,3 +262,70 @@ export const teepodSchema = z.object({
 
 export type TEEPod = z.infer<typeof teepodSchema>;
 export type Image = z.infer<typeof imageSchema>;
+
+// TEEPod Response Schema
+export interface TeepodResponse {
+	nodes: TEEPod[];
+	kms_list?: KmsListItem[];
+}
+
+// KMS List Item
+export interface KmsListItem {
+	id?: string;
+	slug?: string;
+	url: string;
+	version: string;
+	chain_id?: string | null;
+	kms_contract_address?: string | null;
+	gateway_app_id?: string | null;
+}
+
+// Pubkey Response
+export interface PubkeyResponse {
+	app_env_encrypt_pubkey: string;
+	app_id_salt: string;
+}
+
+// CVM Info Response (from SDK)
+export interface CvmInfoResponse {
+	id: number;
+	name: string;
+	status: string;
+	app_id: string;
+	vcpu: number;
+	memory: number;
+	disk_size: number;
+	base_image: string;
+	encrypted_env_pubkey: string;
+	env_pubkey?: string;
+}
+
+// Upgrade Response
+export interface UpgradeResponse {
+	detail?: string;
+	[key: string]: unknown;
+}
+
+// User Info Response
+export interface UserInfoResponse {
+	username: string;
+	[key: string]: unknown;
+}
+
+// CVM List Response
+export interface CvmListResponse {
+	items: unknown[];
+	[key: string]: unknown;
+}
+
+// Available Nodes Response
+export interface AvailableNodesResponse {
+	nodes: TEEPod[];
+	kms_list?: KmsListItem[];
+}
+
+// CVM Compose Config Response
+export interface CvmComposeConfigResponse {
+	env_pubkey: string;
+	[key: string]: unknown;
+}

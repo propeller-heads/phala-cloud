@@ -11,12 +11,18 @@ import {
 	cvmAttestationResponseSchema,
 	getCvmNetworkResponseSchema,
 	replicateCvmResponseSchema,
-	ReplicateCvmResponse,
+	type ReplicateCvmResponse,
 } from "./types";
 import type {
 	PostCvmResponse,
 	CvmAttestationResponse,
 	GetCvmNetworkResponse,
+	TeepodResponse,
+	PubkeyResponse,
+	CvmInfoResponse,
+	CvmListResponse,
+	CvmComposeConfigResponse,
+	UpgradeResponse,
 } from "./types";
 import inquirer from "inquirer";
 
@@ -37,15 +43,20 @@ export async function checkCvmExists(appId: string): Promise<string> {
 	// Normalize input: remove app_ prefix if present
 	const cleanAppId = appId.replace(/^app_/, "");
 
-	const cvms = (result.data as any).items;
-	const cvm = cvms.find((cvm: any) => cvm.hosted?.app_id === cleanAppId);
+	const cvmList = result.data as CvmListResponse;
+	const cvms = cvmList.items;
+	const cvm = cvms.find((cvm: unknown) => {
+		const item = cvm as { hosted?: { app_id?: string } };
+		return item.hosted?.app_id === cleanAppId;
+	});
 
 	if (!cvm) {
 		logger.error(`CVM with App ID app_${cleanAppId} not detected`);
 		process.exit(1);
 	} else {
 		logger.success(`CVM with App ID app_${cleanAppId} detected`);
-		return cvm.hosted?.app_id || "";
+		const item = cvm as { hosted?: { app_id?: string } };
+		return item.hosted?.app_id || "";
 	}
 }
 
@@ -54,7 +65,7 @@ export async function checkCvmExists(appId: string): Promise<string> {
  * @param appId App ID (with or without app_ prefix)
  * @returns CVM details
  */
-export async function getCvmByAppId(appId: string) {
+export async function getCvmByAppId(appId: string): Promise<CvmInfoResponse> {
 	const client = await getClient();
 	// Remove app_ prefix if present, SDK will add it back
 	const cleanAppId = appId.replace(/^app_/, "");
@@ -64,13 +75,15 @@ export async function getCvmByAppId(appId: string) {
 		throw new Error(result.error.message);
 	}
 
-	return result.data;
+	return result.data as CvmInfoResponse;
 }
 
 /**
  * Get CVM compose configuration
  */
-export async function getCvmComposeConfig(cvmId: string) {
+export async function getCvmComposeConfig(
+	cvmId: string,
+): Promise<CvmComposeConfigResponse> {
 	const client = await getClient();
 	const result = await safeGetCvmComposeFile(client, { id: cvmId });
 
@@ -78,7 +91,7 @@ export async function getCvmComposeConfig(cvmId: string) {
 		throw new Error(result.error.message);
 	}
 
-	return result.data;
+	return result.data as CvmComposeConfigResponse;
 }
 
 /**
@@ -166,7 +179,8 @@ export async function selectCvm(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	const cvms = (result.data as any).items;
+	const cvmList = result.data as CvmListResponse;
+	const cvms = cvmList.items;
 
 	if (!cvms || cvms.length === 0) {
 		logger.info("No CVMs found for your account");
@@ -174,11 +188,16 @@ export async function selectCvm(): Promise<string | undefined> {
 	}
 
 	// Prepare choices for the inquirer prompt
-	const choices = cvms.map((cvm: any) => {
+	const choices = cvms.map((cvm: unknown) => {
 		// Handle different API response formats
-		const id = cvm.hosted?.app_id || cvm.hosted?.id;
-		const name = cvm.name || cvm.hosted?.name;
-		const status = cvm.status || cvm.hosted?.status;
+		const item = cvm as {
+			hosted?: { app_id?: string; id?: string; name?: string; status?: string };
+			name?: string;
+			status?: string;
+		};
+		const id = item.hosted?.app_id || item.hosted?.id;
+		const name = item.name || item.hosted?.name;
+		const status = item.status || item.hosted?.status;
 
 		return {
 			name: `${name || "Unnamed"} (${id}) - Status: ${status || "Unknown"}`,
@@ -322,13 +341,15 @@ export interface VMConfig {
  * @param vmConfig VM configuration
  * @returns Public key
  */
-export async function getPubkeyFromCvm(vmConfig: VMConfig) {
+export async function getPubkeyFromCvm(
+	vmConfig: VMConfig,
+): Promise<PubkeyResponse> {
 	const client = await getClient();
 	const response = await client.post(
 		"cvms/pubkey/from_cvm_configuration",
 		vmConfig,
 	);
-	return response;
+	return response as PubkeyResponse;
 }
 
 /**
@@ -353,11 +374,14 @@ export async function createCvm(vmConfig: VMConfig): Promise<PostCvmResponse> {
  * @param vmConfig VM configuration
  * @returns Upgrade response
  */
-export async function upgradeCvm(appId: string, vmConfig: VMConfig) {
+export async function upgradeCvm(
+	appId: string,
+	vmConfig: VMConfig,
+): Promise<UpgradeResponse> {
 	const client = await getClient();
 	const cleanAppId = appId.replace(/^app_/, "");
 	const response = await client.put(`cvms/app_${cleanAppId}/compose`, vmConfig);
-	return response;
+	return response as UpgradeResponse;
 }
 
 /**
@@ -366,12 +390,12 @@ export async function upgradeCvm(appId: string, vmConfig: VMConfig) {
  * @param v03x_only Only get v0.3.x compatible nodes
  * @returns List of TEEPods with embedded images
  */
-export async function getTeepods(v03x_only: boolean = false) {
+export async function getTeepods(v03x_only = false): Promise<TeepodResponse> {
 	const client = await getClient();
 	let url = "teepods/available";
 	if (v03x_only) {
 		url += "?v03x_only=1";
 	}
 	const response = await client.get(url);
-	return response;
+	return response as TeepodResponse;
 }

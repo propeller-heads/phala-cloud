@@ -5,6 +5,7 @@ import { logger } from "@/src/utils/logger";
 import { CLOUD_URL } from "@/src/utils/constants";
 import chalk from "chalk";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import type { CvmInfoResponse } from "@/src/api/types";
 
 export const getCommand = new Command()
 	.name("get")
@@ -31,7 +32,7 @@ export const getCommand = new Command()
 				throw new Error(result.error.message);
 			}
 
-			const cvm = result.data;
+			const cvm = result.data as CvmInfoResponse;
 			logger.break();
 
 			if (!cvm) {

@@ -5,6 +5,7 @@ import prompts from "prompts";
 import { safeGetCurrentUser } from "@phala/cloud";
 import { getClientWithKey } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
+import type { UserInfoResponse } from "@/src/api/types";
 
 export const loginCommand = new Command()
 	.name("login")
@@ -13,6 +14,7 @@ export const loginCommand = new Command()
 	.action(async (apiKey?: string): Promise<void> => {
 		try {
 			let checkUserInfo;
+			let finalApiKey: string;
 			// If no API key is provided, prompt for it
 			if (!apiKey) {
 				const response = await prompts({
@@ -27,11 +29,12 @@ export const loginCommand = new Command()
 							await saveApiKey(value);
 							const client = await getClientWithKey(value);
 							const result = await safeGetCurrentUser(client);
-							if (!result.success || !result.data.username) {
+							const userData = result.data as UserInfoResponse;
+							if (!result.success || !userData.username) {
 								await removeApiKey();
 								throw new Error("Invalid API key");
 							}
-							checkUserInfo = result.data;
+							checkUserInfo = userData;
 						} catch (error) {
 							throw new Error("Invalid API key");
 						}
@@ -39,17 +42,18 @@ export const loginCommand = new Command()
 					},
 				});
 
-				apiKey = response.apiKey;
+				finalApiKey = response.apiKey;
 			} else {
-				await saveApiKey(apiKey);
+				finalApiKey = apiKey;
+				await saveApiKey(finalApiKey);
 				// Validate the API key
-				const client = await getClientWithKey(apiKey);
+				const client = await getClientWithKey(finalApiKey);
 				const result = await safeGetCurrentUser(client);
-				if (!result.success || !result.data.username) {
+				if (!result.success || !(result.data as UserInfoResponse).username) {
 					await removeApiKey();
 					throw new Error("Invalid API key");
 				}
-				checkUserInfo = result.data;
+				checkUserInfo = result.data as UserInfoResponse;
 			}
 
 			logger.success(

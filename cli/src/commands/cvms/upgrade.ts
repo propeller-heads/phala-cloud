@@ -165,7 +165,8 @@ export const upgradeCommand = new Command()
 			// 3. Check for FetchError-specific properties (status, statusText, data, request)
 			const isFetchError =
 				error instanceof FetchError ||
-				(error as any)?.constructor?.name === "FetchError" ||
+				(error as unknown as { constructor?: { name?: string } })?.constructor
+					?.name === "FetchError" ||
 				(error &&
 					typeof error === "object" &&
 					"status" in error &&

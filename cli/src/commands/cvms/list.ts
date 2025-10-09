@@ -4,6 +4,7 @@ import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { CLOUD_URL } from "@/src/utils/constants";
 import chalk from "chalk";
+import type { CvmListResponse } from "@/src/api/types";
 
 export const listCommand = new Command()
 	.name("list")
@@ -23,7 +24,7 @@ export const listCommand = new Command()
 				throw new Error(result.error.message);
 			}
 
-			const cvmList = result.data;
+			const cvmList = result.data as CvmListResponse;
 			const cvms = cvmList.items;
 
 			if (!cvms || cvms.length === 0) {
@@ -37,19 +38,25 @@ export const listCommand = new Command()
 			}
 
 			for (const cvm of cvms) {
+				const item = cvm as {
+					name?: string;
+					hosted?: { app_id?: string; id?: string; app_url?: string };
+					node?: { region_identifier?: string };
+					status?: string;
+				};
 				logger.keyValueTable({
-					Name: cvm.name || "Unknown",
-					"App ID": `app_${cvm.hosted?.app_id || "unknown"}`,
-					"CVM ID": cvm.hosted?.id?.replace(/-/g, "") || "unknown",
-					Region: cvm.node?.region_identifier || "N/A",
+					Name: item.name || "Unknown",
+					"App ID": `app_${item.hosted?.app_id || "unknown"}`,
+					"CVM ID": item.hosted?.id?.replace(/-/g, "") || "unknown",
+					Region: item.node?.region_identifier || "N/A",
 					Status:
-						cvm.status === "running"
-							? chalk.green(cvm.status)
-							: cvm.status === "stopped"
-								? chalk.red(cvm.status)
-								: chalk.yellow(cvm.status || "unknown"),
-					"Node Info URL": cvm.hosted?.app_url || "N/A",
-					"App URL": `${CLOUD_URL}/dashboard/cvms/${cvm.hosted?.id?.replace(/-/g, "") || "unknown"}`,
+						item.status === "running"
+							? chalk.green(item.status)
+							: item.status === "stopped"
+								? chalk.red(item.status)
+								: chalk.yellow(item.status || "unknown"),
+					"Node Info URL": item.hosted?.app_url || "N/A",
+					"App URL": `${CLOUD_URL}/dashboard/cvms/${item.hosted?.id?.replace(/-/g, "") || "unknown"}`,
 				});
 				logger.break();
 			}
