@@ -24,20 +24,20 @@ process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
 
 async function main() {
-  const program = new Command()
-			.name("phala")
-			.alias("pha")
-			.description(
-				`${logo}\nPhala Cloud CLI - Manage your Phala Cloud Deployments`,
-			)
-			.version(version)
-			.addCommand(statusCommand)
-			.addCommand(authCommands)
-			.addCommand(cvmsCommand)
-			.addCommand(dockerCommands)
-			.addCommand(simulatorCommands)
-			.addCommand(nodesCommand)
-			.addCommand(deployCommand);
+	const program = new Command()
+		.name("phala")
+		.alias("pha")
+		.description(
+			`${logo}\nPhala Cloud CLI - Manage your Phala Cloud Deployments`,
+		)
+		.version(version)
+		.addCommand(statusCommand)
+		.addCommand(authCommands)
+		.addCommand(cvmsCommand)
+		.addCommand(dockerCommands)
+		.addCommand(simulatorCommands)
+		.addCommand(nodesCommand)
+		.addCommand(deployCommand);
 
 	program.parse(process.argv);
 }
