@@ -136,10 +136,10 @@ export const attestationCommand = new Command()
 
 						// Display entries in a table format
 						logger.table(entries, [
-							{ key: "Event", header: "Event", minWidth: 8 },
-							{ key: "IMR", header: "IMR", minWidth: 3 },
-							{ key: "Event Type", header: "Type", minWidth: 8 },
-							{ key: "Payload", header: "Payload", minWidth: 25 },
+							{ key: "Event", header: "Event" },
+							{ key: "IMR", header: "IMR" },
+							{ key: "Event Type", header: "Type" },
+							{ key: "Payload", header: "Payload" },
 						]);
 
 						if (attestationData.tcb_info.event_log.length > maxEntriesToShow) {

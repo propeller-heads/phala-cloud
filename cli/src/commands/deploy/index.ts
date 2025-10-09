@@ -326,7 +326,8 @@ const validateNodeandKmsandImage = async (options: Options, client: Client) => {
 		}
 		throw new Error(`Validation error: ${nodes_result.error.issues}`);
 	}
-	const nodes = nodes_result.data as unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const nodes = nodes_result.data as any;
 	let target = null;
 	let kms = null;
 	let privateKey = options.privateKey;
@@ -376,7 +377,8 @@ const validateNodeandKmsandImage = async (options: Options, client: Client) => {
 			}
 			throw new Error(`Validation error: ${kms_result.error.issues}`);
 		}
-		const kms_list = kms_result.data as unknown;
+		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+		const kms_list = kms_result.data as any;
 		if (!options.kmsId) {
 			if (options.interactive) {
 				const { kmsChoice } = await inquirer.prompt([
@@ -490,7 +492,8 @@ const deployNewCvm = async (
 	if (!provision_result.success) {
 		throw new Error("Failed to provision CVM:", provision_result.error);
 	}
-	const app = provision_result.data as unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const app = provision_result.data as any;
 	let commit_result;
 
 	// For centralized KMS, we can get the AppID & AppEnvEncryptPubkey from provision response.
@@ -527,7 +530,8 @@ const deployNewCvm = async (
 			const message = deploy_result?.error?.message;
 			throw new Error(`Deployment contract failed: ${message}`);
 		}
-		const deployed_contract = deploy_result.data as unknown;
+		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+		const deployed_contract = deploy_result.data as any;
 		const app_id = deployed_contract.appId;
 		const resp = await safeGetAppEnvEncryptPubKey(client, {
 			app_id: app_id,
@@ -538,7 +542,8 @@ const deployNewCvm = async (
 				`Failed to get app env encrypt pubkey: ${resp.error.message}`,
 			);
 		}
-		const pubkey_signature = resp.data as unknown;
+		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+		const pubkey_signature = resp.data as any;
 		const encrypted_env_vars = await encryptEnvVars(
 			envs,
 			pubkey_signature.public_key,
@@ -561,7 +566,8 @@ const deployNewCvm = async (
 		}
 		throw new Error(`Validation error: ${commit_result.error.issues}`);
 	}
-	const cvm = commit_result.data as unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const cvm = commit_result.data as any;
 	saveCvmUuid(cvm.vm_uuid);
 	if (validatedOptions?.json !== false) {
 		console.log(
@@ -612,8 +618,10 @@ const updateCvm = async (
 			`Failed to get cvm compose file: ${app_compose_result.error.message}`,
 		);
 	}
-	const cvm = cvm_result.data as unknown;
-	const app_compose = app_compose_result.data as unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const cvm = cvm_result.data as any;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const app_compose = app_compose_result.data as any;
 
 	// patched the compose_file
 	app_compose.docker_compose_file = docker_compose_yml;
@@ -644,7 +652,8 @@ const updateCvm = async (
 			`Failed to provision cvm compose file: ${provision_result.error.message}`,
 		);
 	}
-	const provision = provision_result.data as unknown;
+	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+	const provision = provision_result.data as any;
 
 	let encrypted_env: string | undefined;
 	if (cvm.kms_info?.chain_id) {

@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import ora, { type Ora } from "ora";
 
 /**
  * Wraps text at the specified width by splitting on spaces.
@@ -380,5 +381,23 @@ export const logger = {
 	 */
 	break: () => {
 		console.log();
+	},
+	/**
+	 * Starts a spinner with the given message
+	 */
+	startSpinner: (message: string) => {
+		const spinner = ora(message).start();
+		return {
+			stop: (success = true, text?: string) => {
+				if (text) {
+					spinner.text = text;
+				}
+				if (success) {
+					spinner.succeed();
+				} else {
+					spinner.fail();
+				}
+			},
+		};
 	},
 };

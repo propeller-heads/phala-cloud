@@ -39,7 +39,8 @@ export const resizeCommand = new Command()
 			let allowRestart: boolean | undefined = options.allowRestart;
 			// Prompt for vCPU if selected
 			if (!vcpu) {
-				const response = await inquirer.prompt([
+				// @ts-expect-error - inquirer v12 types are incompatible with array syntax
+				const response: { vcpu: number } = await inquirer.prompt([
 					{
 						type: "input",
 						name: "vcpu",
@@ -60,7 +61,8 @@ export const resizeCommand = new Command()
 
 			// Prompt for memory
 			if (!memory) {
-				const response = await inquirer.prompt([
+				// @ts-expect-error - inquirer v12 types are incompatible with array syntax
+				const response: { memory: number } = await inquirer.prompt([
 					{
 						type: "input",
 						name: "memory",
@@ -81,7 +83,8 @@ export const resizeCommand = new Command()
 
 			// Prompt for disk size
 			if (!diskSize) {
-				const response = await inquirer.prompt([
+				// @ts-expect-error - inquirer v12 types are incompatible with array syntax
+				const response: { diskSize: number } = await inquirer.prompt([
 					{
 						type: "input",
 						name: "diskSize",
