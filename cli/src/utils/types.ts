@@ -29,7 +29,11 @@ export interface ZodDecimalDef extends ZodTypeDef {
 }
 
 const precisionRegex = /(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
-export class ZodDecimal extends ZodType<number, ZodDecimalDef, number | string> {
+export class ZodDecimal extends ZodType<
+	number,
+	ZodDecimalDef,
+	number | string
+> {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	_parse(input: ParseInput): ParseReturnType<number> {
 		// detect decimal js object

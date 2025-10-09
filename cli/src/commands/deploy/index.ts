@@ -668,7 +668,9 @@ const updateCvm = async (
 	} else {
 		if (envs && envs.length > 0) {
 			if (!cvm.encrypted_env_pubkey) {
-				throw new Error("CVM encrypted_env_pubkey is required for centralized KMS");
+				throw new Error(
+					"CVM encrypted_env_pubkey is required for centralized KMS",
+				);
 			}
 			const encrypted_env_vars = await encryptEnvVars(
 				envs,

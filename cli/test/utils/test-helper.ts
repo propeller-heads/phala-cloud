@@ -29,7 +29,11 @@ export function createTestEnvironment(testName: string) {
 			});
 			return { stdout, stderr, exitCode: 0 };
 		} catch (error: unknown) {
-			const execaError = error as { stdout?: string; stderr?: string; exitCode?: number };
+			const execaError = error as {
+				stdout?: string;
+				stderr?: string;
+				exitCode?: number;
+			};
 			return {
 				stdout: execaError.stdout || "",
 				stderr: execaError.stderr || "",

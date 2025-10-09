@@ -40,7 +40,10 @@ export const statusCommand = new Command()
 					return;
 				}
 
-				const userInfo = result.data as { username?: string; team_name?: string };
+				const userInfo = result.data as {
+					username?: string;
+					team_name?: string;
+				};
 				const apiUrl =
 					process.env.PHALA_CLOUD_API_PREFIX ||
 					"https://cloud-api.phala.network/api/v1";

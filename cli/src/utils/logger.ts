@@ -10,8 +10,7 @@ function wrapText(text: string, maxWidth: number): string[] {
 	let currentLine = "";
 
 	for (const word of words) {
-		const testLine =
-			currentLine.length === 0 ? word : `${currentLine} ${word}`;
+		const testLine = currentLine.length === 0 ? word : `${currentLine} ${word}`;
 
 		if (testLine.length <= maxWidth) {
 			currentLine = testLine;
@@ -145,7 +144,7 @@ export const logger = {
 					const value = String(
 						typeof col.key === "string" && !(col.key in (row as object))
 							? ""
-							: (row as Record<string, unknown>)[String(col.key)] ?? "",
+							: ((row as Record<string, unknown>)[String(col.key)] ?? ""),
 					);
 					columnWidths[String(col.key)] = Math.max(
 						columnWidths[String(col.key)],
@@ -178,7 +177,7 @@ export const logger = {
 					const value = String(
 						typeof col.key === "string" && !(col.key in (row as object))
 							? ""
-							: (row as Record<string, unknown>)[String(col.key)] ?? "",
+							: ((row as Record<string, unknown>)[String(col.key)] ?? ""),
 					);
 					rowParts.push(value.padEnd(columnWidths[String(col.key)]));
 				}
@@ -198,9 +197,7 @@ export const logger = {
 			// Find max width for each column
 			for (const row of data) {
 				for (const key of keys) {
-					const value = String(
-						(row as Record<string, unknown>)[key] ?? "",
-					);
+					const value = String((row as Record<string, unknown>)[key] ?? "");
 					columnWidths[key] = Math.max(columnWidths[key], value.length);
 				}
 			}
@@ -223,9 +220,7 @@ export const logger = {
 			for (const row of data) {
 				const rowParts: string[] = [];
 				for (const key of keys) {
-					const value = String(
-						(row as Record<string, unknown>)[key] ?? "",
-					);
+					const value = String((row as Record<string, unknown>)[key] ?? "");
 					rowParts.push(value.padEnd(columnWidths[key]));
 				}
 				console.log(rowParts.join("  "));

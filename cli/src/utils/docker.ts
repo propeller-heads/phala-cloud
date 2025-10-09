@@ -377,13 +377,14 @@ export class DockerService {
 				.split("\n")
 				.filter((line) => line && !line.startsWith("#"))
 				.map((line) => {
-				// Remove inline comments
-				const commentIndex = line.indexOf("#");
-				const cleanedLine = commentIndex > 0
-					? line.substring(0, commentIndex).trim()
-					: line.trim();
-				return cleanedLine;
-			})
+					// Remove inline comments
+					const commentIndex = line.indexOf("#");
+					const cleanedLine =
+						commentIndex > 0
+							? line.substring(0, commentIndex).trim()
+							: line.trim();
+					return cleanedLine;
+				})
 				.filter((line) => line.includes("="))
 				.map((line) => {
 					const [key, value] = line.split("=", 2);
