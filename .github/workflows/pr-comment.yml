@@ -2,7 +2,7 @@ name: PR Comment
 
 on:
   workflow_run:
-    workflows: ["SDK PR Checks"]
+    workflows: ["SDK PR Checks", "CLI PR Checks"]
     types:
       - completed
 
@@ -41,38 +41,59 @@ jobs:
       - name: Read check results
         id: results
         run: |
-          # Read format check
+          # JS SDK: Read format check
           if [ -f js/format_report.txt ]; then
             echo "format_report<<EOF" >> $GITHUB_OUTPUT
             cat js/format_report.txt >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-          # Read type check
+          # JS SDK: Read type check
           if [ -f js/type_check_report.txt ]; then
             echo "type_check_report<<EOF" >> $GITHUB_OUTPUT
             cat js/type_check_report.txt >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-          # Read test results
+          # JS SDK: Read test results
           if [ -f js/test_report.txt ]; then
             echo "test_report<<EOF" >> $GITHUB_OUTPUT
             cat js/test_report.txt >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-          # Read lint check
+          # JS SDK: Read lint check
           if [ -f js/lint_report.txt ]; then
             echo "lint_report<<EOF" >> $GITHUB_OUTPUT
             cat js/lint_report.txt >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-          # Read browser compatibility
+          # JS SDK: Read browser compatibility
           if [ -f js/browser_report.txt ]; then
             echo "browser_report<<EOF" >> $GITHUB_OUTPUT
             cat js/browser_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # CLI: Read lint check
+          if [ -f cli/lint_report.txt ]; then
+            echo "cli_lint_report<<EOF" >> $GITHUB_OUTPUT
+            cat cli/lint_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # CLI: Read type check
+          if [ -f cli/type_check_report.txt ]; then
+            echo "cli_type_check_report<<EOF" >> $GITHUB_OUTPUT
+            cat cli/type_check_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # CLI: Read test results
+          if [ -f cli/test_report.txt ]; then
+            echo "cli_test_report<<EOF" >> $GITHUB_OUTPUT
+            cat cli/test_report.txt >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
@@ -83,7 +104,7 @@ jobs:
         with:
           issue-number: ${{ steps.pr-metadata.outputs.pr_number }}
           comment-author: 'github-actions[bot]'
-          body-includes: '## 📋 SDK Check Results'
+          body-includes: '## 📋 Check Results'
 
       - name: Create or update comment
         if: steps.pr-metadata.outputs.pr_number
@@ -93,50 +114,77 @@ jobs:
           issue-number: ${{ steps.pr-metadata.outputs.pr_number }}
           edit-mode: replace
           body: |
-            ## 📋 SDK Check Results
+            ## 📋 Check Results
 
-            ### ✨ Code Formatting
-            <details>
-            <summary>Show format check results</summary>
-
-            ```
+            ${{ steps.results.outputs.format_report && '### ✨ JS SDK - Code Formatting' || '' }}
+            ${{ steps.results.outputs.format_report && '<details>' || '' }}
+            ${{ steps.results.outputs.format_report && '<summary>Show format check results</summary>' || '' }}
+            ${{ steps.results.outputs.format_report && '' || '' }}
+            ${{ steps.results.outputs.format_report && '```' || '' }}
             ${{ steps.results.outputs.format_report }}
-            ```
-            </details>
+            ${{ steps.results.outputs.format_report && '```' || '' }}
+            ${{ steps.results.outputs.format_report && '</details>' || '' }}
 
-            ### 🔍 TypeScript Type Check
-            <details>
-            <summary>Show type check output</summary>
-
-            ```
+            ${{ steps.results.outputs.type_check_report && '### 🔍 JS SDK - TypeScript Type Check' || '' }}
+            ${{ steps.results.outputs.type_check_report && '<details>' || '' }}
+            ${{ steps.results.outputs.type_check_report && '<summary>Show type check output</summary>' || '' }}
+            ${{ steps.results.outputs.type_check_report && '' || '' }}
+            ${{ steps.results.outputs.type_check_report && '```' || '' }}
             ${{ steps.results.outputs.type_check_report }}
-            ```
-            </details>
+            ${{ steps.results.outputs.type_check_report && '```' || '' }}
+            ${{ steps.results.outputs.type_check_report && '</details>' || '' }}
 
-            ### 🧪 Test Results
-            <details>
-            <summary>Show test output</summary>
-
-            ```
+            ${{ steps.results.outputs.test_report && '### 🧪 JS SDK - Test Results' || '' }}
+            ${{ steps.results.outputs.test_report && '<details>' || '' }}
+            ${{ steps.results.outputs.test_report && '<summary>Show test output</summary>' || '' }}
+            ${{ steps.results.outputs.test_report && '' || '' }}
+            ${{ steps.results.outputs.test_report && '```' || '' }}
             ${{ steps.results.outputs.test_report }}
-            ```
-            </details>
+            ${{ steps.results.outputs.test_report && '```' || '' }}
+            ${{ steps.results.outputs.test_report && '</details>' || '' }}
 
-            ### 📝 Lint Check
-            <details>
-            <summary>Show lint results</summary>
-
-            ```
+            ${{ steps.results.outputs.lint_report && '### 📝 JS SDK - Lint Check' || '' }}
+            ${{ steps.results.outputs.lint_report && '<details>' || '' }}
+            ${{ steps.results.outputs.lint_report && '<summary>Show lint results</summary>' || '' }}
+            ${{ steps.results.outputs.lint_report && '' || '' }}
+            ${{ steps.results.outputs.lint_report && '```' || '' }}
             ${{ steps.results.outputs.lint_report }}
-            ```
-            </details>
+            ${{ steps.results.outputs.lint_report && '```' || '' }}
+            ${{ steps.results.outputs.lint_report && '</details>' || '' }}
 
-            ### 🌐 Browser Compatibility
-            <details>
-            <summary>Show browser test results</summary>
-
+            ${{ steps.results.outputs.browser_report && '### 🌐 JS SDK - Browser Compatibility' || '' }}
+            ${{ steps.results.outputs.browser_report && '<details>' || '' }}
+            ${{ steps.results.outputs.browser_report && '<summary>Show browser test results</summary>' || '' }}
+            ${{ steps.results.outputs.browser_report && '' || '' }}
             ${{ steps.results.outputs.browser_report }}
-            </details>
+            ${{ steps.results.outputs.browser_report && '</details>' || '' }}
+
+            ${{ steps.results.outputs.cli_lint_report && '### 📝 CLI - Lint Check' || '' }}
+            ${{ steps.results.outputs.cli_lint_report && '<details>' || '' }}
+            ${{ steps.results.outputs.cli_lint_report && '<summary>Show lint results</summary>' || '' }}
+            ${{ steps.results.outputs.cli_lint_report && '' || '' }}
+            ${{ steps.results.outputs.cli_lint_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_lint_report }}
+            ${{ steps.results.outputs.cli_lint_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_lint_report && '</details>' || '' }}
+
+            ${{ steps.results.outputs.cli_type_check_report && '### 🔍 CLI - TypeScript Type Check' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report && '<details>' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report && '<summary>Show type check output</summary>' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report && '' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report }}
+            ${{ steps.results.outputs.cli_type_check_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_type_check_report && '</details>' || '' }}
+
+            ${{ steps.results.outputs.cli_test_report && '### 🧪 CLI - Test Results' || '' }}
+            ${{ steps.results.outputs.cli_test_report && '<details>' || '' }}
+            ${{ steps.results.outputs.cli_test_report && '<summary>Show test output</summary>' || '' }}
+            ${{ steps.results.outputs.cli_test_report && '' || '' }}
+            ${{ steps.results.outputs.cli_test_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_test_report }}
+            ${{ steps.results.outputs.cli_test_report && '```' || '' }}
+            ${{ steps.results.outputs.cli_test_report && '</details>' || '' }}
 
             ---
             _Check run: [${{ github.event.workflow_run.html_url }}](${{ github.event.workflow_run.html_url }})_

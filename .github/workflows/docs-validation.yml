@@ -3,14 +3,20 @@ name: 📚 Documentation Validation
 on:
   push:
     branches: [ main, mintlify ]
+    paths:
+      - 'phala-docs/**'
   pull_request:
-    branches: [ main, mintlify ]
+    paths:
+      - 'phala-docs/**'
   workflow_dispatch:
 
 jobs:
   validate-docs:
     name: 🔍 Validate Documentation
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: phala-docs
 
     steps:
       - name: 📥 Checkout code
@@ -78,6 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     needs: validate-docs
+    defaults:
+      run:
+        working-directory: phala-docs
 
     steps:
       - name: 📥 Checkout code

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 /**
  * Creates a temporary mock file with the given content
@@ -7,11 +7,11 @@ import * as path from 'path';
  * @param content The content to write to the file
  */
 export function createMockFile(filePath: string, content: string): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(filePath, content);
+	const dir = path.dirname(filePath);
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
+	}
+	fs.writeFileSync(filePath, content);
 }
 
 /**
@@ -19,9 +19,9 @@ export function createMockFile(filePath: string, content: string): void {
  * @param filePath The path to the file
  */
 export function deleteMockFile(filePath: string): void {
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
+	if (fs.existsSync(filePath)) {
+		fs.unlinkSync(filePath);
+	}
 }
 
 /**
@@ -29,9 +29,9 @@ export function deleteMockFile(filePath: string): void {
  * @param dirPath The path to the directory
  */
 export function createMockDir(dirPath: string): void {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
+	if (!fs.existsSync(dirPath)) {
+		fs.mkdirSync(dirPath, { recursive: true });
+	}
 }
 
 /**
@@ -39,7 +39,7 @@ export function createMockDir(dirPath: string): void {
  * @param dirPath The path to the directory
  */
 export function deleteMockDir(dirPath: string): void {
-  if (fs.existsSync(dirPath)) {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-  }
-} 
+	if (fs.existsSync(dirPath)) {
+		fs.rmSync(dirPath, { recursive: true, force: true });
+	}
+}

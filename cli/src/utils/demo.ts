@@ -20,14 +20,13 @@ services:
       - "80:80"
 `;
 
-
 export const demoTemplates = {
-  jupyter: {
-    compose: jupyterCompose,
-    name: "Jupyter Notebook",
-  },
-  httpbin: {
-    compose: httpbinCompose,
-    name: "HTTPBin",
-  },
+	jupyter: {
+		compose: jupyterCompose,
+		name: "Jupyter Notebook",
+	},
+	httpbin: {
+		compose: httpbinCompose,
+		name: "HTTPBin",
+	},
 };

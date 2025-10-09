@@ -1,7 +1,7 @@
-import inquirer from 'inquirer';
-import fs from 'node:fs';
-import path from 'node:path';
-import { logger } from './logger';
+import fs from "node:fs";
+import path from "node:path";
+import inquirer from "inquirer";
+import { logger } from "./logger";
 
 /**
  * Validates that a file exists at the given path
@@ -11,14 +11,14 @@ import { logger } from './logger';
  * @throws Error if the file does not exist
  */
 export function validateFileExists(
-  filePath: string,
-  basePath: string = process.cwd()
+	filePath: string,
+	basePath: string = process.cwd(),
 ): boolean {
-  const resolvedPath = path.resolve(basePath, filePath);
-  if (!fs.existsSync(resolvedPath)) {
-    throw new Error(`File not found at ${resolvedPath}`);
-  }
-  return true;
+	const resolvedPath = path.resolve(basePath, filePath);
+	if (!fs.existsSync(resolvedPath)) {
+		throw new Error(`File not found at ${resolvedPath}`);
+	}
+	return true;
 }
 
 /**
@@ -30,44 +30,44 @@ export function validateFileExists(
  * @returns The validated file path
  */
 export async function promptForFile(
-  message: string,
-  defaultValue: string,
-  name = 'file',
-  basePath: string = process.cwd()
+	message: string,
+	defaultValue: string,
+	name = "file",
+	basePath: string = process.cwd(),
 ): Promise<string> {
-  const response = await inquirer.prompt([
-    {
-      type: 'input',
-      name,
-      message,
-      default: defaultValue,
-      validate: (input) => {
-        const filePath = path.resolve(basePath, input);
-        if (!fs.existsSync(filePath)) {
-          return `File not found at ${filePath}`;
-        }
-        return true;
-      }
-    }
-  ]);
+	const response = await inquirer.prompt([
+		{
+			type: "input",
+			name,
+			message,
+			default: defaultValue,
+			validate: (input) => {
+				const filePath = path.resolve(basePath, input);
+				if (!fs.existsSync(filePath)) {
+					return `File not found at ${filePath}`;
+				}
+				return true;
+			},
+		},
+	]);
 
-  return response[name];
+	return response[name];
 }
 
 export function detectFileInCurrentDir(
-  possibleFiles: string[],
-  logMessage?: string
+	possibleFiles: string[],
+	logMessage?: string,
 ): string | undefined {
-  for (const file of possibleFiles) {
-    const filePath = path.join(process.cwd(), file);
-    if (fs.existsSync(filePath)) {
-      if (logMessage) {
-        logger.info(logMessage.replace('{path}', filePath));
-      } else {
-        logger.info(`File detected: ${filePath}`);
-      }
-      return file;
-    }
-  }
-  return undefined;
+	for (const file of possibleFiles) {
+		const filePath = path.join(process.cwd(), file);
+		if (fs.existsSync(filePath)) {
+			if (logMessage) {
+				logger.info(logMessage.replace("{path}", filePath));
+			} else {
+				logger.info(`File detected: ${filePath}`);
+			}
+			return file;
+		}
+	}
+	return undefined;
 }

@@ -1,5 +1,5 @@
-import chalk from 'chalk';
-const logoColor = chalk.hex('#cdfa50');
+import chalk from "chalk";
+const logoColor = chalk.hex("#cdfa50");
 export const logo = logoColor(`
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣤⣤⣀⡀⠀⢀⣀⣤⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠛⠉⠁⠀⠈⠉⠛⠿⠛⠉⠉⠉⠉⠙⠷⣄⠀⠀⠀⠀⠀⠀⠀⠀
@@ -48,4 +48,4 @@ export const smallLogo = logoColor(`
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠙⠛⠻⠿⠿⠿⠿⢿⣿⣿⣿⠿⠿⠿⠿⠟⠛⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 `);
 
-export const minimalLogo = chalk.cyan('PHALA TEE CLOUD CLI');
+export const minimalLogo = chalk.cyan("PHALA TEE CLOUD CLI");
