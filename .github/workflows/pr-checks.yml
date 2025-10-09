@@ -3,7 +3,11 @@ name: SDK PR Checks
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - 'js/**'
   push:
+    paths:
+      - 'js/**'
 
 jobs:
   js-sdk-checks:

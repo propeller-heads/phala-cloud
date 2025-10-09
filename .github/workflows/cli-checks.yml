@@ -1,0 +1,99 @@
+name: CLI PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'cli/**'
+  push:
+    paths:
+      - 'cli/**'
+
+jobs:
+  cli-checks:
+    name: CLI Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run format check
+        id: format-check
+        run: |
+          set +e
+          git diff > /tmp/pre-format.diff
+          bun run fmt
+          git diff > /tmp/post-format.diff
+
+          if ! cmp -s /tmp/pre-format.diff /tmp/post-format.diff; then
+            echo "⚠️ Formatting issues detected"
+            echo "format_issues=true" >> $GITHUB_OUTPUT
+            exit_code=1
+          else
+            echo "✓ No formatting issues found"
+            echo "format_issues=false" >> $GITHUB_OUTPUT
+            exit_code=0
+          fi
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Run lint check
+        id: lint-check
+        run: |
+          set +e
+          bun run lint > lint_report.txt 2>&1
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          if [ $exit_code -ne 0 ]; then
+            echo "lint_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "lint_issues=false" >> $GITHUB_OUTPUT
+          fi
+          exit $exit_code
+
+      - name: Run TypeScript type check
+        id: type-check
+        run: |
+          set +e
+          bun run type-check > type_check_report.txt 2>&1
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Run tests
+        id: test
+        run: |
+          set +e
+          bun run test > test_report.txt 2>&1
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Save PR metadata
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p pr-metadata
+          echo "${{ github.event.pull_request.number }}" > pr-metadata/pr_number.txt
+          echo "${{ github.event.pull_request.head.ref }}" > pr-metadata/pr_branch.txt
+          echo "${{ github.event.pull_request.head.sha }}" > pr-metadata/pr_sha.txt
+
+      - name: Upload check results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-check-results
+          path: |
+            cli/lint_report.txt
+            cli/type_check_report.txt
+            cli/test_report.txt
+            pr-metadata/
