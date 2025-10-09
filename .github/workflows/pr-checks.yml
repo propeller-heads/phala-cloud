@@ -5,11 +5,6 @@ on:
     types: [opened, synchronize, reopened]
   push:
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
-
 jobs:
   js-sdk-checks:
     name: JavaScript SDK Checks
@@ -30,37 +25,32 @@ jobs:
         id: format-check
         working-directory: js
         run: |
+          set +e
           # Store the current state
           git diff > /tmp/pre-format.diff
-          
+
           # Run formatter
           bun run fmt
-          
+
           # Check if there are any changes after formatting
           git diff > /tmp/post-format.diff
-          
+
           # Compare diffs
           if ! cmp -s /tmp/pre-format.diff /tmp/post-format.diff; then
             echo "Code formatting issues found. Please run 'bun run fmt' locally and commit the changes."
             echo "format_issues=true" >> $GITHUB_OUTPUT
-            exit 1
+            echo "⚠️ **Formatting issues detected**" > format_report.txt
+            echo "" >> format_report.txt
+            echo "Please run \`bun run fmt\` in the \`js/\` directory locally and commit the changes to resolve formatting issues." >> format_report.txt
+            exit_code=1
           else
             echo "No formatting issues found."
             echo "format_issues=false" >> $GITHUB_OUTPUT
+            echo "✓ No formatting issues found" > format_report.txt
+            exit_code=0
           fi
-
-      - name: Comment on PR about formatting issues
-        if: failure() && steps.format-check.outputs.format_issues == 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '⚠️ **Formatting issues detected**\n\nPlease run `bun run fmt` in the `js/` directory locally and commit the changes to resolve formatting issues.'
-            })
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
 
       - name: Run TypeScript type check
         id: type-check
@@ -68,27 +58,8 @@ jobs:
         run: |
           set +e
           bun run type-check > type_check_report.txt 2>&1
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          echo "report<<EOF" >> $GITHUB_OUTPUT
-          cat type_check_report.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Comment type check report on PR
-        if: always() && github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🔍 TypeScript Type Check Report
-            <details>
-            <summary>Show type check output</summary>
-
-            ```
-            ${{ steps.type-check.outputs.report }}
-            ```
-            </details>
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
 
       - name: Run tests
         id: test
@@ -96,60 +67,56 @@ jobs:
         run: |
           set +e
           bun run test > test_report.txt 2>&1
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          echo "report<<EOF" >> $GITHUB_OUTPUT
-          cat test_report.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Comment test report on PR
-        if: always() && github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🧪 Test Results
-            <details>
-            <summary>Show test output</summary>
-
-            ```
-            ${{ steps.test.outputs.report }}
-            ```
-            </details>
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
 
       - name: Run lint check (if available)
         id: lint-check
         working-directory: js
-        continue-on-error: true
         run: |
+          set +e
           # Check if lint script exists
           if bun run | grep -q "lint"; then
-            if ! bun run lint; then
+            bun run lint > lint_report.txt 2>&1
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
               echo "Linting issues found. Please run 'bun run lint' locally and fix the issues."
               echo "lint_issues=true" >> $GITHUB_OUTPUT
-              exit 1
+              echo "⚠️ **Linting issues detected**" > lint_report.txt
+              echo "" >> lint_report.txt
+              echo "Please run \`bun run lint\` in the \`js/\` directory locally and fix the linting issues." >> lint_report.txt
             else
               echo "No linting issues found."
               echo "lint_issues=false" >> $GITHUB_OUTPUT
+              echo "✓ No linting issues found" > lint_report.txt
             fi
+            echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
           else
             echo "No lint script found, skipping linting."
             echo "lint_issues=false" >> $GITHUB_OUTPUT
+            echo "exit_code=0" >> $GITHUB_OUTPUT
+            echo "ℹ️ No lint script found, skipping linting" > lint_report.txt
           fi
 
-      - name: Comment on PR about linting issues
-        if: failure() && steps.lint-check.outputs.lint_issues == 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Save PR metadata
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p pr-metadata
+          echo "${{ github.event.pull_request.number }}" > pr-metadata/pr_number.txt
+          echo "${{ github.event.pull_request.head.ref }}" > pr-metadata/pr_branch.txt
+          echo "${{ github.event.pull_request.head.sha }}" > pr-metadata/pr_sha.txt
+
+      - name: Upload check results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '⚠️ **Linting issues detected**\n\nPlease run `bun run lint` in the `js/` directory locally and fix the linting issues.'
-            })
+          name: check-results
+          path: |
+            js/format_report.txt
+            js/type_check_report.txt
+            js/test_report.txt
+            js/lint_report.txt
+            pr-metadata/
 
   compatibility-checks:
     name: Compatibility Checks
@@ -349,22 +316,30 @@ jobs:
             runTests();
           "
 
-      - name: Comment browser compatibility report on PR
+      - name: Save browser compatibility results
+        if: always()
+        working-directory: js
+        run: |
+          echo "## 🌐 Browser Compatibility Report" > browser_report.txt
+          echo "" >> browser_report.txt
+          echo "Browser compatibility tests completed across:" >> browser_report.txt
+          echo "- ✓ Chromium" >> browser_report.txt
+          echo "- ✓ Firefox" >> browser_report.txt
+          echo "- ✓ WebKit (Safari)" >> browser_report.txt
+          echo "" >> browser_report.txt
+          echo "The SDK has been verified to work in modern browser environments." >> browser_report.txt
+
+      - name: Save PR metadata
         if: always() && github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
+        run: |
+          mkdir -p pr-metadata
+          echo "${{ github.event.pull_request.number }}" > pr-metadata/pr_number.txt
+
+      - name: Upload browser check results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🌐 Browser Compatibility Report
-            <details>
-            <summary>Show browser test results</summary>
-
-            Browser compatibility tests completed across:
-            - ✓ Chromium
-            - ✓ Firefox  
-            - ✓ WebKit (Safari)
-
-            The SDK has been verified to work in modern browser environments.
-            </details>
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: browser-check-results
+          path: |
+            js/browser_report.txt
+            pr-metadata/
