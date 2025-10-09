@@ -1,0 +1,142 @@
+name: PR Comment
+
+on:
+  workflow_run:
+    workflows: ["SDK PR Checks"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Post Check Results
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    steps:
+      - name: Download check results
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: "*-results"
+          merge-multiple: true
+
+      - name: Read PR metadata
+        id: pr-metadata
+        run: |
+          if [ -f pr-metadata/pr_number.txt ]; then
+            PR_NUMBER=$(cat pr-metadata/pr_number.txt)
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "PR metadata not found, skipping comment"
+            exit 0
+          fi
+
+      - name: Read check results
+        id: results
+        run: |
+          # Read format check
+          if [ -f js/format_report.txt ]; then
+            echo "format_report<<EOF" >> $GITHUB_OUTPUT
+            cat js/format_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # Read type check
+          if [ -f js/type_check_report.txt ]; then
+            echo "type_check_report<<EOF" >> $GITHUB_OUTPUT
+            cat js/type_check_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # Read test results
+          if [ -f js/test_report.txt ]; then
+            echo "test_report<<EOF" >> $GITHUB_OUTPUT
+            cat js/test_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # Read lint check
+          if [ -f js/lint_report.txt ]; then
+            echo "lint_report<<EOF" >> $GITHUB_OUTPUT
+            cat js/lint_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+          # Read browser compatibility
+          if [ -f js/browser_report.txt ]; then
+            echo "browser_report<<EOF" >> $GITHUB_OUTPUT
+            cat js/browser_report.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Find existing comment
+        if: steps.pr-metadata.outputs.pr_number
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ steps.pr-metadata.outputs.pr_number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '## 📋 SDK Check Results'
+
+      - name: Create or update comment
+        if: steps.pr-metadata.outputs.pr_number
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ steps.pr-metadata.outputs.pr_number }}
+          edit-mode: replace
+          body: |
+            ## 📋 SDK Check Results
+
+            ### ✨ Code Formatting
+            <details>
+            <summary>Show format check results</summary>
+
+            ```
+            ${{ steps.results.outputs.format_report }}
+            ```
+            </details>
+
+            ### 🔍 TypeScript Type Check
+            <details>
+            <summary>Show type check output</summary>
+
+            ```
+            ${{ steps.results.outputs.type_check_report }}
+            ```
+            </details>
+
+            ### 🧪 Test Results
+            <details>
+            <summary>Show test output</summary>
+
+            ```
+            ${{ steps.results.outputs.test_report }}
+            ```
+            </details>
+
+            ### 📝 Lint Check
+            <details>
+            <summary>Show lint results</summary>
+
+            ```
+            ${{ steps.results.outputs.lint_report }}
+            ```
+            </details>
+
+            ### 🌐 Browser Compatibility
+            <details>
+            <summary>Show browser test results</summary>
+
+            ${{ steps.results.outputs.browser_report }}
+            </details>
+
+            ---
+            _Check run: [${{ github.event.workflow_run.html_url }}](${{ github.event.workflow_run.html_url }})_
