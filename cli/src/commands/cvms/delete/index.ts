@@ -17,7 +17,7 @@ async function runCvmsDeleteCommand(
 	try {
 		const resolvedAppId = await resolveCvmAppId(input.appId);
 
-		if (!input.force) {
+		if (!input.force && !input.yes) {
 			const { confirm } = await inquirer.prompt([
 				{
 					type: "confirm",

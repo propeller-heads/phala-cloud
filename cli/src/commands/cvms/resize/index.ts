@@ -115,55 +115,75 @@ async function runCvmsResizeCommand(
 			allowRestart = response.allowRestart;
 		}
 
-		logger.keyValueTable({
-			vCPUs:
-				cvm.vcpu !== vcpu
-					? `${chalk.red(cvm.vcpu)} -> ${chalk.green(vcpu)}`
-					: cvm.vcpu,
-			Memory:
-				cvm.memory !== memory
-					? `${chalk.red(cvm.memory)} MB -> ${chalk.green(memory)} MB`
-					: cvm.memory,
-			"Disk Size":
-				cvm.disk_size !== diskSize
-					? `${chalk.red(cvm.disk_size)} GB -> ${chalk.green(diskSize)} GB`
-					: cvm.disk_size,
-			"Allow Restart": allowRestart ? chalk.green("Yes") : chalk.red("No"),
-		});
+		if (!input.json) {
+			logger.keyValueTable({
+				vCPUs:
+					cvm.vcpu !== vcpu
+						? `${chalk.red(cvm.vcpu)} -> ${chalk.green(vcpu)}`
+						: cvm.vcpu,
+				Memory:
+					cvm.memory !== memory
+						? `${chalk.red(cvm.memory)} MB -> ${chalk.green(memory)} MB`
+						: cvm.memory,
+				"Disk Size":
+					cvm.disk_size !== diskSize
+						? `${chalk.red(cvm.disk_size)} GB -> ${chalk.green(diskSize)} GB`
+						: cvm.disk_size,
+				"Allow Restart": allowRestart ? chalk.green("Yes") : chalk.red("No"),
+			});
 
-		if (!input.yes) {
-			const { confirm } = await inquirer.prompt([
-				{
-					type: "confirm",
-					name: "confirm",
-					message: `Are you sure you want to resize CVM app_${resolvedAppId}?`,
-					default: false,
-				},
-			]);
+			if (!input.yes) {
+				const { confirm } = await inquirer.prompt([
+					{
+						type: "confirm",
+						name: "confirm",
+						message: `Are you sure you want to resize CVM app_${resolvedAppId}?`,
+						default: false,
+					},
+				]);
 
-			if (!confirm) {
-				logger.info("Resize operation cancelled");
-				return 0;
+				if (!confirm) {
+					logger.info("Resize operation cancelled");
+					return 0;
+				}
 			}
-		}
 
-		const spinner = logger.startSpinner(
-			`Resizing CVM with App ID app_${resolvedAppId}`,
-		);
-		await resizeCvm(
-			resolvedAppId,
-			vcpu,
-			memory,
-			diskSize,
-			allowRestart ? 1 : 0,
-		);
-		spinner.stop(true);
+			const spinner = logger.startSpinner(
+				`Resizing CVM with App ID app_${resolvedAppId}`,
+			);
+			await resizeCvm(
+				resolvedAppId,
+				vcpu,
+				memory,
+				diskSize,
+				allowRestart ? 1 : 0,
+			);
+			spinner.stop(true);
 
-		logger.break();
-		logger.success(
-			`Your CVM is being resized. You can check the dashboard for more details:
+			logger.break();
+			logger.success(
+				`Your CVM is being resized. You can check the dashboard for more details:
 ${CLOUD_URL}/dashboard/cvms/app_${resolvedAppId}`,
-		);
+			);
+		} else {
+			await resizeCvm(
+				resolvedAppId,
+				vcpu,
+				memory,
+				diskSize,
+				allowRestart ? 1 : 0,
+			);
+			console.log(
+				JSON.stringify({
+					success: true,
+					app_id: resolvedAppId,
+					vcpu,
+					memory,
+					disk_size: diskSize,
+					allow_restart: allowRestart,
+				}),
+			);
+		}
 		return 0;
 	} catch (error) {
 		logger.error(
