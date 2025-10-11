@@ -25,7 +25,6 @@ jobs:
           script: |
             const allowedPackages = ['cli', 'js'];
             const allowedBumps = ['patch', 'minor', 'major'];
-            const { github, context } = require('@actions/github');
 
             const body = context.payload.comment.body.trim();
             const match = body.match(/!release\s+(\S+)\s+(\S+)/i);

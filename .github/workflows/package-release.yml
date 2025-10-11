@@ -200,7 +200,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { github, context } = require('@actions/github');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
               `🎉 Release completed: \`${process.env.PACKAGE}\` v${process.env.NEW_VERSION}`,
@@ -224,7 +223,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { github, context } = require('@actions/github');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const actor = process.env.REQUESTED_BY ? `@${process.env.REQUESTED_BY}` : 'Requester';
             const version = process.env.NEW_VERSION || 'unknown version';
