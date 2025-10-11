@@ -5,21 +5,35 @@ on:
     types: [created]
 
 permissions:
-  contents: read
+  contents: write
   issues: write
   pull-requests: write
-  actions: write
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
-  handle:
+  parse:
     if: >
       (contains(github.event.comment.body, '!release') ||
        contains(github.event.comment.body, '!Release') ||
        contains(github.event.comment.body, '!RELEASE')) &&
       github.event.comment.user.type != 'Bot'
     runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.parse.outputs.should_release }}
+      package: ${{ steps.parse.outputs.package }}
+      release_type: ${{ steps.parse.outputs.release_type }}
+      ref: ${{ steps.parse.outputs.ref }}
+      pr_branch: ${{ steps.parse.outputs.pr_branch }}
+      pr_title: ${{ steps.parse.outputs.pr_title }}
+      pr_url: ${{ steps.parse.outputs.pr_url }}
+      issue_number: ${{ steps.parse.outputs.issue_number }}
+      requested_by: ${{ steps.parse.outputs.requested_by }}
+      request_url: ${{ steps.parse.outputs.request_url }}
     steps:
-      - name: Process release command
+      - name: Parse release command
+        id: parse
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -77,15 +91,10 @@ jobs:
               return;
             }
 
-            const payload = {
-              package: packageName,
-              release_type: releaseType,
-              comment_id: context.payload.comment.id,
-              issue_number: issueNumber,
-              requested_by: actor,
-              request_url: context.payload.comment.html_url,
-              ref: 'main'
-            };
+            let ref = 'main';
+            let prBranch = '';
+            let prTitle = '';
+            let prUrl = '';
 
             if (context.payload.issue.pull_request) {
               const { data: pr } = await github.rest.pulls.get({
@@ -109,18 +118,11 @@ jobs:
                 return;
               }
 
-              payload.ref = pr.head.ref;
-              payload.pr_branch = pr.head.ref;
-              payload.pr_title = pr.title;
-              payload.pr_url = pr.html_url;
+              ref = pr.head.ref;
+              prBranch = pr.head.ref;
+              prTitle = pr.title;
+              prUrl = pr.html_url;
             }
-
-            await github.rest.repos.createDispatchEvent({
-              owner,
-              repo,
-              event_type: 'release-package',
-              client_payload: payload
-            });
 
             const lines = [
               `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseType}\`.`,
@@ -128,8 +130,8 @@ jobs:
               'The release workflow is queued; results will be posted here.'
             ];
 
-            if (payload.pr_branch) {
-              lines.splice(2, 0, `Target branch: \`${payload.pr_branch}\` (open PR). Version commits will be pushed to this branch.`);
+            if (prBranch) {
+              lines.splice(2, 0, `Target branch: \`${prBranch}\` (open PR). Version commits will be pushed to this branch.`);
             }
 
             const message = lines.join('\n');
@@ -139,4 +141,224 @@ jobs:
               repo,
               issue_number: issueNumber,
               body: message
+            });
+
+            core.setOutput('should_release', 'true');
+            core.setOutput('package', packageName);
+            core.setOutput('release_type', releaseType);
+            core.setOutput('ref', ref);
+            core.setOutput('pr_branch', prBranch);
+            core.setOutput('pr_title', prTitle);
+            core.setOutput('pr_url', prUrl);
+            core.setOutput('issue_number', issueNumber);
+            core.setOutput('requested_by', actor);
+            core.setOutput('request_url', context.payload.comment.html_url);
+
+  release:
+    needs: parse
+    if: needs.parse.outputs.should_release == 'true'
+    concurrency:
+      group: release-${{ needs.parse.outputs.package }}-${{ needs.parse.outputs.ref }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE: ${{ needs.parse.outputs.package }}
+      RELEASE_TYPE: ${{ needs.parse.outputs.release_type }}
+      SOURCE_REF: ${{ needs.parse.outputs.ref }}
+      ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
+      REQUESTED_BY: ${{ needs.parse.outputs.requested_by }}
+      REQUEST_URL: ${{ needs.parse.outputs.request_url }}
+      PR_TITLE: ${{ needs.parse.outputs.pr_title }}
+      PR_URL: ${{ needs.parse.outputs.pr_url }}
+      PR_BRANCH: ${{ needs.parse.outputs.pr_branch }}
+    steps:
+
+      - name: Validate context
+        run: |
+          set -e
+          if [ -z "${PACKAGE:-}" ]; then
+            echo "PACKAGE is not set"
+            exit 1
+          fi
+          case "$PACKAGE" in
+            cli|js) ;;
+            *)
+              echo "Unsupported package: $PACKAGE"
+              exit 1
+              ;;
+          esac
+
+          if [ -z "${RELEASE_TYPE:-}" ]; then
+            echo "RELEASE_TYPE is not set"
+            exit 1
+          fi
+
+          case "$RELEASE_TYPE" in
+            patch|minor|major) ;;
+            *)
+              echo "Unsupported release type: $RELEASE_TYPE"
+              exit 1
+              ;;
+          esac
+
+          if [ -z "${SOURCE_REF:-}" ]; then
+            echo "SOURCE_REF is not set"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "NPM_TOKEN secret is required"
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.SOURCE_REF }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        working-directory: ${{ env.PACKAGE }}
+        run: bun install --frozen-lockfile
+
+      - name: Bump package version
+        id: bump
+        run: node scripts/bump-version.js "$PACKAGE" "$RELEASE_TYPE"
+
+      - name: Export version metadata
+        run: |
+          echo "NEW_VERSION=${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
+          echo "TAG_NAME=${PACKAGE}-v${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
+
+      - name: Capture package metadata
+        id: pkgmeta
+        run: |
+          npm_name=$(node -e "console.log(require('./${PACKAGE}/package.json').name)")
+          npm_url=$(node -e "const name = require('./${PACKAGE}/package.json').name; console.log('https://www.npmjs.com/package/' + encodeURIComponent(name));")
+          echo "npm_name=$npm_name" >> "$GITHUB_OUTPUT"
+          echo "npm_url=$npm_url" >> "$GITHUB_OUTPUT"
+
+      - name: Run lint
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run lint
+
+      - name: Run type check
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run type-check
+
+      - name: Run tests
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run test
+
+      - name: Build package
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run build
+
+      - name: Commit version change
+        run: |
+          git add "${PACKAGE}/package.json"
+          if [ -f "${PACKAGE}/package-lock.json" ]; then
+            git add "${PACKAGE}/package-lock.json"
+          fi
+          if [ -f "${PACKAGE}/bun.lock" ]; then
+            git add "${PACKAGE}/bun.lock"
+          fi
+          if [ -f "${PACKAGE}/bun.lockb" ]; then
+            git add "${PACKAGE}/bun.lockb"
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 1
+          fi
+
+          git commit -m "chore(${PACKAGE}): release v${NEW_VERSION}"
+
+      - name: Publish to npm
+        working-directory: ${{ env.PACKAGE }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create tag
+        run: git tag "$TAG_NAME"
+
+      - name: Push changes
+        run: |
+          git push origin HEAD:${SOURCE_REF}
+          git push origin "$TAG_NAME"
+
+      - name: Create GitHub release
+        id: release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: ${{ steps.pkgmeta.outputs.npm_name }} v${{ env.NEW_VERSION }}
+          body: |
+            - Package: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})
+            - Version: v${{ env.NEW_VERSION }}
+            - Triggered by: ${{ env.REQUESTED_BY || 'workflow_dispatch' }}
+          draft: false
+          prerelease: false
+
+      - name: Comment success
+        if: ${{ success() && env.ISSUE_NUMBER != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `🎉 Release completed: \`${process.env.PACKAGE}\` v${process.env.NEW_VERSION}`,
+              '',
+              `- Branch: \`${process.env.SOURCE_REF}\``,
+              `- npm: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})`,
+              `- GitHub Release: [link](${{ steps.release.outputs.html_url }})`,
+              `- Workflow logs: ${runUrl}`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body
+            });
+
+      - name: Comment failure
+        if: ${{ failure() && env.ISSUE_NUMBER != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const actor = process.env.REQUESTED_BY ? `@${process.env.REQUESTED_BY}` : 'Requester';
+            const version = process.env.NEW_VERSION || 'unknown version';
+            const body = [
+              `❌ ${actor} release failed: \`${process.env.PACKAGE}\` ${version}`,
+              '',
+              `Branch: \`${process.env.SOURCE_REF}\``,
+              `Please review the workflow logs: ${runUrl}`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body
             });
