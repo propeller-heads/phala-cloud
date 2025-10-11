@@ -128,6 +128,13 @@ export const deployCommandMeta: CommandMeta = {
 			type: "string",
 			target: "rpcUrl",
 		},
+		{
+			name: "wait",
+			description:
+				"Wait for CVM to complete deployment/update before returning (only applies to updates)",
+			type: "boolean",
+			target: "wait",
+		},
 	],
 	examples: [
 		{
@@ -169,6 +176,7 @@ export const deployCommandSchema = z.object({
 	preLaunchScript: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 });
 
 export type DeployCommandInput = z.infer<typeof deployCommandSchema>;

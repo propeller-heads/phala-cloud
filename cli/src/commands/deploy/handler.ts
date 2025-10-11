@@ -10,6 +10,7 @@ import {
 	DEFAULT_MEMORY,
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
+import { waitForCvmReady } from "@/src/utils/cvms";
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
 import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
@@ -57,6 +58,7 @@ interface Options {
 	json?: boolean;
 	debug?: boolean;
 	apiKey?: string;
+	wait?: boolean;
 	[key: string]: unknown;
 }
 
@@ -695,6 +697,23 @@ const updateCvm = async (
 		throw new Error(
 			`Failed to commit CVM compose file update: ${JSON.stringify(commitResult.error.issues)}`,
 		);
+	}
+	// Wait for update to complete if --wait flag is set
+	if (validatedOptions.wait) {
+		if (!validatedOptions.json) {
+			stdout.write("\nWaiting for update to complete...\n");
+		}
+		try {
+			await waitForCvmReady(
+				validatedOptions.uuid as string,
+				300000, // 5 minutes timeout
+				!validatedOptions.json, // show progress if not in JSON mode
+			);
+		} catch (error: unknown) {
+			throw new Error(
+				`Wait failed: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	}
 
 	if (validatedOptions?.json !== false) {
