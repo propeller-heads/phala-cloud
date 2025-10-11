@@ -1,14 +1,23 @@
-import { getTeepods } from "@/src/api/teepods";
-import type { KmsListItem, TEEPod } from "@/src/api/types";
-import { logger } from "@/src/utils/logger";
 import { Command } from "commander";
+import { safeGetAvailableNodes } from "@phala/cloud";
+import { getClient } from "@/src/lib/client";
+import { logger } from "@/src/utils/logger";
+import type { AvailableNodesResponse } from "@/src/api/types";
 
 export const listNodesCommand = new Command()
 	.name("list-nodes")
 	.description("List all available worker nodes.")
 	.action(async () => {
 		try {
-			const { nodes: teepods, kms_list: kmsList } = await getTeepods();
+			const client = await getClient();
+			const result = await safeGetAvailableNodes(client);
+
+			if (!result.success) {
+				throw new Error(result.error.message);
+			}
+
+			const { nodes: teepods, kms_list: kmsList } =
+				result.data as AvailableNodesResponse;
 
 			if (teepods.length === 0) {
 				logger.info("No available nodes found.");

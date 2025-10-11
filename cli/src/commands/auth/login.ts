@@ -1,9 +1,11 @@
-import { getUserInfo } from "@/src/api/auth";
-import { CLOUD_URL } from "@/src/utils/constants";
+import { Command } from "commander";
 import { removeApiKey, saveApiKey } from "@/src/utils/credentials";
 import { logger } from "@/src/utils/logger";
-import { Command } from "commander";
 import prompts from "prompts";
+import { safeGetCurrentUser } from "@phala/cloud";
+import { getClientWithKey } from "@/src/lib/client";
+import { CLOUD_URL } from "@/src/utils/constants";
+import type { UserInfoResponse } from "@/src/api/types";
 
 export const loginCommand = new Command()
 	.name("login")
@@ -12,9 +14,9 @@ export const loginCommand = new Command()
 	.action(async (apiKey?: string): Promise<void> => {
 		try {
 			let checkUserInfo;
-			let actualApiKey = apiKey;
+			let finalApiKey: string;
 			// If no API key is provided, prompt for it
-			if (!actualApiKey) {
+			if (!apiKey) {
 				const response = await prompts({
 					type: "password",
 					name: "apiKey",
@@ -25,11 +27,14 @@ export const loginCommand = new Command()
 						}
 						try {
 							await saveApiKey(value);
-							checkUserInfo = await getUserInfo(value);
-							if (!checkUserInfo.username) {
+							const client = await getClientWithKey(value);
+							const result = await safeGetCurrentUser(client);
+							const userData = result.data as UserInfoResponse;
+							if (!result.success || !userData.username) {
 								await removeApiKey();
 								throw new Error("Invalid API key");
 							}
+							checkUserInfo = userData;
 						} catch (error) {
 							throw new Error("Invalid API key");
 						}
@@ -37,15 +42,18 @@ export const loginCommand = new Command()
 					},
 				});
 
-				actualApiKey = response.apiKey;
+				finalApiKey = response.apiKey;
 			} else {
-				await saveApiKey(actualApiKey);
+				finalApiKey = apiKey;
+				await saveApiKey(finalApiKey);
 				// Validate the API key
-				checkUserInfo = await getUserInfo(actualApiKey);
-				if (!checkUserInfo.username) {
+				const client = await getClientWithKey(finalApiKey);
+				const result = await safeGetCurrentUser(client);
+				if (!result.success || !(result.data as UserInfoResponse).username) {
 					await removeApiKey();
 					throw new Error("Invalid API key");
 				}
+				checkUserInfo = result.data as UserInfoResponse;
 			}
 
 			logger.success(

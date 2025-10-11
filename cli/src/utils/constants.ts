@@ -18,32 +18,6 @@ export const DEFAULT_DISK_SIZE = 40; // GB
 // Default TEEPod Image
 export const DEFAULT_IMAGE = "dstack-0.3.6";
 
-// API Endpoints
-export const API_ENDPOINTS = {
-	// Auth
-	USER_INFO: "auth/me",
-
-	// TEEPods
-	TEEPODS: "teepods/available",
-	TEEPOD_IMAGES: (teepodId: string) => `teepods/${teepodId}/images`,
-
-	// CVMs
-	CVMS: (userId: number) => `cvms?user_id=${userId}`,
-	CVM_BY_APP_ID: (appId: string) => `cvms/app_${appId}`,
-	CVM_NETWORK: (appId: string) => `cvms/app_${appId}/network`,
-	CVM_START: (appId: string) => `cvms/app_${appId}/start`,
-	CVM_STOP: (appId: string) => `cvms/app_${appId}/stop`,
-	CVM_RESTART: (appId: string) => `cvms/app_${appId}/restart`,
-	CVM_LOGS: (appId: string) => `cvms/app_${appId}/logs`,
-	CVM_FROM_CONFIGURATION: "cvms/from_cvm_configuration",
-	CVM_PUBKEY: "cvms/pubkey/from_cvm_configuration",
-	CVM_UPGRADE: (appId: string) => `cvms/app_${appId}/compose`,
-	CVM_ATTESTATION: (appId: string) => `cvms/app_${appId}/attestation`,
-	CVM_RESIZE: (appId: string) => `cvms/app_${appId}/resources`,
-	CVM_COMPOSE: (cvmId: string) => `cvms/${cvmId}/compose`,
-	REPLICATE_CVM: (appId: string) => `cvms/${appId}/replicas`,
-};
-
 export const DOCKER_COMPOSE_ELIZA_V2_TEMPLATE = `version: '3.8'
 services:
   postgres:
