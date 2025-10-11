@@ -24,6 +24,7 @@ jobs:
       should_release: ${{ steps.parse.outputs.should_release }}
       package: ${{ steps.parse.outputs.package }}
       release_type: ${{ steps.parse.outputs.release_type }}
+      dist_tag: ${{ steps.parse.outputs.dist_tag }}
       ref: ${{ steps.parse.outputs.ref }}
       pr_branch: ${{ steps.parse.outputs.pr_branch }}
       pr_title: ${{ steps.parse.outputs.pr_title }}
@@ -40,9 +41,10 @@ jobs:
           script: |
             const allowedPackages = ['cli', 'js'];
             const allowedBumps = ['patch', 'minor', 'major'];
+            const allowedDistTags = ['latest', 'beta', 'alpha', 'rc'];
 
             const body = context.payload.comment.body.trim();
-            const match = body.match(/!release\s+(\S+)\s+(\S+)/i);
+            const match = body.match(/!release\s+(\S+)\s+(\S+)(?:\s+(\S+))?/i);
 
             if (!match) {
               return;
@@ -50,6 +52,7 @@ jobs:
 
             const packageName = match[1].toLowerCase();
             const releaseType = match[2].toLowerCase();
+            const distTag = match[3] ? match[3].toLowerCase() : 'latest';
 
             const allowedAssociation = ['OWNER', 'MEMBER', 'COLLABORATOR'];
             const association = context.payload.comment.author_association;
@@ -60,12 +63,13 @@ jobs:
 
             const invalidPackage = !allowedPackages.includes(packageName);
             const invalidBump = !allowedBumps.includes(releaseType);
+            const invalidDistTag = !allowedDistTags.includes(distTag);
 
-            if (invalidPackage || invalidBump) {
+            if (invalidPackage || invalidBump || invalidDistTag) {
               const message = [
                 `⚠️ @${actor} I couldn't parse the release command.`,
                 '',
-                'Expected format: `!release <cli|js> <patch|minor|major>`'
+                'Expected format: `!release <cli|js> <patch|minor|major> [latest|beta|alpha|rc]`'
               ];
               await github.rest.issues.createComment({
                 owner,
@@ -125,7 +129,7 @@ jobs:
             }
 
             const lines = [
-              `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseType}\`.`,
+              `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseType}\` (dist-tag: \`${distTag}\`).`,
               '',
               'The release workflow is queued; results will be posted here.'
             ];
@@ -146,6 +150,7 @@ jobs:
             core.setOutput('should_release', 'true');
             core.setOutput('package', packageName);
             core.setOutput('release_type', releaseType);
+            core.setOutput('dist_tag', distTag);
             core.setOutput('ref', ref);
             core.setOutput('pr_branch', prBranch);
             core.setOutput('pr_title', prTitle);
@@ -164,6 +169,7 @@ jobs:
     env:
       PACKAGE: ${{ needs.parse.outputs.package }}
       RELEASE_TYPE: ${{ needs.parse.outputs.release_type }}
+      DIST_TAG: ${{ needs.parse.outputs.dist_tag }}
       SOURCE_REF: ${{ needs.parse.outputs.ref }}
       ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
       REQUESTED_BY: ${{ needs.parse.outputs.requested_by }}
@@ -244,7 +250,7 @@ jobs:
 
       - name: Bump package version
         id: bump
-        run: node scripts/bump-version.js "$PACKAGE" "$RELEASE_TYPE"
+        run: node scripts/bump-version.js "$PACKAGE" "$RELEASE_TYPE" "$DIST_TAG"
 
       - name: Export version metadata
         run: |
@@ -308,7 +314,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ${{ env.PACKAGE }}
-        run: npm publish --access public
+        run: npm publish --access public --tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -331,9 +337,10 @@ jobs:
           body: |
             - Package: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})
             - Version: v${{ env.NEW_VERSION }}
+            - Dist-tag: ${{ env.DIST_TAG }}
             - Triggered by: ${{ env.REQUESTED_BY || 'workflow_dispatch' }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.bump.outputs.is_prerelease == 'true' }}
 
       - name: Comment success
         if: ${{ success() && env.ISSUE_NUMBER != '' }}
