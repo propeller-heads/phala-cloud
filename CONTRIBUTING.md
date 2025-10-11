@@ -1,6 +1,44 @@
 # Contributing Guidelines
 
-Thank you for your interest in contributing to Awesome Phala Cloud! This guide outlines the requirements for submitting new templates.
+Thank you for your interest in contributing to Phala Cloud SDKs! This guide outlines the requirements for contributing to this project.
+
+## Commit Message Convention
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) specification. All commits must adhere to this format:
+
+```
+<type>(<scope>): <subject>
+```
+
+### Allowed Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code (formatting, etc.)
+- `refactor`: Code change that neither fixes a bug nor adds a feature
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools
+- `perf`: Performance improvements
+- `ci`: Changes to CI configuration files and scripts
+- `build`: Changes that affect the build system or external dependencies
+- `revert`: Reverts a previous commit
+
+### Examples
+
+```
+feat: add user authentication to CLI
+fix: resolve memory leak in API client
+docs: update README with installation steps
+chore(deps): bump axios to 1.7.9
+refactor(cli): simplify config loading logic
+```
+
+### Validation
+
+All pull requests will be automatically checked for commit message compliance. If your commits do not follow the convention, the PR check will fail with guidance on the correct format.
+
+**Note:** Commit messages are used to automatically generate changelogs, so following this convention is important for project maintenance.
 
 ## Submitting a New Template
 

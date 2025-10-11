@@ -1,0 +1,61 @@
+name: PR Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install commitlint
+        run: |
+          npm install -g @commitlint/cli @commitlint/config-conventional
+
+      - name: Validate PR commits
+        run: |
+          # Get all commits in this PR
+          git fetch origin ${{ github.base_ref }}
+          COMMITS=$(git rev-list origin/${{ github.base_ref }}..HEAD)
+
+          echo "Checking commits in PR:"
+          git log origin/${{ github.base_ref }}..HEAD --oneline
+          echo ""
+
+          FAILED=0
+          for commit in $COMMITS; do
+            MESSAGE=$(git log --format=%B -n 1 $commit)
+            echo "Checking commit: $commit"
+            echo "$MESSAGE" | npx commitlint --config .commitlintrc.json || FAILED=1
+            echo ""
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo "❌ Some commits do not follow Conventional Commits format"
+            echo ""
+            echo "Expected format: <type>(<scope>): <subject>"
+            echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+            echo ""
+            echo "Examples:"
+            echo "  feat: add user authentication"
+            echo "  fix: resolve memory leak in parser"
+            echo "  docs: update README with new examples"
+            echo "  chore(deps): bump axios to 1.7.9"
+            exit 1
+          fi
+
+          echo "✅ All commits follow Conventional Commits format"

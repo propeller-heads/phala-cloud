@@ -14,6 +14,7 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 
 ## What's in This Repository
 
+- **CLI** (`/cli`) - Official Phala Cloud CLI tools
 - **JavaScript/TypeScript SDK** (`/js`) - Official Phala Cloud API client for managing cloud resources
 - **Documentation & Guides** (`/docs`) - Integration guides and examples  
 - **Templates** (`/templates`) - Curated collection of Phala Cloud templates and prebuilt applications
