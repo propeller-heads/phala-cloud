@@ -275,9 +275,20 @@ jobs:
         working-directory: ${{ env.PACKAGE }}
         run: bun run build
 
+      - name: Generate changelog
+        working-directory: ${{ env.PACKAGE }}
+        run: |
+          npm install -g conventional-changelog-cli
+          conventional-changelog -p angular \
+            --commit-path . \
+            -i CHANGELOG.md \
+            -s \
+            --pkg-path ./package.json
+
       - name: Commit version change
         run: |
           git add "${PACKAGE}/package.json"
+          git add "${PACKAGE}/CHANGELOG.md"
           if [ -f "${PACKAGE}/package-lock.json" ]; then
             git add "${PACKAGE}/package-lock.json"
           fi
