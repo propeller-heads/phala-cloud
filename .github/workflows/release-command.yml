@@ -1,0 +1,142 @@
+name: Release Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  handle:
+    if: >
+      (contains(github.event.comment.body, '!release') ||
+       contains(github.event.comment.body, '!Release') ||
+       contains(github.event.comment.body, '!RELEASE')) &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process release command
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const allowedPackages = ['cli', 'js'];
+            const allowedBumps = ['patch', 'minor', 'major'];
+            const { github, context } = require('@actions/github');
+
+            const body = context.payload.comment.body.trim();
+            const match = body.match(/!release\s+(\S+)\s+(\S+)/i);
+
+            if (!match) {
+              return;
+            }
+
+            const packageName = match[1].toLowerCase();
+            const releaseType = match[2].toLowerCase();
+
+            const allowedAssociation = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const association = context.payload.comment.author_association;
+            const actor = context.payload.comment.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = context.payload.issue.number;
+
+            const invalidPackage = !allowedPackages.includes(packageName);
+            const invalidBump = !allowedBumps.includes(releaseType);
+
+            if (invalidPackage || invalidBump) {
+              const message = [
+                `⚠️ @${actor} I couldn't parse the release command.`,
+                '',
+                'Expected format: `!release <cli|js> <patch|minor|major>`'
+              ];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: message.join('\n')
+              });
+              return;
+            }
+
+            if (!allowedAssociation.includes(association)) {
+              const message = [
+                `⛔ @${actor} you do not have permission to trigger releases.`,
+                '',
+                'Please contact the repository maintainers if this is unexpected.'
+              ];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: message.join('\n')
+              });
+              return;
+            }
+
+            const payload = {
+              package: packageName,
+              release_type: releaseType,
+              comment_id: context.payload.comment.id,
+              issue_number: issueNumber,
+              requested_by: actor,
+              request_url: context.payload.comment.html_url,
+              ref: 'main'
+            };
+
+            if (context.payload.issue.pull_request) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: issueNumber
+              });
+
+              if (!pr.head.repo || pr.head.repo.full_name !== `${owner}/${repo}`) {
+                const message = [
+                  `⛔ @${actor} releases from forked branches are not supported.`,
+                  '',
+                  'Please push the branch to this repository or run the release manually in Actions.'
+                ];
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: message.join('\n')
+                });
+                return;
+              }
+
+              payload.ref = pr.head.ref;
+              payload.pr_branch = pr.head.ref;
+              payload.pr_title = pr.title;
+              payload.pr_url = pr.html_url;
+            }
+
+            await github.rest.repos.createDispatchEvent({
+              owner,
+              repo,
+              event_type: 'release-package',
+              client_payload: payload
+            });
+
+            const lines = [
+              `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseType}\`.`,
+              '',
+              'The release workflow is queued; results will be posted here.'
+            ];
+
+            if (payload.pr_branch) {
+              lines.splice(2, 0, `Target branch: \`${payload.pr_branch}\` (open PR). Version commits will be pushed to this branch.`);
+            }
+
+            const message = lines.join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: message
+            });
