@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { deleteCvm } from "@/src/api/cvms";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -45,9 +46,8 @@ async function runCvmsDeleteCommand(
 		logger.success(`CVM app_${resolvedAppId} deleted successfully`);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to delete CVM: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to delete CVM");
+		logDetailedError(error);
 		return 1;
 	}
 }

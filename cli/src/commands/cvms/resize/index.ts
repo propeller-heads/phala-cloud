@@ -3,6 +3,7 @@ import inquirer from "inquirer";
 import { getCvmByAppId, resizeCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -186,9 +187,8 @@ ${CLOUD_URL}/dashboard/cvms/app_${resolvedAppId}`,
 		}
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to resize CVM: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to resize CVM");
+		logDetailedError(error);
 		return 1;
 	}
 }

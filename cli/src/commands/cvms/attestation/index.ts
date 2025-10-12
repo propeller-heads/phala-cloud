@@ -3,6 +3,7 @@ import { checkCvmExists, getCvmAttestation, selectCvm } from "@/src/api/cvms";
 import type { CvmAttestationResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import {
 	cvmsAttestationCommandMeta,
@@ -139,11 +140,8 @@ async function runCvmsAttestationCommand(
 			throw error;
 		}
 	} catch (error) {
-		logger.error(
-			`Failed to get attestation information: ${
-				error instanceof Error ? error.message : String(error)
-			}`,
-		);
+		logger.error("Failed to get attestation information");
+		logDetailedError(error);
 		return 1;
 	}
 }

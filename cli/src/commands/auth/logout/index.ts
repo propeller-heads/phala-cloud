@@ -1,6 +1,7 @@
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { removeApiKey } from "@/src/utils/credentials";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import {
 	logoutCommandMeta,
@@ -17,9 +18,8 @@ async function runLogoutCommand(
 		logger.success("API key removed successfully");
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to remove API key: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to remove API key");
+		logDetailedError(error);
 		return 1;
 	}
 }

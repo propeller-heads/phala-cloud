@@ -3,6 +3,7 @@ import path from "node:path";
 import inquirer from "inquirer";
 import { getDockerCredentials } from "@/src/utils/credentials";
 import { DockerService } from "@/src/utils/docker";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { promptForFile } from "@/src/utils/prompts";
 import { defineCommand } from "@/src/core/define-command";
@@ -84,9 +85,8 @@ async function runDockerBuild(
 		);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to build Docker image: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to build Docker image");
+		logDetailedError(error);
 		return 1;
 	}
 }

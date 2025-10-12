@@ -1,5 +1,6 @@
 import { defineCommand } from "@/src/core/define-command";
 import { getConfigValue } from "@/src/utils/config";
+import { logDetailedError } from "@/src/utils/error-handling";
 import type { CommandContext } from "@/src/core/types";
 import {
 	configGetCommandMeta,
@@ -22,9 +23,8 @@ async function runConfigGet(
 		context.stdout.write(`${input.key}: ${JSON.stringify(value)}\n`);
 		return 0;
 	} catch (error) {
-		context.stderr.write(
-			`Failed to get configuration value: ${error instanceof Error ? error.message : String(error)}\n`,
-		);
+		context.stderr.write("Failed to get configuration value\n");
+		logDetailedError(error);
 		return 1;
 	}
 }

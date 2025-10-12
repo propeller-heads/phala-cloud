@@ -5,6 +5,7 @@ import type { CommandContext } from "@/src/core/types";
 import type { CvmListResponse } from "@/src/api/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import {
 	cvmsListCommandMeta,
@@ -83,9 +84,8 @@ async function runCvmsListCommand(
 		logger.info(`Go to ${CLOUD_URL}/dashboard/ to view your CVMs`);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to list CVMs: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to list CVMs");
+		logDetailedError(error);
 		return 1;
 	}
 }
