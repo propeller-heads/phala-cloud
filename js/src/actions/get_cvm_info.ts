@@ -64,7 +64,8 @@ export type GetCvmInfoRequest = {
  */
 const { action: getCvmInfo, safeAction: safeGetCvmInfo } = defineAction<
   GetCvmInfoRequest,
-  typeof CvmLegacyDetailSchema
+  typeof CvmLegacyDetailSchema,
+  GetCvmInfoResponse
 >(CvmLegacyDetailSchema, async (client, request) => {
   const validatedRequest = GetCvmInfoRequestSchema.parse(request);
   return await client.get(`/cvms/${validatedRequest.cvmId}`);
