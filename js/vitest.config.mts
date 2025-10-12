@@ -22,5 +22,7 @@ export default defineConfig({
     },
     // Default exclude pattern (integration tests run only when explicitly specified)
     exclude: ["**/node_modules/**", "**/dist/**"],
+    // Enable globals for mocking
+    globals: true,
   },
 });

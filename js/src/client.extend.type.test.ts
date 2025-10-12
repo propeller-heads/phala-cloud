@@ -10,7 +10,7 @@ import { z } from "zod";
 import { createClient, type Client } from "./client";
 import { defineSimpleAction, defineAction } from "./utils/define-action";
 import { getCurrentUser, type CurrentUser } from "./actions/get_current_user";
-import { getCvmList, type GetCvmListResponse } from "./actions/get_cvm_list";
+import { getCvmList, type GetCvmListResponse } from "./actions/cvms/get_cvm_list";
 
 describe("client.extend() type inference", () => {
   it("should correctly infer action types", () => {

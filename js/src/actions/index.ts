@@ -22,7 +22,7 @@ export {
   type ProvisionCvm,
   ProvisionCvmRequestSchema,
   type ProvisionCvmRequest,
-} from "./provision_cvm";
+} from "./cvms/provision_cvm";
 
 export {
   commitCvmProvision,
@@ -31,7 +31,7 @@ export {
   type CommitCvmProvision,
   CommitCvmProvisionRequestSchema,
   type CommitCvmProvisionRequest,
-} from "./commit_cvm_provision";
+} from "./cvms/commit_cvm_provision";
 
 export {
   deployAppAuth,
@@ -43,7 +43,7 @@ export {
   DeployAppAuthRequestSchema,
   type DeployAppAuthRequest,
   type SafeDeployAppAuthResult,
-} from "./deploy_app_auth";
+} from "./blockchains/deploy_app_auth";
 
 export {
   addComposeHash,
@@ -54,7 +54,7 @@ export {
   type AddComposeHash,
   type AddComposeHashRequest,
   type SafeAddComposeHashResult,
-} from "./add_compose_hash";
+} from "./blockchains/add_compose_hash";
 
 export {
   getCvmComposeFile,
@@ -62,7 +62,7 @@ export {
   type GetCvmComposeFileResult,
   GetCvmComposeFileRequestSchema,
   type GetCvmComposeFileRequest,
-} from "./get_cvm_compose_file";
+} from "./cvms/get_cvm_compose_file";
 
 export {
   provisionCvmComposeFileUpdate,
@@ -71,7 +71,7 @@ export {
   type ProvisionCvmComposeFileUpdateRequest,
   ProvisionCvmComposeFileUpdateResultSchema,
   type ProvisionCvmComposeFileUpdateResult,
-} from "./provision_cvm_compose_file_update";
+} from "./cvms/provision_cvm_compose_file_update";
 
 export {
   commitCvmComposeFileUpdate,
@@ -80,7 +80,7 @@ export {
   type CommitCvmComposeFileUpdateRequest,
   CommitCvmComposeFileUpdateSchema,
   type CommitCvmComposeFileUpdate,
-} from "./commit_cvm_compose_file_update";
+} from "./cvms/commit_cvm_compose_file_update";
 
 export {
   getAppEnvEncryptPubKey,
@@ -89,7 +89,7 @@ export {
   type GetAppEnvEncryptPubKeyRequest,
   type GetAppEnvEncryptPubKey,
   GetAppEnvEncryptPubKeyRequestSchema,
-} from "./get_app_env_encrypt_pubkey";
+} from "./kms/get_app_env_encrypt_pubkey";
 
 export {
   getCvmInfo,
@@ -98,7 +98,7 @@ export {
   GetCvmInfoRequestSchema,
   type GetCvmInfoRequest,
   type GetCvmInfoResponse,
-} from "./get_cvm_info";
+} from "./cvms/get_cvm_info";
 
 export {
   getCvmList,
@@ -107,14 +107,14 @@ export {
   GetCvmListRequestSchema,
   type GetCvmListRequest,
   type GetCvmListResponse,
-} from "./get_cvm_list";
+} from "./cvms/get_cvm_list";
 
 export {
   getKmsInfo,
   safeGetKmsInfo,
   GetKmsInfoRequestSchema,
   type GetKmsInfoRequest,
-} from "./get_kms_info";
+} from "./kms/get_kms_info";
 
 export {
   getKmsList,
@@ -123,7 +123,7 @@ export {
   GetKmsListRequestSchema,
   type GetKmsListRequest,
   type GetKmsListResponse,
-} from "./get_kms_list";
+} from "./kms/get_kms_list";
 
 export {
   listWorkspaces,

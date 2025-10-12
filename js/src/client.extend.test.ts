@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { createClient, type Client } from "./client";
 import { getCurrentUser, CurrentUser } from "./actions/get_current_user";
-import { getCvmList } from "./actions/get_cvm_list";
+import { getCvmList } from "./actions/cvms/get_cvm_list";
 
 describe("Client.extend()", () => {
   it("should extend client with action methods", () => {

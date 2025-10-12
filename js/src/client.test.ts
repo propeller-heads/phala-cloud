@@ -4,12 +4,17 @@ import { RequestError, type SafeResult, type ClientConfig } from "./types";
 import { getErrorMessage } from "./utils";
 import { ofetch } from "ofetch";
 
-// Mock ofetch
-vi.mock("ofetch", () => ({
-	ofetch: {
-		create: vi.fn(),
-	},
-}));
+// Mock ofetch module
+vi.mock("ofetch", async () => {
+	const actual = await vi.importActual<typeof import("ofetch")>("ofetch");
+	return {
+		...actual,
+		ofetch: {
+			...actual.ofetch,
+			create: vi.fn(),
+		},
+	};
+});
 
 describe("RequestError", () => {
 	test("should create error with all properties", () => {
