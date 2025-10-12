@@ -24,7 +24,8 @@ jobs:
       should_release: ${{ steps.parse.outputs.should_release }}
       package: ${{ steps.parse.outputs.package }}
       release_type: ${{ steps.parse.outputs.release_type }}
-      dist_tag: ${{ steps.parse.outputs.dist_tag }}
+      prerelease: ${{ steps.parse.outputs.prerelease }}
+      npm_tag: ${{ steps.parse.outputs.npm_tag }}
       ref: ${{ steps.parse.outputs.ref }}
       pr_branch: ${{ steps.parse.outputs.pr_branch }}
       pr_title: ${{ steps.parse.outputs.pr_title }}
@@ -41,7 +42,7 @@ jobs:
           script: |
             const allowedPackages = ['cli', 'js'];
             const allowedBumps = ['patch', 'minor', 'major'];
-            const allowedDistTags = ['latest', 'beta', 'alpha', 'rc'];
+            const allowedPrereleaseTags = ['beta', 'alpha', 'rc'];
 
             const body = context.payload.comment.body.trim();
             const match = body.match(/!release\s+(\S+)\s+(\S+)(?:\s+(\S+))?/i);
@@ -52,7 +53,7 @@ jobs:
 
             const packageName = match[1].toLowerCase();
             const releaseType = match[2].toLowerCase();
-            const distTag = match[3] ? match[3].toLowerCase() : 'latest';
+            const prereleaseTag = match[3] ? match[3].toLowerCase() : '';
 
             const allowedAssociation = ['OWNER', 'MEMBER', 'COLLABORATOR'];
             const association = context.payload.comment.author_association;
@@ -63,13 +64,17 @@ jobs:
 
             const invalidPackage = !allowedPackages.includes(packageName);
             const invalidBump = !allowedBumps.includes(releaseType);
-            const invalidDistTag = !allowedDistTags.includes(distTag);
+            const invalidPrerelease = prereleaseTag && !allowedPrereleaseTags.includes(prereleaseTag);
 
-            if (invalidPackage || invalidBump || invalidDistTag) {
+            if (invalidPackage || invalidBump || invalidPrerelease) {
               const message = [
                 `⚠️ @${actor} I couldn't parse the release command.`,
                 '',
-                'Expected format: `!release <cli|js> <patch|minor|major> [latest|beta|alpha|rc]`'
+                'Expected format: `!release <cli|js> <patch|minor|major> [beta|alpha|rc]`',
+                '',
+                'Examples:',
+                '- `!release cli patch` - stable release',
+                '- `!release js minor beta` - beta release'
               ];
               await github.rest.issues.createComment({
                 owner,
@@ -128,14 +133,21 @@ jobs:
               prUrl = pr.html_url;
             }
 
+            const npmTag = prereleaseTag || 'latest';
+            const releaseTypeLabel = prereleaseTag ? `${releaseType} (${prereleaseTag})` : releaseType;
+
             const lines = [
-              `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseType}\` (dist-tag: \`${distTag}\`).`,
+              `🚀 @${actor} release command accepted: \`${packageName}\` \`${releaseTypeLabel}\`.`,
               '',
               'The release workflow is queued; results will be posted here.'
             ];
 
             if (prBranch) {
               lines.splice(2, 0, `Target branch: \`${prBranch}\` (open PR). Version commits will be pushed to this branch.`);
+            }
+
+            if (prereleaseTag) {
+              lines.splice(2, 0, `📦 Prerelease tag: \`${prereleaseTag}\` (will publish to npm with tag \`${npmTag}\`)`);
             }
 
             const message = lines.join('\n');
@@ -150,7 +162,8 @@ jobs:
             core.setOutput('should_release', 'true');
             core.setOutput('package', packageName);
             core.setOutput('release_type', releaseType);
-            core.setOutput('dist_tag', distTag);
+            core.setOutput('prerelease', prereleaseTag);
+            core.setOutput('npm_tag', npmTag);
             core.setOutput('ref', ref);
             core.setOutput('pr_branch', prBranch);
             core.setOutput('pr_title', prTitle);
@@ -169,7 +182,8 @@ jobs:
     env:
       PACKAGE: ${{ needs.parse.outputs.package }}
       RELEASE_TYPE: ${{ needs.parse.outputs.release_type }}
-      DIST_TAG: ${{ needs.parse.outputs.dist_tag }}
+      PRERELEASE: ${{ needs.parse.outputs.prerelease }}
+      NPM_TAG: ${{ needs.parse.outputs.npm_tag }}
       SOURCE_REF: ${{ needs.parse.outputs.ref }}
       ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
       REQUESTED_BY: ${{ needs.parse.outputs.requested_by }}
@@ -250,7 +264,11 @@ jobs:
 
       - name: Bump package version
         id: bump
-        run: node scripts/bump-version.js "$PACKAGE" "$RELEASE_TYPE" "$DIST_TAG"
+        run: node scripts/bump-version.js "$PACKAGE" "$RELEASE_TYPE" "$PRERELEASE"
+
+      - name: Format package.json
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run fmt
 
       - name: Export version metadata
         run: |
@@ -280,6 +298,38 @@ jobs:
       - name: Build package
         working-directory: ${{ env.PACKAGE }}
         run: bun run build
+
+      - name: Analyze package contents
+        id: pack_info
+        working-directory: ${{ env.PACKAGE }}
+        run: |
+          npm pack --dry-run > pack_output.txt 2>&1
+
+          # Extract package size info
+          package_size=$(grep "package size:" pack_output.txt | awk '{print $4, $5}')
+          unpacked_size=$(grep "unpacked size:" pack_output.txt | awk '{print $4, $5}')
+          total_files=$(grep "total files:" pack_output.txt | awk '{print $4}')
+
+          # Get file list (skip the first few lines and last few lines of npm notice)
+          file_list=$(sed -n '/Tarball Contents/,/Tarball Details/p' pack_output.txt | \
+            grep "npm notice" | \
+            grep -v "Tarball Contents" | \
+            grep -v "Tarball Details" | \
+            sed 's/npm notice //g' | \
+            head -20)
+
+          # Save to GitHub output (escape newlines for multiline output)
+          echo "package_size=${package_size}" >> "$GITHUB_OUTPUT"
+          echo "unpacked_size=${unpacked_size}" >> "$GITHUB_OUTPUT"
+          echo "total_files=${total_files}" >> "$GITHUB_OUTPUT"
+
+          # Save file list with proper multiline format
+          echo "file_list<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$file_list" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          # Clean up
+          rm pack_output.txt
 
       - name: Generate changelog
         working-directory: ${{ env.PACKAGE }}
@@ -314,7 +364,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ${{ env.PACKAGE }}
-        run: npm publish --access public --tag "$DIST_TAG"
+        run: npm publish --access public --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -337,10 +387,10 @@ jobs:
           body: |
             - Package: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})
             - Version: v${{ env.NEW_VERSION }}
-            - Dist-tag: ${{ env.DIST_TAG }}
+            - npm tag: ${{ env.NPM_TAG }}
             - Triggered by: ${{ env.REQUESTED_BY || 'workflow_dispatch' }}
           draft: false
-          prerelease: ${{ steps.bump.outputs.is_prerelease == 'true' }}
+          prerelease: ${{ env.PRERELEASE != '' }}
 
       - name: Comment success
         if: ${{ success() && env.ISSUE_NUMBER != '' }}
@@ -349,13 +399,31 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const fileList = `${{ steps.pack_info.outputs.file_list }}`.split('\n').slice(0, 15).join('\n');
+            const totalFiles = Number('${{ steps.pack_info.outputs.total_files }}');
+            const hasMore = totalFiles > 15;
+
             const body = [
               `🎉 Release completed: \`${process.env.PACKAGE}\` v${process.env.NEW_VERSION}`,
               '',
               `- Branch: \`${process.env.SOURCE_REF}\``,
               `- npm: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})`,
               `- GitHub Release: [link](${{ steps.release.outputs.html_url }})`,
-              `- Workflow logs: ${runUrl}`
+              `- Workflow logs: ${runUrl}`,
+              '',
+              '### 📦 Package Info',
+              `- Package size: **${{ steps.pack_info.outputs.package_size }}**`,
+              `- Unpacked size: **${{ steps.pack_info.outputs.unpacked_size }}**`,
+              `- Total files: **${{ steps.pack_info.outputs.total_files }}**`,
+              '',
+              '<details>',
+              `<summary>📄 Files included${hasMore ? ' (showing first 15)' : ''}</summary>`,
+              '',
+              '```',
+              fileList,
+              hasMore ? `... and ${totalFiles - 15} more files` : '',
+              '```',
+              '</details>'
             ].join('\n');
 
             await github.rest.issues.createComment({

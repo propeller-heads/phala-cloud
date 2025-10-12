@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { type Client, type SafeResult } from "../client";
-import { ActionParameters, ActionReturnType } from "../types/common";
-import { validateActionParameters, safeValidateActionParameters } from "../utils";
+import { type Client } from "../client";
+import { defineSimpleAction } from "../utils/define-action";
 
 /**
  * Get current user information and validate API token
@@ -76,44 +75,11 @@ export const CurrentUserSchema = z
 
 export type CurrentUser = z.infer<typeof CurrentUserSchema>;
 
-export type GetCurrentUserParameters<T = undefined> = ActionParameters<T>;
+const { action: getCurrentUser, safeAction: safeGetCurrentUser } = defineSimpleAction(
+  CurrentUserSchema,
+  async (client) => {
+    return await client.get("/auth/me");
+  },
+);
 
-export type GetCurrentUserReturnType<T = undefined> = ActionReturnType<CurrentUser, T>;
-
-export async function getCurrentUser<T extends z.ZodSchema | false | undefined = undefined>(
-  client: Client,
-  parameters?: GetCurrentUserParameters<T>,
-): Promise<GetCurrentUserReturnType<T>> {
-  validateActionParameters(parameters);
-
-  const response = await client.get("/auth/me");
-
-  if (parameters?.schema === false) {
-    return response as GetCurrentUserReturnType<T>;
-  }
-
-  const schema = (parameters?.schema || CurrentUserSchema) as z.ZodSchema;
-  return schema.parse(response) as GetCurrentUserReturnType<T>;
-}
-
-export async function safeGetCurrentUser<T extends z.ZodSchema | false | undefined = undefined>(
-  client: Client,
-  parameters?: GetCurrentUserParameters<T>,
-): Promise<SafeResult<GetCurrentUserReturnType<T>>> {
-  const parameterValidationError = safeValidateActionParameters(parameters);
-  if (parameterValidationError) {
-    return parameterValidationError as SafeResult<GetCurrentUserReturnType<T>>;
-  }
-
-  const httpResult = await client.safeGet("/auth/me");
-  if (!httpResult.success) {
-    return httpResult as SafeResult<GetCurrentUserReturnType<T>>;
-  }
-
-  if (parameters?.schema === false) {
-    return { success: true, data: httpResult.data } as SafeResult<GetCurrentUserReturnType<T>>;
-  }
-
-  const schema = (parameters?.schema || CurrentUserSchema) as z.ZodSchema;
-  return schema.safeParse(httpResult.data) as SafeResult<GetCurrentUserReturnType<T>>;
-}
+export { getCurrentUser, safeGetCurrentUser };
