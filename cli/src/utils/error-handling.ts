@@ -16,7 +16,8 @@ function isRequestError(error: unknown): error is {
 		"isRequestError" in error &&
 		error.isRequestError === true &&
 		"status" in error &&
-		"message" in error
+		"message" in error &&
+		"data" in error
 	);
 }
 
