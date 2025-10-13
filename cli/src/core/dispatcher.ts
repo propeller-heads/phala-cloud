@@ -2,7 +2,7 @@ import { ZodError } from "zod";
 import { buildCommandSchemaInput } from "./input-builder";
 import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
-import { formatCommandHelp, formatGlobalHelp } from "./help";
+import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
 
 export interface DispatchOptions {
@@ -33,9 +33,50 @@ export async function dispatchCommand(
 	} = options;
 
 	const commandSegments = collectCommandSegments(argv);
+
+	// Check if it's a group without subcommand first
+	const groupNode = commandSegments.length > 0
+		? registry.getNode(commandSegments)
+		: null;
+
+	if (groupNode?.group) {
+		// Check if user wants help or provided no additional args after group name
+		const remainingArgv = argv.slice(commandSegments.length);
+		const parsed = parseCommandArguments(remainingArgv, undefined);
+
+		if (parsed.flags["--help"] || parsed.positionals.length === 0) {
+			return handleGroupRequest({
+				registry,
+				argv,
+				executableName,
+				version,
+				stdout,
+				stderr,
+				groupPath: commandSegments,
+			});
+		}
+	}
+
 	const resolved = registry.resolveCommand(commandSegments);
 
 	if (!resolved) {
+		// Check if the first segment is a group but subsequent segments don't match
+		if (commandSegments.length > 1) {
+			const firstSegmentNode = registry.getNode([commandSegments[0]]);
+			if (firstSegmentNode?.group) {
+				// This is a group with unknown subcommand
+				return handleGroupRequest({
+					registry,
+					argv,
+					executableName,
+					version,
+					stdout,
+					stderr,
+					groupPath: [commandSegments[0]],
+				});
+			}
+		}
+
 		return handleGlobalRequest({
 			registry,
 			argv,
@@ -136,15 +177,58 @@ function handleGlobalRequest(options: GlobalRequestOptions): number {
 		}
 
 		if (parsed.positionals.length === 0) {
-			stderr.write(
-				`No command provided. Run \`${executableName} --help\` for usage information.\n`,
-			);
-			return 1;
+			// Show help directly instead of error message
+			stdout.write(`${formatGlobalHelp({ registry, executableName })}\n`);
+			return 0;
 		}
 
 		const unknown = parsed.positionals.join(" ");
 		stderr.write(
 			`Unknown command \"${unknown}\". Run \`${executableName} --help\` for a list of commands.\n`,
+		);
+		return 1;
+	} catch (error) {
+		if (isArgError(error)) {
+			stderr.write(`${error.message}\n`);
+			return 1;
+		}
+		throw error;
+	}
+}
+
+interface GroupRequestOptions {
+	readonly registry: CommandRegistry;
+	readonly argv: readonly string[];
+	readonly executableName: string;
+	readonly version: string;
+	readonly stdout: NodeJS.WriteStream;
+	readonly stderr: NodeJS.WriteStream;
+	readonly groupPath: readonly string[];
+}
+
+function handleGroupRequest(options: GroupRequestOptions): number {
+	const { registry, argv, executableName, version, stdout, stderr, groupPath } = options;
+
+	try {
+		const commandArgv = argv.slice(groupPath.length);
+		const parsed = parseCommandArguments(commandArgv, undefined);
+
+		if (parsed.flags["--version"]) {
+			stdout.write(`${version}\n`);
+			return 0;
+		}
+
+		if (parsed.flags["--help"] || parsed.positionals.length === 0) {
+			// Show group help
+			stdout.write(`${formatGroupHelp({ registry, executableName, groupPath })}\n`);
+			return 0;
+		}
+
+		// If there are positionals, it means unknown subcommand
+		const unknown = parsed.positionals.join(" ");
+		const groupName = groupPath.join(" ");
+		stderr.write(
+			`Unknown subcommand \"${unknown}\" for \"${groupName}\". Run \`${executableName} ${groupName} --help\` for a list of subcommands.\n`,
 		);
 		return 1;
 	} catch (error) {

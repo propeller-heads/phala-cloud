@@ -1,5 +1,5 @@
 import { globalCommandOptions } from "./common-flags";
-import type { CommandDefinition, CommandOption } from "./types";
+import type { CommandDefinition, CommandOption, CommandPath } from "./types";
 import type { CommandRegistry } from "./registry";
 
 interface GlobalHelpOptions {
@@ -11,6 +11,12 @@ interface CommandHelpOptions {
 	readonly executableName: string;
 	readonly definition: CommandDefinition;
 	readonly registry: CommandRegistry;
+}
+
+interface GroupHelpOptions {
+	readonly registry: CommandRegistry;
+	readonly executableName: string;
+	readonly groupPath: CommandPath;
 }
 
 export function formatGlobalHelp(options: GlobalHelpOptions): string {
@@ -29,6 +35,48 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 	}
 
 	lines.push("");
+	lines.push("Global options:");
+	for (const option of globalCommandOptions) {
+		lines.push(
+			`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
+		);
+	}
+
+	return lines.join("\n");
+}
+
+export function formatGroupHelp(options: GroupHelpOptions): string {
+	const { registry, executableName, groupPath } = options;
+	const groupNode = registry.getNode(groupPath);
+
+	if (!groupNode?.group) {
+		return formatGlobalHelp({ registry, executableName });
+	}
+
+	const lines: string[] = [];
+	const groupName = groupPath.join(" ");
+	const fullCommand = `${executableName} ${groupName}`;
+
+	lines.push(`Usage: ${fullCommand} <command> [options]`);
+	lines.push("");
+
+	if (groupNode.group.meta.description) {
+		lines.push(groupNode.group.meta.description);
+		lines.push("");
+	}
+
+	const children = registry.getChildren(groupPath);
+	if (children.length > 0) {
+		lines.push("Available commands:");
+		for (const child of children) {
+			const description =
+				child.command?.meta.description ?? child.group?.meta.description ?? "";
+			const name = child.name ?? "";
+			lines.push(`  ${name.padEnd(18)}${description}`.trimEnd());
+		}
+		lines.push("");
+	}
+
 	lines.push("Global options:");
 	for (const option of globalCommandOptions) {
 		lines.push(
