@@ -13,12 +13,17 @@ export const listCommand = new Command()
 	.option("-j, --json", "Output in JSON format")
 	.action(async (options) => {
 		try {
-			const spinner = logger.startSpinner("Fetching CVMs");
+			let spinner
+			if (!options.json) {
+				spinner = logger.startSpinner("Fetching CVMs");
+			}
 
 			const client = await getClient();
 			const result = await safeGetCvmList(client);
 
-			spinner.stop(true);
+			if (spinner) {
+				spinner.stop(true);
+			}
 
 			if (!result.success) {
 				throw new Error(result.error.message);
