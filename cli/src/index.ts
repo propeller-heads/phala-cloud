@@ -12,6 +12,7 @@ import { dockerCommands } from "./commands/docker";
 import { nodesCommands } from "./commands/nodes";
 import { simulatorCommands } from "./commands/simulator";
 import { statusCommand } from "./commands/status";
+import { completionCommand } from "./commands/completion";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,6 +24,7 @@ const version = `v${packageJson.version}`;
 const registry = new CommandRegistry();
 registry.registerCommand(statusCommand);
 registry.registerCommand(deployCommand);
+registry.registerCommand(completionCommand);
 registry.registerGroup(authCommands.group);
 for (const command of authCommands.commands) {
 	registry.registerCommand(command);
