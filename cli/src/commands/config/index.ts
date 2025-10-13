@@ -1,11 +1,11 @@
-import { Command } from "commander";
-import { getCommand } from "./get";
-import { listCommand } from "./list";
-import { setCommand } from "./set";
+import { configGroup } from "./command";
+import { configGetCommand } from "./get";
+import { configListCommand } from "./list";
+import { configSetCommand } from "./set";
 
-export const configCommands = new Command()
-	.name("config")
-	.description("Manage your local configuration")
-	.addCommand(getCommand)
-	.addCommand(setCommand)
-	.addCommand(listCommand);
+export const configCommands = {
+	group: configGroup,
+	commands: [configGetCommand, configListCommand, configSetCommand],
+};
+
+export default configCommands;

@@ -1,29 +1,33 @@
-import { Command } from "commander";
-import { attestationCommand } from "./attestation";
-import { createCommand } from "./create";
-import { deleteCommand } from "./delete";
-import { getCommand } from "./get";
-import { listCommand } from "./list";
-import { listNodesCommand } from "./list-node";
-import { replicateCommand } from "./replicate";
-import { resizeCommand } from "./resize";
-import { restartCommand } from "./restart";
-import { startCommand } from "./start";
-import { stopCommand } from "./stop";
-import { upgradeCommand } from "./upgrade";
+import { cvmsGroup } from "./command";
+import { cvmsAttestationCommand } from "./attestation";
+import { cvmsCreateCommand } from "./create";
+import { cvmsDeleteCommand } from "./delete";
+import { cvmsGetCommand } from "./get";
+import { cvmsListCommand } from "./list";
+import { cvmsListNodesCommand } from "./list-node";
+import { cvmsReplicateCommand } from "./replicate";
+import { cvmsResizeCommand } from "./resize";
+import { cvmsRestartCommand } from "./restart";
+import { cvmsStartCommand } from "./start";
+import { cvmsStopCommand } from "./stop";
+import { cvmsUpgradeCommand } from "./upgrade";
 
-export const cvmsCommand = new Command()
-	.name("cvms")
-	.description("Manage Phala Confidential Virtual Machines (CVMs)")
-	.addCommand(attestationCommand)
-	.addCommand(createCommand)
-	.addCommand(deleteCommand)
-	.addCommand(getCommand)
-	.addCommand(listCommand)
-	.addCommand(startCommand)
-	.addCommand(stopCommand)
-	.addCommand(resizeCommand)
-	.addCommand(restartCommand)
-	.addCommand(upgradeCommand)
-	.addCommand(listNodesCommand)
-	.addCommand(replicateCommand);
+export const cvmsCommands = {
+	group: cvmsGroup,
+	commands: [
+		cvmsAttestationCommand,
+		cvmsCreateCommand,
+		cvmsDeleteCommand,
+		cvmsGetCommand,
+		cvmsListCommand,
+		cvmsListNodesCommand,
+		cvmsReplicateCommand,
+		cvmsResizeCommand,
+		cvmsRestartCommand,
+		cvmsStartCommand,
+		cvmsStopCommand,
+		cvmsUpgradeCommand,
+	],
+};
+
+export default cvmsCommands;

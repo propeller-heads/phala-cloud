@@ -1,11 +1,11 @@
-import { Command } from "commander";
+import { authGroup } from "./command";
 import { loginCommand } from "./login";
 import { logoutCommand } from "./logout";
-import { statusCommand } from "./status";
+import { authStatusCommand } from "./status";
 
-export const authCommands = new Command()
-	.name("auth")
-	.description("Authenticate with Phala Cloud")
-	.addCommand(loginCommand)
-	.addCommand(logoutCommand)
-	.addCommand(statusCommand);
+export const authCommands = {
+	group: authGroup,
+	commands: [loginCommand, logoutCommand, authStatusCommand],
+};
+
+export default authCommands;

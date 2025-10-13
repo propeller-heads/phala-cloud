@@ -121,7 +121,8 @@ export async function startCvm(appId: string): Promise<PostCvmResponse> {
 	const response = await client.post<PostCvmResponse>(
 		`cvms/app_${cleanAppId}/start`,
 	);
-	return postCvmResponseSchema.parse(response);
+	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
+	return result.data;
 }
 
 /**
@@ -132,10 +133,9 @@ export async function startCvm(appId: string): Promise<PostCvmResponse> {
 export async function stopCvm(appId: string): Promise<PostCvmResponse> {
 	const client = await getClient();
 	const cleanAppId = appId.replace(/^app_/, "");
-	const response = await client.post<PostCvmResponse>(
-		`cvms/app_${cleanAppId}/stop`,
-	);
-	return postCvmResponseSchema.parse(response);
+	await client.post<PostCvmResponse>(`cvms/app_${cleanAppId}/stop`);
+	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
+	return result.data;
 }
 
 /**
@@ -146,10 +146,9 @@ export async function stopCvm(appId: string): Promise<PostCvmResponse> {
 export async function restartCvm(appId: string): Promise<PostCvmResponse> {
 	const client = await getClient();
 	const cleanAppId = appId.replace(/^app_/, "");
-	const response = await client.post<PostCvmResponse>(
-		`cvms/app_${cleanAppId}/restart`,
-	);
-	return postCvmResponseSchema.parse(response);
+	await client.post<PostCvmResponse>(`cvms/app_${cleanAppId}/restart`);
+	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
+	return result.data;
 }
 
 /**

@@ -1,13 +1,9 @@
-import { Command } from "commander";
-import { listNodes } from "./list.js";
+import { nodesGroup } from "./command";
+import { nodesCommand, nodesListCommand } from "./list/index";
 
-export const nodesCommand = new Command()
-	.name("nodes")
-	.description("List and manage TEE nodes")
-	.action(listNodes)
-	.addCommand(
-		new Command("list")
-			.description("List all available worker nodes")
-			.alias("ls")
-			.action(listNodes),
-	);
+export const nodesCommands = {
+	group: nodesGroup,
+	commands: [nodesCommand, nodesListCommand],
+};
+
+export default nodesCommands;
