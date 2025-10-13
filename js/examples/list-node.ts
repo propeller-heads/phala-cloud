@@ -1,11 +1,11 @@
 import arg from "arg";
-import { createClient, getAvailableNodes } from "@phala/cloud";
+import { createClient } from "@phala/cloud/create-client";
 
 const typed: Parameters<typeof arg>[0] = {};
 
 async function main(_: arg.Result<typeof typed>) {
   const client = createClient();
-  const { nodes, kms_list } = await getAvailableNodes(client);
+  const { nodes, kms_list } = await client.getAvailableNodes();
 
   for (const node of nodes) {
     console.log(`${node.name} (${node.region_identifier})`);

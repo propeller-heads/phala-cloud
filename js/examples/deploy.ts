@@ -1,21 +1,11 @@
 import fs from "fs";
 import arg from "arg";
-import type { Client, ProvisionCvmComposeFileUpdateRequest } from "@phala/cloud";
-import { addComposeHash, createClient } from "@phala/cloud";
-import { getCvmInfo } from "@phala/cloud";
-import { getCvmComposeFile } from "@phala/cloud";
-import { getAvailableNodes } from "@phala/cloud";
-import { getKmsList } from "@phala/cloud";
-import { provisionCvm } from "@phala/cloud";
-import { commitCvmProvision } from "@phala/cloud";
-import { getAppEnvEncryptPubKey } from "@phala/cloud";
+import { type Client, createClient } from "@phala/cloud/create-client";
+import { addComposeHash } from "@phala/cloud";
 import { encryptEnvVars } from "@phala/cloud";
 import { deployAppAuth } from "@phala/cloud";
-import type { EnvVar } from "@phala/cloud";
-import { provisionCvmComposeFileUpdate } from "@phala/cloud";
-import { commitCvmComposeFileUpdate } from "@phala/cloud";
+import type { EnvVar, KmsInfo } from "@phala/cloud";
 import type { Chain } from "viem";
-import type { KmsInfo } from "@phala/cloud";
 
 // ==================================================================
 //
@@ -105,21 +95,17 @@ async function update_cvm(
   const private_key = args["--private-key"];
 
   const [cvm, app_compose] = await Promise.all([
-    getCvmInfo(client, {
-      uuid: uuid,
-    }),
-    getCvmComposeFile(client, {
-      uuid: uuid,
-    }),
+    client.getCvmInfo({ id: uuid }),
+    client.getCvmComposeFile({ id: uuid }),
   ]);
 
   // patched the compose_file
   app_compose.docker_compose_file = docker_compose_yml;
   app_compose.allowed_envs = env_vars.map((env) => env.key);
 
-  const provision = await provisionCvmComposeFileUpdate(client, {
+  const provision = await client.provisionCvmComposeFileUpdate({
     uuid: uuid,
-    app_compose: app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
+    app_compose: app_compose,
   });
 
   let encrypted_env: string | undefined;
@@ -145,8 +131,7 @@ async function update_cvm(
     }
   }
 
-  await commitCvmComposeFileUpdate(client, {
-    // @ts-ignore
+  await client.commitCvmComposeFileUpdate({
     id: uuid,
     compose_hash: provision.compose_hash,
     encrypted_env: encrypted_env,
@@ -173,12 +158,12 @@ async function deploy_new_cvm(
   //
   // Step 1: Get resources & check capacity.
   //
-  const nodes = await getAvailableNodes(client);
+  const resp = await client.getAvailableNodes();
   // If no specified node, use the first one.
   let target = null;
   let kms = null;
   if (nodeId) {
-    target = nodes.nodes.find((node) => node.teepod_id === nodeId);
+    target = resp.nodes.find((node) => node.teepod_id === nodeId);
     if (!target) {
       throw new Error(`Node ${nodeId} not found`);
     }
@@ -189,14 +174,14 @@ async function deploy_new_cvm(
       if (!privateKey) {
         throw new Error(`You need specify a private key for Contract Owned CVM`);
       }
-      const kms_list = await getKmsList(client);
+      const kms_list = await client.getKmsList();
       kms = kms_list.items.find((kms) => kms.slug === kmsId || kms.id === kmsId) as KmsInfo;
       if (!kms) {
         throw new Error(`KMS ${kmsId} not found`);
       }
     }
   } else {
-    target = nodes.nodes[0];
+    target = resp.nodes[0];
   }
   if (!target) {
     throw new Error("No available nodes found");
@@ -221,7 +206,7 @@ async function deploy_new_cvm(
   };
 
   // Step 3: Deploy the app with Centralized KMS.
-  const app = await provisionCvm(client, app_compose);
+  const app = await client.provisionCvm(app_compose);
 
   //
   // For centralized KMS, we can get the AppID & AppEnvEncryptPubkey from provision response.
@@ -229,7 +214,7 @@ async function deploy_new_cvm(
   let result;
   if (app.app_env_encrypt_pubkey && app.app_id) {
     const encrypted_env_vars = await encryptEnvVars(env_vars, app.app_env_encrypt_pubkey);
-    result = await commitCvmProvision(client, {
+    result = await client.commitCvmProvision({
       app_id: app.app_id,
       encrypted_env: encrypted_env_vars,
       compose_hash: app.compose_hash,
@@ -253,12 +238,12 @@ async function deploy_new_cvm(
       composeHash: app.compose_hash,
     });
     const app_id = assert_not_null(deployed_contract.appId, "Assert appId is not null.");
-    const resp = await getAppEnvEncryptPubKey(client, {
+    const resp = await client.getAppEnvEncryptPubKey({
       app_id: app_id,
       kms: kms_slug,
     });
     const encrypted_env_vars = await encryptEnvVars(env_vars, resp.public_key);
-    result = await commitCvmProvision(client, {
+    result = await client.commitCvmProvision({
       app_id: app_id,
       encrypted_env: encrypted_env_vars,
       compose_hash: app.compose_hash,
