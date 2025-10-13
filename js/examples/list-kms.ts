@@ -1,11 +1,11 @@
 import arg from "arg";
-import { createClient, getKmsList } from "@phala/cloud";
+import { createClient } from "@phala/cloud/create-client";
 
 const typed: Parameters<typeof arg>[0] = {};
 
 async function main(_: arg.Result<typeof typed>) {
   const client = createClient();
-  const kmsList = await getKmsList(client);
+  const kmsList = await client.getKmsList();
 
   for (const kms of kmsList.items) {
     console.log(`KMS: ${kms.slug} (ver: ${kms.version})`);

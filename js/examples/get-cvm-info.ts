@@ -1,5 +1,5 @@
 import arg from "arg";
-import { createClient, getCvmInfo } from "@phala/cloud";
+import { createClient } from "@phala/cloud/create-client";
 
 const typed: Parameters<typeof arg>[0] = {};
 
@@ -10,7 +10,7 @@ async function main(argv: arg.Result<typeof typed>) {
   }
   const cvmId = argv["_"][0];
   const client = createClient();
-  const cvmInfo = await getCvmInfo(client, { id: cvmId });
+  const cvmInfo = await client.getCvmInfo({ id: cvmId });
   console.log(cvmInfo);
 }
 
