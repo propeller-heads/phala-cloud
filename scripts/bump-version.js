@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 function parseVersion(version) {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)\.(\d+))?$/);
@@ -72,7 +73,66 @@ function bumpVersion(version, releaseType, prereleaseTag) {
   }
 }
 
-function main() {
+/**
+ * Check if a version exists on npm registry
+ * @param {string} packageName - npm package name
+ * @param {string} version - version to check
+ * @returns {Promise<boolean>} - true if version exists, false otherwise
+ */
+function checkVersionExists(packageName, version) {
+  return new Promise((resolve) => {
+    const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`;
+
+    https.get(url, (res) => {
+      if (res.statusCode === 200) {
+        resolve(true);
+      } else if (res.statusCode === 404) {
+        resolve(false);
+      } else {
+        // On network errors or other status codes, assume version doesn't exist
+        // to avoid blocking the release
+        console.warn(`Warning: Unable to verify version existence (status ${res.statusCode})`);
+        resolve(false);
+      }
+    }).on('error', (err) => {
+      console.warn(`Warning: Network error checking version: ${err.message}`);
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Find next available prerelease version
+ * @param {string} packageName - npm package name
+ * @param {object} parsed - parsed version object
+ * @param {string} prereleaseTag - prerelease tag (beta, alpha, rc)
+ * @returns {Promise<string>} - next available version
+ */
+async function findNextAvailablePrereleaseVersion(packageName, parsed, prereleaseTag) {
+  const maxAttempts = 10;
+  let prereleaseVersion = parsed.prereleaseVersion || 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const candidateVersion = `${parsed.major}.${parsed.minor}.${parsed.patch}-${prereleaseTag}.${prereleaseVersion}`;
+
+    console.log(`Checking if version ${candidateVersion} exists on npm...`);
+    const exists = await checkVersionExists(packageName, candidateVersion);
+
+    if (!exists) {
+      if (attempt > 0) {
+        console.log(`✓ Found available version after ${attempt + 1} attempts: ${candidateVersion}`);
+      }
+      return candidateVersion;
+    }
+
+    console.log(`✗ Version ${candidateVersion} already exists, trying next...`);
+    prereleaseVersion++;
+  }
+
+  throw new Error(`Unable to find available prerelease version after ${maxAttempts} attempts`);
+}
+
+async function main() {
   const [, , packageName, releaseType, prereleaseTag = ''] = process.argv;
 
   if (!packageName || !releaseType) {
@@ -108,7 +168,32 @@ function main() {
 
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const oldVersion = packageJson.version;
-  const newVersion = bumpVersion(oldVersion, releaseType, prereleaseTag);
+  const npmPackageName = packageJson.name;
+
+  let newVersion = bumpVersion(oldVersion, releaseType, prereleaseTag);
+
+  // Check for version conflicts and auto-increment if needed
+  console.log(`Checking if version ${newVersion} exists on npm...`);
+  const versionExists = await checkVersionExists(npmPackageName, newVersion);
+
+  if (versionExists) {
+    console.log(`⚠️  Version ${newVersion} already exists on npm`);
+
+    if (prereleaseTag) {
+      // Auto-increment prerelease version
+      console.log('Auto-incrementing prerelease version...');
+      const parsed = parseVersion(newVersion);
+      newVersion = await findNextAvailablePrereleaseVersion(npmPackageName, parsed, prereleaseTag);
+      console.log(`✓ Using version: ${newVersion}`);
+    } else {
+      // Cannot auto-increment stable releases
+      console.error('❌ Error: Cannot auto-increment stable release versions.');
+      console.error('   Please manually increment the version in package.json or use a prerelease tag.');
+      process.exit(1);
+    }
+  } else {
+    console.log(`✓ Version ${newVersion} is available`);
+  }
 
   packageJson.version = newVersion;
 
@@ -123,4 +208,7 @@ function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});
