@@ -35,9 +35,8 @@ export async function dispatchCommand(
 	const commandSegments = collectCommandSegments(argv);
 
 	// Check if it's a group without subcommand first
-	const groupNode = commandSegments.length > 0
-		? registry.getNode(commandSegments)
-		: null;
+	const groupNode =
+		commandSegments.length > 0 ? registry.getNode(commandSegments) : null;
 
 	if (groupNode?.group) {
 		// Check if user wants help or provided no additional args after group name
@@ -207,7 +206,8 @@ interface GroupRequestOptions {
 }
 
 function handleGroupRequest(options: GroupRequestOptions): number {
-	const { registry, argv, executableName, version, stdout, stderr, groupPath } = options;
+	const { registry, argv, executableName, version, stdout, stderr, groupPath } =
+		options;
 
 	try {
 		const commandArgv = argv.slice(groupPath.length);
@@ -220,7 +220,9 @@ function handleGroupRequest(options: GroupRequestOptions): number {
 
 		if (parsed.flags["--help"] || parsed.positionals.length === 0) {
 			// Show group help
-			stdout.write(`${formatGroupHelp({ registry, executableName, groupPath })}\n`);
+			stdout.write(
+				`${formatGroupHelp({ registry, executableName, groupPath })}\n`,
+			);
 			return 0;
 		}
 

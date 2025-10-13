@@ -133,9 +133,7 @@ export async function startCvm(appId: string): Promise<PostCvmResponse> {
 export async function stopCvm(appId: string): Promise<PostCvmResponse> {
 	const client = await getClient();
 	const cleanAppId = appId.replace(/^app_/, "");
-	await client.post<PostCvmResponse>(
-		`cvms/app_${cleanAppId}/stop`,
-	);
+	await client.post<PostCvmResponse>(`cvms/app_${cleanAppId}/stop`);
 	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
 	return result.data;
 }
