@@ -1,5 +1,6 @@
 // Client
-export { createClient, type Client } from "./client";
+export { createClient as createBaseClient, type Client as BaseClient } from "./client";
+export { createClient, type Client } from "./create-client";
 
 // Types
 export * from "./types";
