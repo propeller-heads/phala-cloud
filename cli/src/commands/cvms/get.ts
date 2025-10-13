@@ -19,14 +19,20 @@ export const getCommand = new Command()
 			// Remove app_ prefix if present, SDK will add it back
 			const cleanAppId = resolvedAppId?.replace(/^app_/, "") || "";
 
-			const spinner = logger.startSpinner(
-				`Fetching CVM with App ID app_${cleanAppId}`,
-			);
+
+			let spinner
+			if (!options.json) {
+				spinner = logger.startSpinner(
+					`Fetching CVM with App ID app_${cleanAppId}`,
+				);
+			}
 
 			const client = await getClient();
 			const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
 
-			spinner.stop(true);
+			if (spinner) {
+				spinner.stop(true);
+			}
 
 			if (!result.success) {
 				throw new Error(result.error.message);

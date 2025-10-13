@@ -627,6 +627,7 @@ const updateCvm = async (
 	app_compose.docker_compose_file = docker_compose_yml;
 	if (envs) {
 		app_compose.allowed_envs = envs.map((env) => env.key);
+		app_compose.update_env_vars = true;
 	}
 
 	console.log(`Preparing update for CVM ${validatedOptions.uuid}...`);
