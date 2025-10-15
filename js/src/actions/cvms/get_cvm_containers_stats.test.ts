@@ -1,33 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  getCvmComposition,
-  safeGetCvmComposition,
-  GetCvmCompositionRequestSchema,
-} from "./get_cvm_composition";
+  getCvmContainersStats,
+  safeGetCvmContainersStats,
+  GetCvmContainersStatsRequestSchema,
+} from "./get_cvm_containers_stats";
 import type { Client } from "../../client";
 
-describe("getCvmComposition", () => {
-  let mockClient: Client;
+describe("getCvmContainersStats", () => {
+  let mockClient: Partial<Client>;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
     mockClient = {
       get: vi.fn(),
-    } as unknown as Client;
+    };
   });
 
-  describe("GetCvmCompositionRequestSchema", () => {
+  describe("GetCvmContainersStatsRequestSchema", () => {
     it("should validate valid request", () => {
-      const result = GetCvmCompositionRequestSchema.safeParse({ id: "test-cvm-id" });
+      const result = GetCvmContainersStatsRequestSchema.safeParse({ id: "test-cvm-id" });
       expect(result.success).toBe(true);
     });
 
     it("should reject empty id", () => {
-      const result = GetCvmCompositionRequestSchema.safeParse({ id: "" });
+      const result = GetCvmContainersStatsRequestSchema.safeParse({ id: "" });
       expect(result.success).toBe(false);
     });
   });
 
-  describe("getCvmComposition", () => {
+  describe("getCvmContainersStats", () => {
     it("should call GET /cvms/{id}/composition", async () => {
       const mockResponse = {
         is_online: true,
@@ -45,6 +47,7 @@ describe("getCvmComposition", () => {
             image: "nginx:latest",
             image_id: "sha256:abc123",
             command: "nginx -g daemon off;",
+            created: 1672531200,
             state: "running",
             status: "Up 2 hours",
             log_endpoint: "https://logs.example.com/app",
@@ -52,9 +55,9 @@ describe("getCvmComposition", () => {
         ],
       };
 
-      vi.mocked(mockClient.get).mockResolvedValue(mockResponse);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await getCvmComposition(mockClient, { id: "test-cvm-id" });
+      const result = await getCvmContainersStats(mockClient as Client, { id: "test-cvm-id" });
 
       expect(mockClient.get).toHaveBeenCalledWith("/cvms/test-cvm-id/composition");
       expect(result.is_online).toBe(true);
@@ -63,11 +66,11 @@ describe("getCvmComposition", () => {
     });
 
     it("should throw error for invalid id", async () => {
-      await expect(getCvmComposition(mockClient, { id: "" })).rejects.toThrow();
+      await expect(getCvmContainersStats(mockClient as Client, { id: "" })).rejects.toThrow();
     });
   });
 
-  describe("safeGetCvmComposition", () => {
+  describe("safeGetCvmContainersStats", () => {
     it("should return success result", async () => {
       const mockResponse = {
         is_online: true,
@@ -81,9 +84,9 @@ describe("getCvmComposition", () => {
         containers: [],
       };
 
-      vi.mocked(mockClient.get).mockResolvedValue(mockResponse);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await safeGetCvmComposition(mockClient, { id: "test-cvm-id" });
+      const result = await safeGetCvmContainersStats(mockClient as Client, { id: "test-cvm-id" });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -92,7 +95,7 @@ describe("getCvmComposition", () => {
     });
 
     it("should return error result for invalid id", async () => {
-      const result = await safeGetCvmComposition(mockClient, { id: "" });
+      const result = await safeGetCvmContainersStats(mockClient as Client, { id: "" });
 
       expect(result.success).toBe(false);
       if (!result.success) {
