@@ -508,7 +508,7 @@
         "key": "IMAGE_TAG",
         "required": true,
         "description": "Docker image tag for primus network",
-        "default": "0.1.0"
+        "default": "latest"
       }
     ],
     "defaultResource": {
