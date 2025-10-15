@@ -231,3 +231,18 @@ export {
   GetCvmDockerComposeRequestSchema,
   type GetCvmDockerComposeRequest,
 } from "./cvms/get_cvm_docker_compose";
+
+// CVM Update Operations
+export {
+  updateCvmResources,
+  safeUpdateCvmResources,
+  UpdateCvmResourcesRequestSchema,
+  type UpdateCvmResourcesRequest,
+} from "./cvms/update_cvm_resources";
+
+export {
+  updateCvmVisibility,
+  safeUpdateCvmVisibility,
+  UpdateCvmVisibilityRequestSchema,
+  type UpdateCvmVisibilityRequest,
+} from "./cvms/update_cvm_visibility";
