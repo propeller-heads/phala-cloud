@@ -187,3 +187,47 @@ export {
   DeleteCvmRequestSchema,
   type DeleteCvmRequest,
 } from "./cvms/delete_cvm";
+
+// CVM Query Operations
+export {
+  getCvmStats,
+  safeGetCvmStats,
+  CvmSystemInfoSchema,
+  GetCvmStatsRequestSchema,
+  type GetCvmStatsRequest,
+  type CvmSystemInfo,
+} from "./cvms/get_cvm_stats";
+
+export {
+  getCvmContainersStats,
+  safeGetCvmContainersStats,
+  CvmContainersStatsSchema,
+  GetCvmContainersStatsRequestSchema,
+  type GetCvmContainersStatsRequest,
+  type CvmContainersStats,
+} from "./cvms/get_cvm_containers_stats";
+
+export {
+  getCvmNetwork,
+  safeGetCvmNetwork,
+  CvmNetworkSchema,
+  GetCvmNetworkRequestSchema,
+  type GetCvmNetworkRequest,
+  type CvmNetwork,
+} from "./cvms/get_cvm_network";
+
+export {
+  getCvmAttestation,
+  safeGetCvmAttestation,
+  CvmAttestationSchema,
+  GetCvmAttestationRequestSchema,
+  type GetCvmAttestationRequest,
+  type CvmAttestation,
+} from "./cvms/get_cvm_attestation";
+
+export {
+  getCvmDockerCompose,
+  safeGetCvmDockerCompose,
+  GetCvmDockerComposeRequestSchema,
+  type GetCvmDockerComposeRequest,
+} from "./cvms/get_cvm_docker_compose";
