@@ -46,7 +46,8 @@ describe("getCvmComposeFile", () => {
 
       const result = await getCvmComposeFile(mockClient as Client, { uuid: "123e4567-e89b-42d3-a456-556642440000" });
 
-      expect(mockClient.get).toHaveBeenCalledWith("/cvms/123e4567-e89b-42d3-a456-556642440000/compose_file");
+      // UUID dashes are removed during transformation
+      expect(mockClient.get).toHaveBeenCalledWith("/cvms/123e4567e89b42d3a456556642440000/compose_file");
       expect(result).toEqual(mockComposeFileResponse);
     });
 
@@ -78,11 +79,6 @@ describe("getCvmComposeFile", () => {
       // Invalid UUID format
       await expect(getCvmComposeFile(mockClient as Client, { uuid: "invalid-uuid" })).rejects.toThrow("Invalid");
 
-      // Invalid app_id length
-      await expect(getCvmComposeFile(mockClient as Client, { app_id: "short" })).rejects.toThrow("app_id should be 40 characters without prefix");
-
-      // Invalid instance_id length
-      await expect(getCvmComposeFile(mockClient as Client, { instance_id: "short" })).rejects.toThrow("instance_id should be 40 characters without prefix");
     });
   });
 
