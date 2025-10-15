@@ -25,7 +25,7 @@ export const ManagedUserSchema = z.object({
 export const CvmNodeSchema = z.object({
   id: z.number(),
   name: z.string(),
-  region_identifier: z.string().optional(),
+  region_identifier: z.string().nullable().optional(),
 });
 
 export const CvmNetworkUrlsSchema = z.object({
@@ -34,29 +34,27 @@ export const CvmNetworkUrlsSchema = z.object({
 });
 
 // CVM schema that use in list API.
-export const CvmInfoSchema = z
-  .object({
-    hosted: VmInfoSchema,
-    name: z.string(),
-    managed_user: ManagedUserSchema.optional().nullable(),
-    node: CvmNodeSchema.optional().nullable(),
-    listed: z.boolean().default(false),
-    status: z.string(),
-    in_progress: z.boolean().default(false),
-    dapp_dashboard_url: z.string().nullable(),
-    syslog_endpoint: z.string().nullable(),
-    allow_upgrade: z.boolean().default(false),
-    project_id: z.string().nullable(), // HashedId is represented as string in JS
-    project_type: z.string().nullable(),
-    billing_period: z.string().nullable(),
-    kms_info: KmsInfoSchema.nullable(),
-    vcpu: z.number().nullable(),
-    memory: z.number().nullable(),
-    disk_size: z.number().nullable(),
-    gateway_domain: z.string().nullable(),
-    public_urls: z.array(CvmNetworkUrlsSchema),
-  })
-  .partial();
+export const CvmInfoSchema = z.object({
+  hosted: VmInfoSchema,
+  name: z.string(),
+  managed_user: ManagedUserSchema.nullable(),
+  node: CvmNodeSchema.nullable(),
+  listed: z.boolean().default(false),
+  status: z.string(),
+  in_progress: z.boolean().default(false),
+  dapp_dashboard_url: z.string().nullable(),
+  syslog_endpoint: z.string().nullable(),
+  allow_upgrade: z.boolean().default(false),
+  project_id: z.string().nullable(), // HashedId is represented as string in JS
+  project_type: z.string().nullable(),
+  billing_period: z.string().nullable(),
+  kms_info: KmsInfoSchema.nullable(),
+  vcpu: z.number().nullable(),
+  memory: z.number().nullable(),
+  disk_size: z.number().nullable(),
+  gateway_domain: z.string().nullable(),
+  public_urls: z.array(CvmNetworkUrlsSchema),
+});
 
 export type CvmInfo = z.infer<typeof CvmInfoSchema>;
 
@@ -71,10 +69,10 @@ export const CvmLegacyDetailSchema = z.object({
   app_id: z.string(),
   vm_uuid: z.string().nullable(),
   instance_id: z.string().nullable(),
-  vcpu: z.number().nullable(),
-  memory: z.number().nullable(),
-  disk_size: z.number().nullable(),
-  base_image: z.string().optional().nullable(),
+  vcpu: z.number(),
+  memory: z.number(),
+  disk_size: z.number(),
+  base_image: z.string().nullable(),
   encrypted_env_pubkey: z.string().nullable(),
   listed: z.boolean().optional().default(false),
   project_id: z.string().optional().nullable(),

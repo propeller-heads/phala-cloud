@@ -51,7 +51,7 @@ describe("restartCvm", () => {
 
       const result = await restartCvm(mockClient, { id: "test-cvm-id" });
 
-      expect(mockClient.post).toHaveBeenCalledWith("/cvms/test-cvm-id/restart", { body: { force: false } });
+      expect(mockClient.post).toHaveBeenCalledWith("/cvms/test-cvm-id/restart", { force: false });
       expect(result.status).toBe("restarting");
     });
 

@@ -44,7 +44,7 @@ const { action: updateCvmResources, safeAction: safeUpdateCvmResources } = defin
   const parsed = UpdateCvmResourcesRequestSchema.parse(request);
   const { cvmId } = CvmIdSchema.parse(parsed);
   const { ...body } = parsed;
-  await client.patch(`/cvms/${cvmId}/resources`, { body });
+  await client.patch(`/cvms/${cvmId}/resources`, body);
   return undefined;
 });
 

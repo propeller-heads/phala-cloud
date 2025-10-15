@@ -50,7 +50,7 @@ const { action: restartCvm, safeAction: safeRestartCvm } = defineAction<
   const parsed = RestartCvmRequestSchema.parse(request);
   const { cvmId } = CvmIdSchema.parse(parsed);
   const { force = false } = parsed;
-  return await client.post(`/cvms/${cvmId}/restart`, { body: { force } });
+  return await client.post(`/cvms/${cvmId}/restart`, { force });
 });
 
 export { restartCvm, safeRestartCvm };

@@ -12,6 +12,8 @@ export const LooseAppComposeSchema = z
     public_sysinfo: z.boolean().optional(),
     tproxy_enabled: z.boolean().optional(),
     pre_launch_script: z.string().optional(),
+    env_pubkey: z.string().optional(),
+    salt: z.string().optional().nullable(),
   })
   .passthrough();
 
