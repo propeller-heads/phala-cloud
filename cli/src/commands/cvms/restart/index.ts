@@ -1,8 +1,9 @@
-import { restartCvm } from "@/src/api/cvms";
+import { getCvmByAppId, restartCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
+import { resolveCvmAppId, waitForCvmReady } from "@/src/utils/cvms";
 import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
+import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import {
@@ -18,11 +19,25 @@ async function runCvmsRestartCommand(
 	try {
 		const resolvedAppId = await resolveCvmAppId(input.appId);
 
+		// Check if CVM is ready before restarting (not in_progress)
+		const cvmInfo = await getCvmByAppId(resolvedAppId);
+
+		if (cvmInfo.in_progress) {
+			logger.warn("CVM is currently in progress (updating/restarting). Waiting for operation to complete...");
+
+			// Wait for CVM to be ready using existing utility
+			await waitForCvmReady(cvmInfo.vm_uuid, 300000, true);
+		}
+
 		const spinner = logger.startSpinner(
 			`Restarting CVM with App ID app_${resolvedAppId}`,
 		);
 
-		const response = await restartCvm(resolvedAppId);
+		// Retry on conflict errors (409) with the shared utility
+		const response = await retryOnConflict(
+			() => restartCvm(resolvedAppId),
+			{ spinner }
+		);
 
 		spinner.stop(true);
 		logger.break();

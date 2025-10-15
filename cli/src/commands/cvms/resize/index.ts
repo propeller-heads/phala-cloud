@@ -5,6 +5,7 @@ import { CLOUD_URL } from "@/src/utils/constants";
 import { resolveCvmAppId } from "@/src/utils/cvms";
 import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
+import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import {
@@ -152,12 +153,15 @@ async function runCvmsResizeCommand(
 			const spinner = logger.startSpinner(
 				`Resizing CVM with App ID app_${resolvedAppId}`,
 			);
-			await resizeCvm(
-				resolvedAppId,
-				vcpu,
-				memory,
-				diskSize,
-				allowRestart ? 1 : 0,
+			await retryOnConflict(
+				() => resizeCvm(
+					resolvedAppId,
+					vcpu,
+					memory,
+					diskSize,
+					allowRestart ? 1 : 0,
+				),
+				{ spinner }
 			);
 			spinner.stop(true);
 
@@ -167,12 +171,14 @@ async function runCvmsResizeCommand(
 ${CLOUD_URL}/dashboard/cvms/app_${resolvedAppId}`,
 			);
 		} else {
-			await resizeCvm(
-				resolvedAppId,
-				vcpu,
-				memory,
-				diskSize,
-				allowRestart ? 1 : 0,
+			await retryOnConflict(
+				() => resizeCvm(
+					resolvedAppId,
+					vcpu,
+					memory,
+					diskSize,
+					allowRestart ? 1 : 0,
+				)
 			);
 			console.log(
 				JSON.stringify({

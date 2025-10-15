@@ -286,19 +286,8 @@ export interface PubkeyResponse {
 	app_id_salt: string;
 }
 
-// CVM Info Response (from SDK)
-export interface CvmInfoResponse {
-	id: number;
-	name: string;
-	status: string;
-	app_id: string;
-	vcpu: number;
-	memory: number;
-	disk_size: number;
-	base_image: string;
-	encrypted_env_pubkey: string;
-	env_pubkey?: string;
-}
+// CVM Info Response - re-export from SDK to avoid duplication
+export type { CvmLegacyDetail as CvmInfoResponse } from "@phala/cloud";
 
 // Upgrade Response
 export interface UpgradeResponse {
