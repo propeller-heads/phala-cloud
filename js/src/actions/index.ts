@@ -152,3 +152,38 @@ export {
   type ListInstanceTypesRequest,
   ListInstanceTypesRequestSchema,
 } from "./list-instance-types";
+
+export {
+  startCvm,
+  safeStartCvm,
+  StartCvmRequestSchema,
+  type StartCvmRequest,
+} from "./cvms/start_cvm";
+
+export {
+  shutdownCvm,
+  safeShutdownCvm,
+  ShutdownCvmRequestSchema,
+  type ShutdownCvmRequest,
+} from "./cvms/shutdown_cvm";
+
+export {
+  stopCvm,
+  safeStopCvm,
+  StopCvmRequestSchema,
+  type StopCvmRequest,
+} from "./cvms/stop_cvm";
+
+export {
+  restartCvm,
+  safeRestartCvm,
+  RestartCvmRequestSchema,
+  type RestartCvmRequest,
+} from "./cvms/restart_cvm";
+
+export {
+  deleteCvm,
+  safeDeleteCvm,
+  DeleteCvmRequestSchema,
+  type DeleteCvmRequest,
+} from "./cvms/delete_cvm";
