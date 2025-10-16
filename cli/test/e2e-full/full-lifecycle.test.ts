@@ -29,6 +29,44 @@ const TEST_API_KEY =
 	process.env.PHALA_CLOUD_API_KEY || process.env.PHALA_API_KEY;
 const skipTests = !TEST_API_KEY;
 
+// Path to the compiled CLI binary
+const CLI_PATH = path.join(__dirname, "../../dist/index.js");
+const CLI_CMD = `bun ${CLI_PATH}`;
+
+/**
+ * Execute a CLI command with visible output
+ * @param logger - Test logger instance
+ * @param command - The CLI command to execute (without the CLI_CMD prefix)
+ * @param description - Optional description of what the command does
+ */
+async function runCliCommand(
+	logger: TestLogger,
+	command: string,
+	description?: string,
+): Promise<{ stdout: string; stderr: string }> {
+	const fullCommand = `${CLI_CMD} ${command}`;
+
+	if (description) {
+		logger.info(`📌 ${description}`);
+	}
+	logger.info(`🔧 Running: ${fullCommand}`);
+
+	try {
+		const result = await execaCommand(fullCommand, {
+			env: {
+				...process.env,
+				PHALA_CLOUD_API_KEY: TEST_API_KEY,
+			},
+		});
+
+		logger.info(`✅ Command completed successfully`);
+		return result;
+	} catch (error: any) {
+		logger.error(`❌ Command failed with exit code ${error.exitCode}`);
+		throw error;
+	}
+}
+
 // Skip auto-deletion if SKIP_CLEANUP env var is set
 const SKIP_CLEANUP = process.env.SKIP_CLEANUP === "true";
 
@@ -272,18 +310,11 @@ describe.skipIf(skipTests)(
 				);
 
 				// Deploy using CLI
-				// Note: This assumes 'phala' CLI is available in PATH
-				logger.info("Deploying CVM via CLI...");
-
-				const deployCmd = `phala deploy -n ${testName} -c ${path.join(__dirname, "fixtures/test-app/docker-compose.yml")} -e ${envPath} --json`;
+				// Note: Using compiled CLI binary from dist/index.js
+				const deployCmd = `deploy -n ${testName} -c ${path.join(__dirname, "fixtures/test-app/docker-compose.yml")} -e ${envPath} --json`;
 
 				try {
-					const { stdout } = await execaCommand(deployCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					const { stdout } = await runCliCommand(logger, deployCmd, "Deploying CVM");
 
 					logger.info("Deploy output:", stdout);
 
@@ -463,16 +494,10 @@ describe.skipIf(skipTests)(
 				);
 
 				// Update using CLI with --wait flag
-				logger.info("Updating CVM via CLI...");
-				const updateCmd = `phala deploy --uuid ${vmUuid} -c ${composeV2Path} -e ${envV2Path} --wait --json`;
+				const updateCmd = `deploy --uuid ${vmUuid} -c ${composeV2Path} -e ${envV2Path} --wait --json`;
 
 				try {
-					const { stdout } = await execaCommand(updateCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					const { stdout } = await runCliCommand(logger, updateCmd, "Updating CVM (waiting for completion)");
 
 					logger.info("Update output:", stdout);
 
@@ -584,16 +609,10 @@ describe.skipIf(skipTests)(
 
 				// Resize vCPU to 2
 				// Note: With -y flag, only specified parameters are changed (partial update)
-				logger.info("Resizing vCPU to 2...");
-				const resizeVcpuCmd = `phala cvms resize ${appId} -v 2 -y --json`;
+				const resizeVcpuCmd = `cvms resize ${appId} -v 2 -y --json`;
 
 				try {
-					await execaCommand(resizeVcpuCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					await runCliCommand(logger, resizeVcpuCmd, "Resizing vCPU to 2");
 					logger.success("vCPU resize command executed successfully");
 				} catch (error) {
 					logError(logger, error, "vCPU resize failed");
@@ -650,16 +669,10 @@ describe.skipIf(skipTests)(
 				logger.step("Phase 7: Power Management");
 
 				// Stop CVM
-				logger.info("Stopping CVM...");
-				const stopCmd = `phala cvms stop ${appId}`;
+				const stopCmd = `cvms stop ${appId}`;
 
 				try {
-					await execaCommand(stopCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					await runCliCommand(logger, stopCmd, "Stopping CVM");
 					logger.success("Stop command executed");
 
 					// Wait for stopped status
@@ -677,16 +690,10 @@ describe.skipIf(skipTests)(
 				}
 
 				// Start CVM
-				logger.info("Starting CVM...");
-				const startCmd = `phala cvms start ${appId}`;
+				const startCmd = `cvms start ${appId}`;
 
 				try {
-					await execaCommand(startCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					await runCliCommand(logger, startCmd, "Starting CVM");
 					logger.success("Start command executed");
 
 					// Wait for running status
@@ -716,16 +723,10 @@ describe.skipIf(skipTests)(
 				expect(healthData.status).toBe("healthy");
 
 				// Test restart
-				logger.info("Restarting CVM...");
-				const restartCmd = `phala cvms restart ${appId}`;
+				const restartCmd = `cvms restart ${appId}`;
 
 				try {
-					await execaCommand(restartCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					await runCliCommand(logger, restartCmd, "Restarting CVM");
 					logger.success("Restart command executed");
 
 					// Wait for running status after restart
@@ -766,16 +767,10 @@ describe.skipIf(skipTests)(
 				);
 
 				// Get attestation (if command exists)
-				logger.info("Getting attestation info...");
-				const attestCmd = `phala cvms attestation ${appId} --json`;
+				const attestCmd = `cvms attestation ${appId} --json`;
 
 				try {
-					const { stdout, stderr } = await execaCommand(attestCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					const { stdout, stderr } = await runCliCommand(logger, attestCmd, "Getting CVM attestation");
 
 					// Log stderr for debugging if present
 					if (stderr) {
@@ -784,8 +779,8 @@ describe.skipIf(skipTests)(
 
 					// With --json flag and spinner disabled, stdout should be pure JSON
 					const attestation = JSON.parse(stdout);
-					logger.success("Attestation retrieved", attestation);
 					logger.saveArtifact("attestation", JSON.stringify(attestation, null, 2));
+					logger.success("Attestation retrieved and saved to artifact");
 				} catch (error: any) {
 					// Log detailed error information
 					logger.warn("Attestation command failed:");
@@ -841,16 +836,10 @@ describe.skipIf(skipTests)(
 				}
 
 				// Delete CVM
-				logger.info(`Deleting CVM ${appId}...`);
-				const deleteCmd = `phala cvms delete ${appId} -y`;
+				const deleteCmd = `cvms delete ${appId} -y`;
 
 				try {
-					await execaCommand(deleteCmd, {
-						env: {
-							...process.env,
-							PHALA_CLOUD_API_KEY: TEST_API_KEY,
-						},
-					});
+					await runCliCommand(logger, deleteCmd, `Deleting CVM ${appId}`);
 					logger.success("Delete command executed");
 
 					// Poll until CVM is marked as deleted (soft delete)
