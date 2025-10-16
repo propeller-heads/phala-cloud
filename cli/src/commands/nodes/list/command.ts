@@ -5,8 +5,17 @@ export const nodesListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
 	description: "List all available worker nodes",
+	options: [
+		{
+			name: "json",
+			description: "Output in JSON format",
+			type: "boolean",
+		},
+	],
 };
 
-export const nodesListCommandSchema = z.object({});
+export const nodesListCommandSchema = z.object({
+	json: z.boolean().optional().default(false),
+});
 
 export type NodesListCommandInput = z.infer<typeof nodesListCommandSchema>;

@@ -27,8 +27,7 @@
 	"scripts": {
 		"build": "tsup && bun link",
 		"test": "bun test",
-		"test:e2e-full": "bun test test/e2e-full/full-lifecycle.test.ts",
-		"test:e2e-full:watch": "bun test --watch test/e2e-full/full-lifecycle.test.ts",
+		"test:e2e": "bun test test/e2e-full/",
 		"fmt": "biome format --write .",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",

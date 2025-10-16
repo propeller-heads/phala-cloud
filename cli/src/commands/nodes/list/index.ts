@@ -11,7 +11,7 @@ import {
 } from "./command";
 
 async function runNodesListCommand(
-	_input: NodesListCommandInput,
+	input: NodesListCommandInput,
 	_context: CommandContext,
 ): Promise<number> {
 	try {
@@ -25,6 +25,13 @@ async function runNodesListCommand(
 		const { nodes: teepods, kms_list: kmsList } =
 			result.data as AvailableNodesResponse;
 
+		// JSON output mode
+		if (input.json) {
+			console.log(JSON.stringify({ nodes: teepods, kms_list: kmsList }, null, 2));
+			return 0;
+		}
+
+		// Human-readable output mode
 		if (!teepods || teepods.length === 0) {
 			logger.info("No available nodes found.");
 			return 0;
