@@ -10,13 +10,7 @@ import { commonAuthOptions } from "@/src/core/common-flags";
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
 	description: "Create a new CVM with on-chain KMS in one step.",
-	arguments: [
-		{
-			name: "compose",
-			description: "Path to Docker Compose file",
-			required: false,
-		},
-	],
+	arguments: [],
 	options: [
 		...commonAuthOptions,
 		{
@@ -143,7 +137,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "Deploy with specific compose file",
-			value: "phala deploy docker-compose.yml",
+			value: "phala deploy -c docker-compose.yml",
 		},
 		{
 			name: "Deploy with interactive mode",
@@ -152,7 +146,7 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "Deploy to specific node with KMS",
 			value:
-				"phala deploy --node-id 6 --kms-id t16z-dev --private-key <key> --rpc-url <url> docker-compose.yml",
+				"phala deploy -c docker-compose.yml --node-id 6 --kms-id t16z-dev --private-key <key> --rpc-url <url>",
 		},
 	],
 };

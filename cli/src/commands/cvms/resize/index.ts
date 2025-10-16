@@ -93,28 +93,39 @@ async function runCvmsResizeCommand(
 			return 1;
 		}
 
-		if (vcpu === undefined) {
-			vcpu = await promptForNumber("Enter number of vCPUs:", cvm.vcpu);
-		}
+		// Skip prompts in non-interactive mode (--json flag)
+		if (!input.json) {
+			if (vcpu === undefined) {
+				vcpu = await promptForNumber("Enter number of vCPUs:", cvm.vcpu);
+			}
 
-		if (memory === undefined) {
-			memory = await promptForNumber("Enter memory in MB:", cvm.memory);
-		}
+			if (memory === undefined) {
+				memory = await promptForNumber("Enter memory in MB:", cvm.memory);
+			}
 
-		if (diskSize === undefined) {
-			diskSize = await promptForNumber("Enter disk size in GB:", cvm.disk_size);
-		}
+			if (diskSize === undefined) {
+				diskSize = await promptForNumber("Enter disk size in GB:", cvm.disk_size);
+			}
 
-		if (allowRestart === undefined) {
-			const response = await inquirer.prompt([
-				{
-					type: "confirm",
-					name: "allowRestart",
-					message: "Allow restart of the CVM if needed for resizing?",
-					default: false,
-				},
-			]);
-			allowRestart = response.allowRestart;
+			if (allowRestart === undefined) {
+				const response = await inquirer.prompt([
+					{
+						type: "confirm",
+						name: "allowRestart",
+						message: "Allow restart of the CVM if needed for resizing?",
+						default: false,
+					},
+				]);
+				allowRestart = response.allowRestart;
+			}
+		} else {
+			// In --json mode, use current values as defaults if not specified
+			if (vcpu === undefined) vcpu = cvm.vcpu;
+			if (memory === undefined) memory = cvm.memory;
+			if (diskSize === undefined) diskSize = cvm.disk_size;
+			// Default to allowing restart in non-interactive mode to ensure resize can complete
+			// (vCPU changes typically require restart)
+			if (allowRestart === undefined) allowRestart = true;
 		}
 
 		if (!input.json) {

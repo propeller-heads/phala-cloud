@@ -71,9 +71,8 @@ export async function retryOnConflict<T>(
 
 				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
 
-				if (spinner) {
-					spinner.start();
-				}
+				// Note: Don't restart spinner - logger.startSpinner() wrapper doesn't support .start()
+				// The next operation attempt will use its own spinner if needed
 			} else {
 				// Not a 409 error or max retries exceeded
 				throw error;

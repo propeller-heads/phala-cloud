@@ -11,13 +11,15 @@ import {
 	type CvmsAttestationCommandInput,
 } from "./command";
 
-async function resolveAppId(appId?: string): Promise<string | undefined> {
+async function resolveAppId(appId?: string, silent = false): Promise<string | undefined> {
 	if (!appId) {
-		logger.info("No CVM specified, fetching available CVMs...");
+		if (!silent) {
+			logger.info("No CVM specified, fetching available CVMs...");
+		}
 		const selected = await selectCvm();
 		return selected ?? undefined;
 	}
-	return checkCvmExists(appId);
+	return checkCvmExists(appId, silent);
 }
 
 async function runCvmsAttestationCommand(
@@ -25,20 +27,23 @@ async function runCvmsAttestationCommand(
 	context: CommandContext,
 ): Promise<number> {
 	try {
-		const resolvedAppId = await resolveAppId(input.appId);
+		const resolvedAppId = await resolveAppId(input.appId, input.json);
 
 		if (!resolvedAppId) {
 			return 0;
 		}
 
-		const spinner = logger.startSpinner(
-			`Fetching attestation information for CVM app_${resolvedAppId}...`,
-		);
+		// Don't show spinner in JSON mode to avoid contaminating stdout
+		const spinner = input.json
+			? null
+			: logger.startSpinner(
+					`Fetching attestation information for CVM app_${resolvedAppId}...`,
+			  );
 
 		try {
 			const attestationData: CvmAttestationResponse =
 				await getCvmAttestation(resolvedAppId);
-			spinner.stop(true);
+			spinner?.stop(true);
 
 			if (!attestationData || Object.keys(attestationData).length === 0) {
 				logger.info("No attestation information found");
@@ -136,7 +141,7 @@ async function runCvmsAttestationCommand(
 
 			return 0;
 		} catch (error) {
-			spinner.stop(false);
+			spinner?.stop(false);
 			throw error;
 		}
 	} catch (error) {
