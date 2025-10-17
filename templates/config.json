@@ -10,7 +10,8 @@
       {
         "key": "VIBEVM_AUTH_ENABLED",
         "required": true,
-        "description": "Enable authentication for VibeVM."
+        "description": "Enable authentication for VibeVM.",
+        "default": "true"
       },
       {
         "key": "VIBEVM_USERNAME",
@@ -19,16 +20,21 @@
         "default": "vibe"
       },
       {
-        "key": "VIBEVM_PASSWORD_HASH",
+        "key": "VIBEVM_PASSWORD",
         "required": true,
         "description": "Password for VibeVM. (default: vibevm4454)",
-        "default": "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+        "default": "vibevm4454"
       },
       {
         "key": "GITHUB_REPO",
         "required": true,
         "description": "Github repository to clone.",
         "default": "Phala-Network/erc-8004-tee-agent"
+      },
+      {
+        "key": "GH_TOKEN",
+        "required": false,
+        "description": "Github token for cloning the repository. Generate one from https://github.com/settings/tokens",
       }
     ],
     "defaultResource": {
