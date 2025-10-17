@@ -34,7 +34,7 @@
       {
         "key": "GH_TOKEN",
         "required": false,
-        "description": "Github token for cloning the repository. Generate one from https://github.com/settings/tokens",
+        "description": "Github token for cloning the repository. Generate one from https://github.com/settings/tokens"
       }
     ],
     "defaultResource": {
