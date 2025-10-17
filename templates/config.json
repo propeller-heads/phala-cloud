@@ -1,5 +1,44 @@
 [
   {
+    "id": "VibeVM",
+    "name": "VibeVM",
+    "description": "VibeVM is a secure, lightweight development environment built on top of the AIO (All-in-One) Sandbox, designed specifically for deployment in Phala Cloud Confidential Virtual Machines (CVMs). It provides an authenticated agent sandbox environment that combines Browser, Shell, File, MCP operations, and VSCode Server. This extension of AIO Sandbox sets the entrypoint at the VSCode Server for developers to customize and build their CVM applications within a native TEE environment running dstack.",
+    "repo": "https://github.com/Phala-Network/VibeVM",
+    "author": "Phala-Network",
+    "icon": "VibeVM.png",
+    "envs": [
+      {
+        "key": "VIBEVM_AUTH_ENABLED",
+        "required": true,
+        "description": "Enable authentication for VibeVM."
+      },
+      {
+        "key": "VIBEVM_USERNAME",
+        "required": true,
+        "description": "Username for VibeVM.",
+        "default": "vibe"
+      },
+      {
+        "key": "VIBEVM_PASSWORD_HASH",
+        "required": true,
+        "description": "Password for VibeVM. (default: vibevm4454)",
+        "default": "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+      },
+      {
+        "key": "GITHUB_REPO",
+        "required": true,
+        "description": "Github repository to clone.",
+        "default": "Phala-Network/erc-8004-tee-agent"
+      }
+    ],
+    "defaultResource": {
+      "vCPU": 4,
+      "memory": 8192,
+      "diskSize": 80
+    },
+    "tags": ["VibeVM", "TEE", "AI", "Agent", "Browser", "Shell", "File", "MCP", "VSCode"]
+  },
+  {
     "id": "anyone-anon-service",
     "name": "Anyone Anon Service",
     "description": "Sets up a Anyone Anon (hidden) service and serves an nginx website from that.",
