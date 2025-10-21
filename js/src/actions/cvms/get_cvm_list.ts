@@ -8,6 +8,8 @@ export const GetCvmListRequestSchema = z
     page: z.number().int().min(1).optional(),
     page_size: z.number().int().min(1).optional(),
     node_id: z.number().int().min(1).optional(),
+    teepod_id: z.number().int().min(1).optional(),
+    user_id: z.string().optional(),
   })
   .strict();
 

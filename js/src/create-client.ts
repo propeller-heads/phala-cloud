@@ -77,8 +77,53 @@ import {
   type GetAppEnvEncryptPubKeyRequest,
   type GetAppEnvEncryptPubKey as GetAppEnvEncryptPubKeyResult,
 } from "./actions/kms/get_app_env_encrypt_pubkey";
+import { startCvm, safeStartCvm, type StartCvmRequest } from "./actions/cvms/start_cvm";
+import { stopCvm, safeStopCvm, type StopCvmRequest } from "./actions/cvms/stop_cvm";
+import { shutdownCvm, safeShutdownCvm, type ShutdownCvmRequest } from "./actions/cvms/shutdown_cvm";
+import { restartCvm, safeRestartCvm, type RestartCvmRequest } from "./actions/cvms/restart_cvm";
+import { deleteCvm, safeDeleteCvm, type DeleteCvmRequest } from "./actions/cvms/delete_cvm";
+import {
+  getCvmStats,
+  safeGetCvmStats,
+  type GetCvmStatsRequest,
+  type CvmSystemInfo,
+} from "./actions/cvms/get_cvm_stats";
+import {
+  getCvmNetwork,
+  safeGetCvmNetwork,
+  type GetCvmNetworkRequest,
+  type CvmNetwork,
+} from "./actions/cvms/get_cvm_network";
+import {
+  getCvmDockerCompose,
+  safeGetCvmDockerCompose,
+  type GetCvmDockerComposeRequest,
+} from "./actions/cvms/get_cvm_docker_compose";
+import {
+  getCvmContainersStats,
+  safeGetCvmContainersStats,
+  type GetCvmContainersStatsRequest,
+  type CvmContainersStats,
+} from "./actions/cvms/get_cvm_containers_stats";
+import {
+  getCvmAttestation,
+  safeGetCvmAttestation,
+  type GetCvmAttestationRequest,
+  type CvmAttestation,
+} from "./actions/cvms/get_cvm_attestation";
+import {
+  updateCvmResources,
+  safeUpdateCvmResources,
+  type UpdateCvmResourcesRequest,
+} from "./actions/cvms/update_cvm_resources";
+import {
+  updateCvmVisibility,
+  safeUpdateCvmVisibility,
+  type UpdateCvmVisibilityRequest,
+} from "./actions/cvms/update_cvm_visibility";
 
 import type { KmsInfo } from "./types/kms_info";
+import type { VM } from "./types/cvm_info";
 
 import type { SafeResult } from "./types/client";
 
@@ -140,6 +185,30 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeProvisionCvmComposeFileUpdate: typeof safeProvisionCvmComposeFileUpdate;
     readonly commitCvmComposeFileUpdate: typeof commitCvmComposeFileUpdate;
     readonly safeCommitCvmComposeFileUpdate: typeof safeCommitCvmComposeFileUpdate;
+    readonly startCvm: typeof startCvm;
+    readonly safeStartCvm: typeof safeStartCvm;
+    readonly stopCvm: typeof stopCvm;
+    readonly safeStopCvm: typeof safeStopCvm;
+    readonly shutdownCvm: typeof shutdownCvm;
+    readonly safeShutdownCvm: typeof safeShutdownCvm;
+    readonly restartCvm: typeof restartCvm;
+    readonly safeRestartCvm: typeof safeRestartCvm;
+    readonly deleteCvm: typeof deleteCvm;
+    readonly safeDeleteCvm: typeof safeDeleteCvm;
+    readonly getCvmStats: typeof getCvmStats;
+    readonly safeGetCvmStats: typeof safeGetCvmStats;
+    readonly getCvmNetwork: typeof getCvmNetwork;
+    readonly safeGetCvmNetwork: typeof safeGetCvmNetwork;
+    readonly getCvmDockerCompose: typeof getCvmDockerCompose;
+    readonly safeGetCvmDockerCompose: typeof safeGetCvmDockerCompose;
+    readonly getCvmContainersStats: typeof getCvmContainersStats;
+    readonly safeGetCvmContainersStats: typeof safeGetCvmContainersStats;
+    readonly getCvmAttestation: typeof getCvmAttestation;
+    readonly safeGetCvmAttestation: typeof safeGetCvmAttestation;
+    readonly updateCvmResources: typeof updateCvmResources;
+    readonly safeUpdateCvmResources: typeof safeUpdateCvmResources;
+    readonly updateCvmVisibility: typeof updateCvmVisibility;
+    readonly safeUpdateCvmVisibility: typeof safeUpdateCvmVisibility;
     readonly getKmsInfo: typeof getKmsInfo;
     readonly safeGetKmsInfo: typeof safeGetKmsInfo;
     readonly getKmsList: typeof getKmsList;
@@ -171,6 +240,30 @@ export function createClient(config: ClientConfig = {}): Client {
     safeProvisionCvmComposeFileUpdate,
     commitCvmComposeFileUpdate,
     safeCommitCvmComposeFileUpdate,
+    startCvm,
+    safeStartCvm,
+    stopCvm,
+    safeStopCvm,
+    shutdownCvm,
+    safeShutdownCvm,
+    restartCvm,
+    safeRestartCvm,
+    deleteCvm,
+    safeDeleteCvm,
+    getCvmStats,
+    safeGetCvmStats,
+    getCvmNetwork,
+    safeGetCvmNetwork,
+    getCvmDockerCompose,
+    safeGetCvmDockerCompose,
+    getCvmContainersStats,
+    safeGetCvmContainersStats,
+    getCvmAttestation,
+    safeGetCvmAttestation,
+    updateCvmResources,
+    safeUpdateCvmResources,
+    updateCvmVisibility,
+    safeUpdateCvmVisibility,
     getKmsInfo,
     safeGetKmsInfo,
     getKmsList,
@@ -179,7 +272,7 @@ export function createClient(config: ClientConfig = {}): Client {
     safeGetAppEnvEncryptPubKey,
   };
 
-  return client.extend(allActions) as Client;
+  return client.extend(allActions) as unknown as Client;
 }
 
 /**
@@ -472,6 +565,227 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeGetAppEnvEncryptPubKey(
     request: GetAppEnvEncryptPubKeyRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // CVM Lifecycle Operations
+  startCvm(request: StartCvmRequest): Promise<VM>;
+  startCvm<T extends z.ZodTypeAny>(
+    request: StartCvmRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  startCvm(request: StartCvmRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeStartCvm(request: StartCvmRequest): Promise<SafeResult<VM>>;
+  safeStartCvm<T extends z.ZodTypeAny>(
+    request: StartCvmRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeStartCvm(
+    request: StartCvmRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  stopCvm(request: StopCvmRequest): Promise<VM>;
+  stopCvm<T extends z.ZodTypeAny>(
+    request: StopCvmRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  stopCvm(request: StopCvmRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeStopCvm(request: StopCvmRequest): Promise<SafeResult<VM>>;
+  safeStopCvm<T extends z.ZodTypeAny>(
+    request: StopCvmRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeStopCvm(request: StopCvmRequest, parameters: { schema: false }): Promise<SafeResult<unknown>>;
+
+  shutdownCvm(request: ShutdownCvmRequest): Promise<VM>;
+  shutdownCvm<T extends z.ZodTypeAny>(
+    request: ShutdownCvmRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  shutdownCvm(request: ShutdownCvmRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeShutdownCvm(request: ShutdownCvmRequest): Promise<SafeResult<VM>>;
+  safeShutdownCvm<T extends z.ZodTypeAny>(
+    request: ShutdownCvmRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeShutdownCvm(
+    request: ShutdownCvmRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  restartCvm(request: RestartCvmRequest): Promise<VM>;
+  restartCvm<T extends z.ZodTypeAny>(
+    request: RestartCvmRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  restartCvm(request: RestartCvmRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeRestartCvm(request: RestartCvmRequest): Promise<SafeResult<VM>>;
+  safeRestartCvm<T extends z.ZodTypeAny>(
+    request: RestartCvmRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeRestartCvm(
+    request: RestartCvmRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  deleteCvm(request: DeleteCvmRequest): Promise<void>;
+  deleteCvm<T extends z.ZodTypeAny>(
+    request: DeleteCvmRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  deleteCvm(request: DeleteCvmRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeDeleteCvm(request: DeleteCvmRequest): Promise<SafeResult<void>>;
+  safeDeleteCvm<T extends z.ZodTypeAny>(
+    request: DeleteCvmRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeDeleteCvm(
+    request: DeleteCvmRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // CVM Info/Stats Operations
+  getCvmStats(request: GetCvmStatsRequest): Promise<CvmSystemInfo>;
+  getCvmStats<T extends z.ZodTypeAny>(
+    request: GetCvmStatsRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmStats(request: GetCvmStatsRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeGetCvmStats(request: GetCvmStatsRequest): Promise<SafeResult<CvmSystemInfo>>;
+  safeGetCvmStats<T extends z.ZodTypeAny>(
+    request: GetCvmStatsRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmStats(
+    request: GetCvmStatsRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  getCvmNetwork(request: GetCvmNetworkRequest): Promise<CvmNetwork>;
+  getCvmNetwork<T extends z.ZodTypeAny>(
+    request: GetCvmNetworkRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmNetwork(request: GetCvmNetworkRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeGetCvmNetwork(request: GetCvmNetworkRequest): Promise<SafeResult<CvmNetwork>>;
+  safeGetCvmNetwork<T extends z.ZodTypeAny>(
+    request: GetCvmNetworkRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmNetwork(
+    request: GetCvmNetworkRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  getCvmDockerCompose(request: GetCvmDockerComposeRequest): Promise<string>;
+  getCvmDockerCompose<T extends z.ZodTypeAny>(
+    request: GetCvmDockerComposeRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmDockerCompose(
+    request: GetCvmDockerComposeRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetCvmDockerCompose(request: GetCvmDockerComposeRequest): Promise<SafeResult<string>>;
+  safeGetCvmDockerCompose<T extends z.ZodTypeAny>(
+    request: GetCvmDockerComposeRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmDockerCompose(
+    request: GetCvmDockerComposeRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  getCvmContainersStats(request: GetCvmContainersStatsRequest): Promise<CvmContainersStats>;
+  getCvmContainersStats<T extends z.ZodTypeAny>(
+    request: GetCvmContainersStatsRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmContainersStats(
+    request: GetCvmContainersStatsRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetCvmContainersStats(
+    request: GetCvmContainersStatsRequest,
+  ): Promise<SafeResult<CvmContainersStats>>;
+  safeGetCvmContainersStats<T extends z.ZodTypeAny>(
+    request: GetCvmContainersStatsRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmContainersStats(
+    request: GetCvmContainersStatsRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  getCvmAttestation(request: GetCvmAttestationRequest): Promise<CvmAttestation>;
+  getCvmAttestation<T extends z.ZodTypeAny>(
+    request: GetCvmAttestationRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmAttestation(
+    request: GetCvmAttestationRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetCvmAttestation(request: GetCvmAttestationRequest): Promise<SafeResult<CvmAttestation>>;
+  safeGetCvmAttestation<T extends z.ZodTypeAny>(
+    request: GetCvmAttestationRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmAttestation(
+    request: GetCvmAttestationRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // CVM Update Operations
+  updateCvmResources(request: UpdateCvmResourcesRequest): Promise<void>;
+  updateCvmResources<T extends z.ZodTypeAny>(
+    request: UpdateCvmResourcesRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updateCvmResources(
+    request: UpdateCvmResourcesRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeUpdateCvmResources(request: UpdateCvmResourcesRequest): Promise<SafeResult<void>>;
+  safeUpdateCvmResources<T extends z.ZodTypeAny>(
+    request: UpdateCvmResourcesRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdateCvmResources(
+    request: UpdateCvmResourcesRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  updateCvmVisibility(request: UpdateCvmVisibilityRequest): Promise<void>;
+  updateCvmVisibility<T extends z.ZodTypeAny>(
+    request: UpdateCvmVisibilityRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updateCvmVisibility(
+    request: UpdateCvmVisibilityRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeUpdateCvmVisibility(request: UpdateCvmVisibilityRequest): Promise<SafeResult<void>>;
+  safeUpdateCvmVisibility<T extends z.ZodTypeAny>(
+    request: UpdateCvmVisibilityRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdateCvmVisibility(
+    request: UpdateCvmVisibilityRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 }

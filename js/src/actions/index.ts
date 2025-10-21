@@ -152,3 +152,97 @@ export {
   type ListInstanceTypesRequest,
   ListInstanceTypesRequestSchema,
 } from "./list-instance-types";
+
+export {
+  startCvm,
+  safeStartCvm,
+  StartCvmRequestSchema,
+  type StartCvmRequest,
+} from "./cvms/start_cvm";
+
+export {
+  shutdownCvm,
+  safeShutdownCvm,
+  ShutdownCvmRequestSchema,
+  type ShutdownCvmRequest,
+} from "./cvms/shutdown_cvm";
+
+export {
+  stopCvm,
+  safeStopCvm,
+  StopCvmRequestSchema,
+  type StopCvmRequest,
+} from "./cvms/stop_cvm";
+
+export {
+  restartCvm,
+  safeRestartCvm,
+  RestartCvmRequestSchema,
+  type RestartCvmRequest,
+} from "./cvms/restart_cvm";
+
+export {
+  deleteCvm,
+  safeDeleteCvm,
+  DeleteCvmRequestSchema,
+  type DeleteCvmRequest,
+} from "./cvms/delete_cvm";
+
+// CVM Query Operations
+export {
+  getCvmStats,
+  safeGetCvmStats,
+  CvmSystemInfoSchema,
+  GetCvmStatsRequestSchema,
+  type GetCvmStatsRequest,
+  type CvmSystemInfo,
+} from "./cvms/get_cvm_stats";
+
+export {
+  getCvmContainersStats,
+  safeGetCvmContainersStats,
+  CvmContainersStatsSchema,
+  GetCvmContainersStatsRequestSchema,
+  type GetCvmContainersStatsRequest,
+  type CvmContainersStats,
+} from "./cvms/get_cvm_containers_stats";
+
+export {
+  getCvmNetwork,
+  safeGetCvmNetwork,
+  CvmNetworkSchema,
+  GetCvmNetworkRequestSchema,
+  type GetCvmNetworkRequest,
+  type CvmNetwork,
+} from "./cvms/get_cvm_network";
+
+export {
+  getCvmAttestation,
+  safeGetCvmAttestation,
+  CvmAttestationSchema,
+  GetCvmAttestationRequestSchema,
+  type GetCvmAttestationRequest,
+  type CvmAttestation,
+} from "./cvms/get_cvm_attestation";
+
+export {
+  getCvmDockerCompose,
+  safeGetCvmDockerCompose,
+  GetCvmDockerComposeRequestSchema,
+  type GetCvmDockerComposeRequest,
+} from "./cvms/get_cvm_docker_compose";
+
+// CVM Update Operations
+export {
+  updateCvmResources,
+  safeUpdateCvmResources,
+  UpdateCvmResourcesRequestSchema,
+  type UpdateCvmResourcesRequest,
+} from "./cvms/update_cvm_resources";
+
+export {
+  updateCvmVisibility,
+  safeUpdateCvmVisibility,
+  UpdateCvmVisibilityRequestSchema,
+  type UpdateCvmVisibilityRequest,
+} from "./cvms/update_cvm_visibility";

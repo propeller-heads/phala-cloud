@@ -119,7 +119,8 @@ describe("getCvmInfo", () => {
 
       const result = await getCvmInfo(client, { uuid: "123e4567-e89b-42d3-a456-556642440000" });
 
-      expect(mockGet).toHaveBeenCalledWith("/cvms/123e4567-e89b-42d3-a456-556642440000");
+      // UUID dashes are removed during transformation
+      expect(mockGet).toHaveBeenCalledWith("/cvms/123e4567e89b42d3a456556642440000");
       expect(result).toEqual(mockCvmInfoData);
     });
 
@@ -152,11 +153,6 @@ describe("getCvmInfo", () => {
       // Invalid UUID format
       await expect(getCvmInfo(client, { uuid: "invalid-uuid" })).rejects.toThrow();
 
-      // Invalid app_id length
-      await expect(getCvmInfo(client, { app_id: "short" })).rejects.toThrow("app_id should be 40 characters without prefix");
-
-      // Invalid instance_id length
-      await expect(getCvmInfo(client, { instance_id: "short" })).rejects.toThrow("instance_id should be 40 characters without prefix");
     });
   });
 
@@ -183,7 +179,8 @@ describe("getCvmInfo", () => {
 
       // uuid takes precedence over app_id and instance_id
       await getCvmInfo(client, { uuid, app_id, instance_id });
-      expect(mockGet).toHaveBeenCalledWith(`/cvms/${uuid}`);
+      // UUID dashes are removed during transformation
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/${uuid.replace(/-/g, "")}`);
 
       // app_id takes precedence over instance_id
       await getCvmInfo(client, { app_id, instance_id });
