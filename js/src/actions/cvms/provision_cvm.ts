@@ -36,7 +36,7 @@ import { defineAction } from "../../utils/define-action";
  *   disk_size: 10,
  *   compose_file: {
  *     docker_compose_file: docker_compose,
- *     name: 'my-app',
+ *     name: '',  // Internal field, use empty string
  *   },
  * };
  *
@@ -121,20 +121,7 @@ export type ProvisionCvmRequest = z.infer<typeof ProvisionCvmRequestSchema> & {
   };
 };
 
-// Helper functions remain the same
-function autofillComposeFileName(appCompose: ProvisionCvmRequest): ProvisionCvmRequest {
-  if (appCompose.compose_file && !appCompose.compose_file.name) {
-    return {
-      ...appCompose,
-      compose_file: {
-        ...appCompose.compose_file,
-        name: appCompose.name,
-      },
-    };
-  }
-  return appCompose;
-}
-
+// Helper functions
 function handleGatewayCompatibility(appCompose: ProvisionCvmRequest): ProvisionCvmRequest {
   if (!appCompose.compose_file) {
     return appCompose;
@@ -175,7 +162,7 @@ const { action: provisionCvm, safeAction: safeProvisionCvm } = defineAction<
   ProvisionCvmRequest,
   typeof ProvisionCvmSchema
 >(ProvisionCvmSchema, async (client, appCompose) => {
-  const body = handleGatewayCompatibility(autofillComposeFileName(appCompose));
+  const body = handleGatewayCompatibility(appCompose);
   let requestBody = { ...body };
   if (typeof body.node_id === "number") {
     requestBody = { ...body, teepod_id: body.node_id };
