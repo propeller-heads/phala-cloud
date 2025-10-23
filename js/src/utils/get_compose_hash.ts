@@ -65,3 +65,25 @@ export function getComposeHash(app_compose: AppCompose): string {
   const manifest_str = dumpAppCompose(preprocessed);
   return crypto.createHash("sha256").update(manifest_str, "utf8").digest("hex");
 }
+
+/**
+ * Attach utility methods to an AppCompose object
+ *
+ * @example
+ * ```typescript
+ * const compose = withComposeMethods(rawCompose);
+ * console.log(compose.getHash());
+ * console.log(compose.dump());
+ * ```
+ */
+export function withComposeMethods<T extends Record<string, any>>(compose: T) {
+  // Cast to AppCompose for method implementations since we know the structure is compatible
+  const appCompose = compose as unknown as AppCompose;
+  return {
+    ...compose,
+    getHash: () => getComposeHash(appCompose),
+    toString: () => dumpAppCompose(preprocessAppCompose(appCompose)),
+  };
+}
+
+export type AppComposeWithMethods = ReturnType<typeof withComposeMethods>;
