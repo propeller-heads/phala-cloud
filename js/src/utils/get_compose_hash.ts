@@ -1,12 +1,21 @@
 import crypto from "crypto";
 
-type SortableValue = string | number | boolean | null | undefined | SortableObject | SortableArray;
-interface SortableObject {
+export type SortableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | SortableObject
+  | SortableArray;
+
+export interface SortableObject {
   [key: string]: SortableValue;
 }
-interface SortableArray extends Array<SortableValue> {}
 
-function sortObject(obj: SortableValue): SortableValue {
+export interface SortableArray extends Array<SortableValue> {}
+
+export function sortObject(obj: SortableValue): SortableValue {
   if (obj === undefined || obj === null) {
     return obj;
   }
@@ -31,7 +40,7 @@ export interface AppCompose extends SortableObject {
   pre_launch_script?: string;
 }
 
-function preprocessAppCompose(dic: AppCompose): AppCompose {
+export function preprocessAppCompose(dic: AppCompose): AppCompose {
   const obj: AppCompose = { ...dic };
   if (obj.runner === "bash" && "docker_compose_file" in obj) {
     delete obj.docker_compose_file;
@@ -44,7 +53,7 @@ function preprocessAppCompose(dic: AppCompose): AppCompose {
   return obj;
 }
 
-function dumpAppCompose(dic: AppCompose): string {
+export function dumpAppCompose(dic: AppCompose): string {
   const ordered = sortObject(dic);
   let json = JSON.stringify(ordered, null, 4);
   json = json.replace(/": /g, '":');
