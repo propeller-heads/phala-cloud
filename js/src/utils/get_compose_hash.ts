@@ -67,7 +67,7 @@ export function getComposeHash(app_compose: AppCompose): string {
 }
 
 /**
- * Attach utility methods to an AppCompose object
+ * Attach utility methods to an AppCompose-compatible object
  *
  * @example
  * ```typescript
@@ -76,8 +76,8 @@ export function getComposeHash(app_compose: AppCompose): string {
  * console.log(compose.dump());
  * ```
  */
-export function withComposeMethods<T extends Record<string, any>>(compose: T) {
-  // Cast to AppCompose for method implementations since we know the structure is compatible
+export function withComposeMethods<T extends Record<string, unknown>>(compose: T) {
+  // Type assertion is safe because getComposeHash/dumpAppCompose handle any object structure
   const appCompose = compose as unknown as AppCompose;
   return {
     ...compose,

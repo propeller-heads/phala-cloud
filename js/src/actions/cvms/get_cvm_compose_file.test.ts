@@ -18,7 +18,7 @@ describe("getCvmComposeFile", () => {
     };
   });
 
-  const mockComposeFileResponse: GetCvmComposeFileResult = {
+  const mockComposeFileResponse = {
     docker_compose_file: "version: '3.8'\nservices:\n  app:\n    image: nginx",
     allowed_envs: ["API_KEY", "DATABASE_URL"],
     features: ["kms"],
@@ -38,7 +38,9 @@ describe("getCvmComposeFile", () => {
       const result = await getCvmComposeFile(mockClient as Client, { id: "cvm-123" });
 
       expect(mockClient.get).toHaveBeenCalledWith("/cvms/cvm-123/compose_file");
-      expect(result).toEqual(mockComposeFileResponse);
+      expect(result).toMatchObject(mockComposeFileResponse);
+      expect(result.getHash).toBeTypeOf("function");
+      expect(result.toString).toBeTypeOf("function");
     });
 
     it("should call correct endpoint with uuid", async () => {
@@ -48,7 +50,9 @@ describe("getCvmComposeFile", () => {
 
       // UUID dashes are removed during transformation
       expect(mockClient.get).toHaveBeenCalledWith("/cvms/123e4567e89b42d3a456556642440000/compose_file");
-      expect(result).toEqual(mockComposeFileResponse);
+      expect(result).toMatchObject(mockComposeFileResponse);
+      expect(result.getHash).toBeTypeOf("function");
+      expect(result.toString).toBeTypeOf("function");
     });
 
     it("should call correct endpoint with app_id (adds prefix)", async () => {
@@ -58,7 +62,9 @@ describe("getCvmComposeFile", () => {
       const result = await getCvmComposeFile(mockClient as Client, { app_id: appId });
 
       expect(mockClient.get).toHaveBeenCalledWith(`/cvms/app_${appId}/compose_file`);
-      expect(result).toEqual(mockComposeFileResponse);
+      expect(result).toMatchObject(mockComposeFileResponse);
+      expect(result.getHash).toBeTypeOf("function");
+      expect(result.toString).toBeTypeOf("function");
     });
 
     it("should call correct endpoint with instance_id (adds prefix)", async () => {
@@ -68,7 +74,9 @@ describe("getCvmComposeFile", () => {
       const result = await getCvmComposeFile(mockClient as Client, { instance_id: instanceId });
 
       expect(mockClient.get).toHaveBeenCalledWith(`/cvms/instance_${instanceId}/compose_file`);
-      expect(result).toEqual(mockComposeFileResponse);
+      expect(result).toMatchObject(mockComposeFileResponse);
+      expect(result.getHash).toBeTypeOf("function");
+      expect(result.toString).toBeTypeOf("function");
     });
   });
 
@@ -107,7 +115,9 @@ describe("getCvmComposeFile", () => {
 
       const result = await getCvmComposeFile(mockClient as Client, { id: "cvm-123" });
 
-      expect(result).toEqual(responseWithExtraFields);
+      expect(result).toMatchObject(responseWithExtraFields);
+      expect(result.getHash).toBeTypeOf("function");
+      expect(result.toString).toBeTypeOf("function");
     });
   });
 
@@ -119,7 +129,9 @@ describe("getCvmComposeFile", () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toEqual(mockComposeFileResponse);
+        expect(result.data).toMatchObject(mockComposeFileResponse);
+        expect(result.data.getHash).toBeTypeOf("function");
+        expect(result.data.toString).toBeTypeOf("function");
       }
     });
 
