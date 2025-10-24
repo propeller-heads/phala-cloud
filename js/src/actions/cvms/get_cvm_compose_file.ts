@@ -3,6 +3,7 @@ import { type Client } from "../../client";
 import { LooseAppComposeSchema } from "../../types/app_compose";
 import { defineAction } from "../../utils/define-action";
 import { CvmIdSchema, type CvmIdInput } from "../../types/cvm_id";
+import { withComposeMethods } from "../../utils/get_compose_hash";
 
 /**
  * Get CVM compose file configuration
@@ -72,12 +73,15 @@ import { CvmIdSchema, type CvmIdInput } from "../../types/cvm_id";
  * ```
  */
 
-export const GetCvmComposeFileResultSchema = LooseAppComposeSchema;
+// Transform schema to add utility methods to the result
+export const GetCvmComposeFileResultSchema = LooseAppComposeSchema.transform((data) =>
+  withComposeMethods(data),
+);
 
 // Legacy alias for backwards compatibility
 export const CvmComposeFileSchema = GetCvmComposeFileResultSchema;
 export type CvmComposeFile = z.infer<typeof CvmComposeFileSchema>;
-export type GetCvmComposeFileResult = z.infer<typeof LooseAppComposeSchema>;
+export type GetCvmComposeFileResult = z.infer<typeof GetCvmComposeFileResultSchema>;
 
 export const GetCvmComposeFileRequestSchema = CvmIdSchema;
 
@@ -85,8 +89,8 @@ export type GetCvmComposeFileRequest = CvmIdInput;
 
 const { action: getCvmComposeFile, safeAction: safeGetCvmComposeFile } = defineAction<
   GetCvmComposeFileRequest,
-  typeof LooseAppComposeSchema
->(LooseAppComposeSchema, async (client, request) => {
+  typeof GetCvmComposeFileResultSchema
+>(GetCvmComposeFileResultSchema, async (client, request) => {
   const { cvmId } = GetCvmComposeFileRequestSchema.parse(request);
   return await client.get(`/cvms/${cvmId}/compose_file`);
 });

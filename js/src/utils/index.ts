@@ -1,5 +1,16 @@
 export { encryptEnvVars } from "@phala/dstack-sdk/encrypt-env-vars";
-export { getComposeHash, type AppCompose } from "./get_compose_hash";
+export {
+  getComposeHash,
+  dumpAppCompose,
+  preprocessAppCompose,
+  sortObject,
+  withComposeMethods,
+  type AppCompose,
+  type AppComposeWithMethods,
+  type SortableValue,
+  type SortableObject,
+  type SortableArray,
+} from "./get_compose_hash";
 export { getErrorMessage } from "./get_error_message";
 export { asHex } from "./as-hex";
 export { validateActionParameters, safeValidateActionParameters } from "./validate-parameters";
