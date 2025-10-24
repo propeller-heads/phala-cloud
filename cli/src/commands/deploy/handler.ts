@@ -1,12 +1,15 @@
 import path from "node:path";
-import { getCvmUuid, saveCvmUuid } from "@/src/utils/config";
+import {
+	loadProjectConfig,
+	projectConfigExists,
+} from "@/src/utils/project-config";
+import { getApiKey } from "@/src/utils/credentials";
 import {
 	CLOUD_URL,
 	DEFAULT_DISK_SIZE,
 	DEFAULT_MEMORY,
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
-import { getApiKey } from "@/src/utils/credentials";
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
 import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
@@ -24,6 +27,8 @@ import {
 	safeGetAvailableNodes,
 	safeGetCvmComposeFile,
 	safeGetCvmInfo,
+	safeGetCvmList,
+	safeGetCurrentUser,
 	safeGetKmsList,
 	safeProvisionCvm,
 	safeProvisionCvmComposeFileUpdate,
@@ -135,11 +140,6 @@ async function readDockerComposeFile({
 
 	// 3. Read and return the file content
 	return fs.readFileSync(dockerComposePath, "utf8");
-}
-
-function readCvmUuid({ uuid }: { uuid?: string } = {}): string | undefined {
-	// Return the provided UUID if it exists, otherwise get it from config
-	return uuid || getCvmUuid();
 }
 
 const validatePrivateKey = async (
@@ -550,7 +550,7 @@ const deployNewCvm = async (
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const cvm = commit_result.data as any;
-	saveCvmUuid(cvm.vm_uuid);
+
 	if (validatedOptions?.json !== false) {
 		stdout.write(
 			`${JSON.stringify(
@@ -684,6 +684,7 @@ const updateCvm = async (
 			`Failed to commit CVM compose file update: ${commitResult.error.message}`,
 		);
 	}
+
 	if (validatedOptions?.json !== false) {
 		stdout.write(
 			`${JSON.stringify(
@@ -721,12 +722,19 @@ export async function runDeploy(
 			interactive: input.interactive,
 		});
 
-		const uuid = readCvmUuid({ uuid: input.uuid });
 		const envs = await validateEnvFile(input as Options);
+
+		// Load project config if exists
+		const projectConfig = projectConfigExists()
+			? loadProjectConfig()
+			: undefined;
+
+		// Determine UUID: priority is CLI input > phala.toml vm_uuid
+		const uuid = input.uuid || projectConfig?.vm_uuid;
 
 		const isUpdate = !!uuid;
 		if (isUpdate) {
-			// Update the cvm
+			// Update the existing CVM
 			await updateCvm(
 				{
 					...input,
@@ -738,12 +746,9 @@ export async function runDeploy(
 				context.stdout,
 			);
 		} else {
-			// Deploy a new cvm
+			// Deploy a new CVM
 			await deployNewCvm(
-				{
-					...input,
-					uuid,
-				},
+				input,
 				docker_compose_yml,
 				envs ?? [],
 				client,
