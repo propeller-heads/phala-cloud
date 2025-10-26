@@ -78,13 +78,6 @@ export class Client {
 
     this.config = resolvedConfig;
 
-    // Validate that we have an API key (unless using cookie auth)
-    if (!resolvedConfig.useCookieAuth && !resolvedConfig.apiKey) {
-      throw new Error(
-        "API key is required. Provide it via config.apiKey or set PHALA_CLOUD_API_KEY environment variable.",
-      );
-    }
-
     // Extract our custom options and pass the rest to ofetch
     const { apiKey, baseURL, timeout, headers, useCookieAuth, onResponseError, ...fetchOptions } =
       resolvedConfig;
