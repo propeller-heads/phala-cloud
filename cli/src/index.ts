@@ -9,6 +9,7 @@ import { configCommands } from "./commands/config";
 import { cvmsCommands } from "./commands/cvms";
 import { deployCommand } from "./commands/deploy";
 import { dockerCommands } from "./commands/docker";
+import { loginCommand } from "./commands/login";
 import { nodesCommands } from "./commands/nodes";
 import { simulatorCommands } from "./commands/simulator";
 import { statusCommand } from "./commands/status";
@@ -24,6 +25,7 @@ const version = `v${packageJson.version}`;
 const registry = new CommandRegistry();
 registry.registerCommand(statusCommand);
 registry.registerCommand(deployCommand);
+registry.registerCommand(loginCommand);
 registry.registerCommand(completionCommand);
 registry.registerGroup(authCommands.group);
 for (const command of authCommands.commands) {
