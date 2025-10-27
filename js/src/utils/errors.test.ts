@@ -1,0 +1,461 @@
+import { describe, it, expect } from "vitest";
+import {
+  parseApiError,
+  PhalaCloudError,
+  RequestError,
+  ValidationError,
+  AuthError,
+  BusinessError,
+  ServerError,
+  UnknownError,
+  getValidationFields,
+  formatValidationErrors,
+  formatErrorMessage,
+} from "./errors";
+
+describe("parseApiError", () => {
+  describe("422 Validation Errors", () => {
+    it("should return ValidationError instance", () => {
+      const requestError = new RequestError("Validation error", {
+        status: 422,
+        statusText: "Unprocessable Entity",
+        detail: [
+          {
+            loc: ["body", "name"],
+            msg: "String should have at least 4 characters",
+            type: "string_too_short",
+            ctx: { min_length: 4 },
+          },
+        ],
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(ValidationError);
+      expect(parsed).toBeInstanceOf(PhalaCloudError);
+      expect(parsed.status).toBe(422);
+      expect(parsed.message).toBe("Validation failed: String should have at least 4 characters");
+
+      if (parsed instanceof ValidationError) {
+        expect(parsed.validationErrors).toHaveLength(1);
+        expect(parsed.validationErrors[0]).toEqual({
+          field: "name",
+          message: "String should have at least 4 characters",
+          type: "string_too_short",
+          context: { min_length: 4 },
+        });
+      }
+    });
+
+    it("should parse multiple validation errors", () => {
+      const requestError = new RequestError("Validation error", {
+        status: 422,
+        detail: [
+          {
+            loc: ["body", "name"],
+            msg: "String should have at least 4 characters",
+            type: "string_too_short",
+          },
+          {
+            loc: ["body", "memory"],
+            msg: "Input should be greater than or equal to 1024",
+            type: "greater_than_equal",
+          },
+          {
+            loc: ["body", "disk_size"],
+            msg: "Input should be less than or equal to 10240",
+            type: "less_than_equal",
+          },
+        ],
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(ValidationError);
+      expect(parsed.message).toBe("Validation failed (3 issues)");
+
+      if (parsed instanceof ValidationError) {
+        expect(parsed.validationErrors).toHaveLength(3);
+        expect(parsed.validationErrors[0]!.field).toBe("name");
+        expect(parsed.validationErrors[1]!.field).toBe("memory");
+        expect(parsed.validationErrors[2]!.field).toBe("disk_size");
+      }
+    });
+
+    it("should handle nested field paths", () => {
+      const requestError = new RequestError("Validation error", {
+        status: 422,
+        detail: [
+          {
+            loc: ["body", "resources", "compute", "memory"],
+            msg: "Too low",
+            type: "value_error",
+          },
+        ],
+      });
+
+      const parsed = parseApiError(requestError);
+
+      if (parsed instanceof ValidationError) {
+        expect(parsed.validationErrors[0]!.field).toBe("resources.compute.memory");
+      }
+    });
+
+    it("should handle query parameter errors", () => {
+      const requestError = new RequestError("Validation error", {
+        status: 422,
+        detail: [
+          {
+            loc: ["query", "page"],
+            msg: "Input should be greater than 0",
+            type: "greater_than",
+          },
+        ],
+      });
+
+      const parsed = parseApiError(requestError);
+
+      if (parsed instanceof ValidationError) {
+        expect(parsed.validationErrors[0]!.field).toBe("page");
+      }
+    });
+  });
+
+  describe("400 Business Errors", () => {
+    it("should return BusinessError instance with string detail", () => {
+      const requestError = new RequestError("Bad Request", {
+        status: 400,
+        statusText: "Bad Request",
+        detail: "Insufficient balance. You need at least $1 to launch a CVM.",
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(BusinessError);
+      expect(parsed).toBeInstanceOf(PhalaCloudError);
+      expect(parsed.status).toBe(400);
+      expect(parsed.message).toBe("Insufficient balance. You need at least $1 to launch a CVM.");
+    });
+
+    it("should parse object detail with message", () => {
+      const requestError = new RequestError("Bad Request", {
+        status: 400,
+        detail: {
+          message: "Node not available",
+          code: "NODE_NOT_FOUND",
+        },
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(BusinessError);
+      expect(parsed.message).toBe("Node not available");
+    });
+  });
+
+  describe("401/403 Auth Errors", () => {
+    it("should return AuthError instance for 401", () => {
+      const requestError = new RequestError("Unauthorized", {
+        status: 401,
+        detail: "Authentication required",
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(AuthError);
+      expect(parsed).toBeInstanceOf(PhalaCloudError);
+      expect(parsed.message).toBe("Authentication required");
+    });
+
+    it("should return AuthError instance for 403", () => {
+      const requestError = new RequestError("Forbidden", {
+        status: 403,
+        detail: "You do not have permission to perform this action",
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(AuthError);
+      expect(parsed.message).toBe("You do not have permission to perform this action");
+    });
+  });
+
+  describe("500 Server Errors", () => {
+    it("should return ServerError instance", () => {
+      const requestError = new RequestError("Internal Server Error", {
+        status: 500,
+        detail: "An unexpected error occurred",
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(ServerError);
+      expect(parsed).toBeInstanceOf(PhalaCloudError);
+      expect(parsed.message).toBe("An unexpected error occurred");
+    });
+  });
+
+  describe("Unknown Errors", () => {
+    it("should return UnknownError instance for missing status", () => {
+      const requestError = new RequestError("Network error", {
+        detail: "Failed to fetch",
+      });
+
+      const parsed = parseApiError(requestError);
+
+      expect(parsed).toBeInstanceOf(UnknownError);
+      expect(parsed.status).toBe(0);
+    });
+  });
+});
+
+describe("instanceof type guards", () => {
+  it("should allow instanceof checks for ValidationError", () => {
+    const requestError = new RequestError("Validation error", {
+      status: 422,
+      detail: [{ loc: ["body", "name"], msg: "Too short", type: "string_too_short" }],
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error instanceof ValidationError) {
+      // TypeScript should know validationErrors exists
+      expect(error.validationErrors).toBeDefined();
+      expect(error.validationErrors[0]!.field).toBe("name");
+    } else {
+      throw new Error("Expected ValidationError");
+    }
+  });
+
+  it("should allow instanceof checks for AuthError", () => {
+    const requestError = new RequestError("Unauthorized", {
+      status: 401,
+      detail: "Authentication required",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error instanceof AuthError) {
+      expect(error.status).toBe(401);
+    } else {
+      throw new Error("Expected AuthError");
+    }
+  });
+
+  it("should allow instanceof checks for BusinessError", () => {
+    const requestError = new RequestError("Bad Request", {
+      status: 400,
+      detail: "Insufficient balance",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error instanceof BusinessError) {
+      expect(error.status).toBe(400);
+    } else {
+      throw new Error("Expected BusinessError");
+    }
+  });
+});
+
+describe("getValidationFields", () => {
+  it("should extract field names from ValidationError", () => {
+    const requestError = new RequestError("Validation error", {
+      status: 422,
+      detail: [
+        { loc: ["body", "name"], msg: "Too short", type: "string_too_short" },
+        { loc: ["body", "memory"], msg: "Too low", type: "greater_than_equal" },
+      ],
+    });
+
+    const error = parseApiError(requestError);
+    const fields = getValidationFields(error);
+
+    expect(fields).toEqual(["name", "memory"]);
+  });
+
+  it("should return empty array for non-validation errors", () => {
+    const requestError = new RequestError("Bad Request", {
+      status: 400,
+      detail: "Error",
+    });
+
+    const error = parseApiError(requestError);
+    const fields = getValidationFields(error);
+
+    expect(fields).toEqual([]);
+  });
+});
+
+describe("formatValidationErrors", () => {
+  const errors = [
+    { field: "name", message: "String should have at least 4 characters", type: "string_too_short" },
+    { field: "memory", message: "Input should be greater than or equal to 1024", type: "greater_than_equal" },
+  ];
+
+  it("should format with numbers and fields", () => {
+    const formatted = formatValidationErrors(errors);
+    expect(formatted).toBe(
+      "  1. name: String should have at least 4 characters\n" +
+      "  2. memory: Input should be greater than or equal to 1024"
+    );
+  });
+
+  it("should format without numbers", () => {
+    const formatted = formatValidationErrors(errors, { numbered: false });
+    expect(formatted).toBe(
+      "  • name: String should have at least 4 characters\n" +
+      "  • memory: Input should be greater than or equal to 1024"
+    );
+  });
+
+  it("should format without field names", () => {
+    const formatted = formatValidationErrors(errors, { showFields: false });
+    expect(formatted).toBe(
+      "  1. String should have at least 4 characters\n" +
+      "  2. Input should be greater than or equal to 1024"
+    );
+  });
+
+  it("should use custom indent", () => {
+    const formatted = formatValidationErrors(errors, { indent: 4 });
+    expect(formatted).toContain("    1. name:");
+  });
+});
+
+describe("formatErrorMessage", () => {
+  it("should format ValidationError with multiple issues", () => {
+    const requestError = new RequestError("Validation error", {
+      status: 422,
+      detail: [
+        { loc: ["body", "name"], msg: "Too short", type: "string_too_short" },
+        { loc: ["body", "memory"], msg: "Too low", type: "greater_than_equal" },
+      ],
+    });
+
+    const error = parseApiError(requestError);
+    const formatted = formatErrorMessage(error);
+
+    expect(formatted).toContain("Validation failed (2 issues)");
+    expect(formatted).toContain("1. name: Too short");
+    expect(formatted).toContain("2. memory: Too low");
+  });
+
+  it("should format BusinessError without validation details", () => {
+    const requestError = new RequestError("Bad Request", {
+      status: 400,
+      detail: "Insufficient balance",
+    });
+
+    const error = parseApiError(requestError);
+    const formatted = formatErrorMessage(error);
+
+    expect(formatted).toBe("Insufficient balance");
+  });
+
+  it("should include error class name when showType is true", () => {
+    const requestError = new RequestError("Bad Request", {
+      status: 400,
+      detail: "Insufficient balance",
+    });
+
+    const error = parseApiError(requestError);
+    const formatted = formatErrorMessage(error, { showType: true });
+
+    expect(formatted).toContain("[BUSINESSERROR]");
+  });
+});
+
+describe("Error type discriminator properties", () => {
+  it("should have isValidationError property", () => {
+    const requestError = new RequestError("Validation error", {
+      status: 422,
+      detail: [{ loc: ["body", "name"], msg: "Too short", type: "string_too_short" }],
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error.isValidationError) {
+      // TypeScript should know this is ValidationError
+      expect(error.validationErrors).toBeDefined();
+      expect(error.validationErrors).toHaveLength(1);
+    } else {
+      throw new Error("Expected ValidationError");
+    }
+  });
+
+  it("should have isAuthError property", () => {
+    const requestError = new RequestError("Unauthorized", {
+      status: 401,
+      detail: "Authentication required",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error.isAuthError) {
+      expect(error.status).toBe(401);
+    } else {
+      throw new Error("Expected AuthError");
+    }
+  });
+
+  it("should have isBusinessError property", () => {
+    const requestError = new RequestError("Bad Request", {
+      status: 400,
+      detail: "Insufficient balance",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error.isBusinessError) {
+      expect(error.status).toBe(400);
+    } else {
+      throw new Error("Expected BusinessError");
+    }
+  });
+
+  it("should have isServerError property", () => {
+    const requestError = new RequestError("Internal Server Error", {
+      status: 500,
+      detail: "Unexpected error",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error.isServerError) {
+      expect(error.status).toBe(500);
+    } else {
+      throw new Error("Expected ServerError");
+    }
+  });
+
+  it("should have isUnknownError property", () => {
+    const requestError = new RequestError("Network error", {
+      detail: "Failed to fetch",
+    });
+
+    const error = parseApiError(requestError);
+
+    if (error.isUnknownError) {
+      expect(error.status).toBe(0);
+    } else {
+      throw new Error("Expected UnknownError");
+    }
+  });
+
+  it("should only have one discriminator property set", () => {
+    const requestError = new RequestError("Validation error", {
+      status: 422,
+      detail: [{ loc: ["body", "name"], msg: "Too short", type: "string_too_short" }],
+    });
+
+    const error = parseApiError(requestError);
+
+    // Only isValidationError should be true
+    expect(error.isValidationError).toBe(true);
+    expect(error.isAuthError).toBeUndefined();
+    expect(error.isBusinessError).toBeUndefined();
+    expect(error.isServerError).toBeUndefined();
+    expect(error.isUnknownError).toBeUndefined();
+  });
+});

@@ -1,11 +1,20 @@
 import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch";
 import debug from "debug";
-import { type SafeResult, RequestError, type ClientConfig } from "./types/client";
+import mitt, { type Emitter, type Handler } from "mitt";
+import { type SafeResult, type ClientConfig } from "./types/client";
 import type { Prettify } from "./types/common";
+import { parseApiError, PhalaCloudError, RequestError } from "./utils/errors";
 export type { SafeResult } from "./types/client";
 
 const SUPPORTED_API_VERSIONS = ["2025-05-31", "2025-10-28"];
 const logger = debug("phala::api-client");
+
+/**
+ * Client event types
+ */
+type ClientEvents = {
+  error: PhalaCloudError;
+};
 
 /**
  * Format headers for cURL-like output
@@ -59,8 +68,11 @@ function formatResponse(
 export class Client {
   protected fetchInstance: typeof ofetch;
   public readonly config: ClientConfig;
+  private emitter: Emitter<ClientEvents>;
 
   constructor(config: ClientConfig = {}) {
+    // Initialize event emitter
+    this.emitter = mitt<ClientEvents>();
     // Resolve configuration with environment variables
     const resolvedConfig: ClientConfig = {
       ...config,
@@ -184,105 +196,224 @@ export class Client {
     return this.fetchInstance;
   }
 
+  // ===== Event handling methods =====
+
+  /**
+   * Listen for error events
+   * @param type - Event type ('error' or '*' for all events)
+   * @param handler - Event handler function
+   *
+   * @example
+   * ```typescript
+   * // Listen to error events
+   * client.on('error', (error) => {
+   *   console.error('API Error:', error.message);
+   * });
+   *
+   * // Listen to all events
+   * client.on('*', (type, error) => {
+   *   console.log('Event:', type, error);
+   * });
+   * ```
+   */
+  on<K extends keyof ClientEvents>(type: K, handler: Handler<ClientEvents[K]>): void;
+  on(type: "*", handler: Handler): void;
+  on(type: keyof ClientEvents | "*", handler: Handler<ClientEvents[keyof ClientEvents]>): void {
+    this.emitter.on(type as keyof ClientEvents, handler);
+  }
+
+  /**
+   * Remove event listener
+   * @param type - Event type ('error' or '*' for all events)
+   * @param handler - Event handler function to remove
+   *
+   * @example
+   * ```typescript
+   * const errorHandler = (error) => console.error(error);
+   * client.on('error', errorHandler);
+   * client.off('error', errorHandler);
+   * ```
+   */
+  off<K extends keyof ClientEvents>(type: K, handler?: Handler<ClientEvents[K]>): void;
+  off(type: "*", handler?: Handler): void;
+  off(type: keyof ClientEvents | "*", handler?: Handler<ClientEvents[keyof ClientEvents]>): void {
+    this.emitter.off(type as keyof ClientEvents, handler);
+  }
+
+  /**
+   * Listen for event once (automatically removed after first trigger)
+   * @param type - Event type ('error' or '*' for all events)
+   * @param handler - Event handler function
+   *
+   * @example
+   * ```typescript
+   * client.once('error', (error) => {
+   *   console.error('First error:', error);
+   * });
+   * ```
+   */
+  once<K extends keyof ClientEvents>(type: K, handler: Handler<ClientEvents[K]>): void;
+  once(type: "*", handler: Handler): void;
+  once(type: keyof ClientEvents | "*", handler: Handler<ClientEvents[keyof ClientEvents]>): void {
+    const wrappedHandler = (event: ClientEvents[keyof ClientEvents]) => {
+      handler(event);
+      this.emitter.off(type as keyof ClientEvents, wrappedHandler);
+    };
+    this.emitter.on(type as keyof ClientEvents, wrappedHandler);
+  }
+
   // ===== Direct methods (throw on error) =====
 
   /**
-   * Perform GET request (throws on error)
+   * Perform GET request (throws PhalaCloudError on error)
    */
   async get<T = unknown>(
     request: FetchRequest,
     options?: Omit<FetchOptions, "method">,
   ): Promise<T> {
-    // Note: Type assertion needed due to ofetch's complex generic type system
-    return this.fetchInstance<T>(request, {
-      ...options,
-      method: "GET",
-    } as Parameters<typeof this.fetchInstance<T>>[1]);
+    try {
+      return await this.fetchInstance<T>(request, {
+        ...options,
+        method: "GET",
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
   }
 
   /**
-   * Perform POST request (throws on error)
+   * Perform POST request (throws PhalaCloudError on error)
    */
   async post<T = unknown>(
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
   ): Promise<T> {
-    // Note: Type assertion needed due to ofetch's complex generic type system
-    return this.fetchInstance<T>(request, {
-      ...options,
-      method: "POST",
-      body,
-    } as Parameters<typeof this.fetchInstance<T>>[1]);
+    try {
+      return await this.fetchInstance<T>(request, {
+        ...options,
+        method: "POST",
+        body,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
   }
 
   /**
-   * Perform PUT request (throws on error)
+   * Perform PUT request (throws PhalaCloudError on error)
    */
   async put<T = unknown>(
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
   ): Promise<T> {
-    // Note: Type assertion needed due to ofetch's complex generic type system
-    return this.fetchInstance<T>(request, {
-      ...options,
-      method: "PUT",
-      body,
-    } as Parameters<typeof this.fetchInstance<T>>[1]);
+    try {
+      return await this.fetchInstance<T>(request, {
+        ...options,
+        method: "PUT",
+        body,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
   }
 
   /**
-   * Perform PATCH request (throws on error)
+   * Perform PATCH request (throws PhalaCloudError on error)
    */
   async patch<T = unknown>(
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
   ): Promise<T> {
-    // Note: Type assertion needed due to ofetch's complex generic type system
-    return this.fetchInstance<T>(request, {
-      ...options,
-      method: "PATCH",
-      body,
-    } as Parameters<typeof this.fetchInstance<T>>[1]);
+    try {
+      return await this.fetchInstance<T>(request, {
+        ...options,
+        method: "PATCH",
+        body,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
   }
 
   /**
-   * Perform DELETE request (throws on error)
+   * Perform DELETE request (throws PhalaCloudError on error)
    */
   async delete<T = unknown>(
     request: FetchRequest,
     options?: Omit<FetchOptions, "method">,
   ): Promise<T> {
-    // Note: Type assertion needed due to ofetch's complex generic type system
-    return this.fetchInstance<T>(request, {
-      ...options,
-      method: "DELETE",
-    } as Parameters<typeof this.fetchInstance<T>>[1]);
+    try {
+      return await this.fetchInstance<T>(request, {
+        ...options,
+        method: "DELETE",
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
   }
 
   // ===== Safe methods (return SafeResult) =====
 
   /**
-   * Safe wrapper for any request method (zod-style result)
+   * Convert any error to RequestError
    */
-  private async safeRequest<T>(fn: () => Promise<T>): Promise<SafeResult<T, RequestError>> {
+  private convertToRequestError(error: unknown): RequestError {
+    if (error && typeof error === "object" && "data" in error) {
+      return RequestError.fromFetchError(error as FetchError);
+    }
+    if (error instanceof Error) {
+      return RequestError.fromError(error);
+    }
+    return new RequestError("Unknown error occurred", {
+      detail: "Unknown error occurred",
+    });
+  }
+
+  /**
+   * Broadcast error to event listeners (fire-and-forget)
+   * @param requestError - The request error to handle
+   * @returns PhalaCloudError instance to throw immediately
+   */
+  private emitError(requestError: RequestError): PhalaCloudError {
+    // Parse error into PhalaCloudError subclass
+    const phalaCloudError = parseApiError(requestError);
+
+    // Emit error event to all listeners
+    this.emitter.emit("error", phalaCloudError);
+
+    return phalaCloudError;
+  }
+
+  /**
+   * Safe wrapper for any request method (zod-style result)
+   * Returns PhalaCloudError (all errors extend this base class)
+   */
+  private async safeRequest<T>(fn: () => Promise<T>): Promise<SafeResult<T, PhalaCloudError>> {
     try {
       const data = await fn();
       return { success: true, data };
     } catch (error) {
-      if (error && typeof error === "object" && "data" in error) {
-        const requestError = RequestError.fromFetchError(error as FetchError);
-        return { success: false, error: requestError };
+      // All errors thrown by get/post/put/patch/delete are PhalaCloudError subclasses
+      if (error instanceof PhalaCloudError) {
+        return { success: false, error };
       }
-      if (error instanceof Error) {
-        const requestError = RequestError.fromError(error);
-        return { success: false, error: requestError };
-      }
-      const requestError = new RequestError("Unknown error occurred", {
-        detail: "Unknown error occurred",
-      });
+
+      // Unexpected errors - convert to RequestError (which extends PhalaCloudError)
+      const requestError = this.convertToRequestError(error);
+      this.emitError(requestError);
       return { success: false, error: requestError };
     }
   }
@@ -293,7 +424,7 @@ export class Client {
   async safeGet<T = unknown>(
     request: FetchRequest,
     options?: Omit<FetchOptions, "method">,
-  ): Promise<SafeResult<T, RequestError>> {
+  ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.get<T>(request, options));
   }
 
@@ -304,7 +435,7 @@ export class Client {
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
-  ): Promise<SafeResult<T, RequestError>> {
+  ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.post<T>(request, body, options));
   }
 
@@ -315,7 +446,7 @@ export class Client {
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
-  ): Promise<SafeResult<T, RequestError>> {
+  ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.put<T>(request, body, options));
   }
 
@@ -326,7 +457,7 @@ export class Client {
     request: FetchRequest,
     body?: RequestInit["body"] | Record<string, unknown>,
     options?: Omit<FetchOptions, "method" | "body">,
-  ): Promise<SafeResult<T, RequestError>> {
+  ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.patch<T>(request, body, options));
   }
 
@@ -336,7 +467,7 @@ export class Client {
   async safeDelete<T = unknown>(
     request: FetchRequest,
     options?: Omit<FetchOptions, "method">,
-  ): Promise<SafeResult<T, RequestError>> {
+  ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.delete<T>(request, options));
   }
 

@@ -83,7 +83,7 @@ export function defineSimpleAction<TSchema extends z.ZodTypeAny, TReturnOverride
         const data = await fn(client);
         return { success: true, data } as const;
       } catch (error) {
-        if (error && typeof error === "object" && "isRequestError" in error) {
+        if (error && typeof error === "object" && "status" in error) {
           return { success: false, error } as const;
         }
         // Preserve ZodError structure with issues
@@ -229,7 +229,7 @@ export function defineAction<TParams, TSchema extends z.ZodTypeAny, TReturnOverr
         const data = await fn(client, params);
         return { success: true, data } as const;
       } catch (error) {
-        if (error && typeof error === "object" && "isRequestError" in error) {
+        if (error && typeof error === "object" && "status" in error) {
           return { success: false, error } as const;
         }
         // Preserve ZodError structure with issues
