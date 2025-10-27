@@ -1,6 +1,7 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { createClient, Client } from "./client";
-import { RequestError, type SafeResult, type ClientConfig } from "./types";
+import { type SafeResult, type ClientConfig } from "./types";
+import { PhalaCloudError, RequestError } from "./utils";
 import { getErrorMessage } from "./utils";
 import { ofetch } from "ofetch";
 
@@ -43,7 +44,8 @@ describe("RequestError", () => {
 		expect(error.name).toBe("RequestError");
 		expect(error.message).toBe("Simple error");
 		expect(error.detail).toBe("Simple error");
-		expect(error.status).toBeUndefined();
+		expect(error.status).toBe(0); // Default status when not provided
+		expect(error.statusText).toBe("Unknown Error"); // Default statusText when not provided
 		expect(error.code).toBeUndefined();
 	});
 
@@ -112,8 +114,8 @@ describe("RequestError", () => {
 
 			const error = RequestError.fromFetchError(fetchError);
 
-			expect(error.status).toBeUndefined();
-			expect(error.statusText).toBeUndefined();
+			expect(error.status).toBe(0); // Default status when undefined
+			expect(error.statusText).toBe("Unknown Error"); // Default statusText when undefined
 			expect(error.request).toBeUndefined();
 			expect(error.response).toBeUndefined();
 		});
@@ -368,8 +370,8 @@ describe("Client", () => {
 
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				expect(result.error).toBeInstanceOf(RequestError);
-				expect(result.error.message).toBe("Not Found");
+				expect(result.error).toBeInstanceOf(PhalaCloudError);
+				expect(result.error.message).toBe("User not found"); // Uses detail message
 				expect(result.data).toBeUndefined();
 			}
 		});
@@ -395,7 +397,7 @@ describe("Client", () => {
 
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				expect(result.error).toBeInstanceOf(RequestError);
+				expect(result.error).toBeInstanceOf(PhalaCloudError);
 				expect(result.error.message).toBe("Validation failed");
 			}
 		});
@@ -432,7 +434,7 @@ describe("Client", () => {
 
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				expect(result.error).toBeInstanceOf(RequestError);
+				expect(result.error).toBeInstanceOf(PhalaCloudError);
 				expect(result.error.message).toBe("Unknown error occurred");
 			}
 		});
@@ -589,5 +591,111 @@ describe("Type safety and API design", () => {
 		expect(typeof client.safePut).toBe("function");
 		expect(typeof client.safePatch).toBe("function");
 		expect(typeof client.safeDelete).toBe("function");
+	});
+});
+
+describe("Client Event System", () => {
+	let mockFetchInstance: ReturnType<typeof vi.fn>;
+
+	beforeEach(() => {
+		mockFetchInstance = vi.fn();
+		vi.mocked(ofetch.create).mockReturnValue(mockFetchInstance as any);
+	});
+
+	test("should expose on/off/once methods", () => {
+		const client = createClient({ apiKey: "test-key" });
+
+		expect(typeof client.on).toBe("function");
+		expect(typeof client.off).toBe("function");
+		expect(typeof client.once).toBe("function");
+	});
+
+	test("should emit error events when request fails", async () => {
+		const errorHandler = vi.fn();
+		const client = createClient({ apiKey: "test-key" });
+
+		client.on("error", errorHandler);
+
+		// Mock a failed request
+		mockFetchInstance.mockRejectedValueOnce({
+			data: { detail: "Not found" },
+			status: 404,
+			statusText: "Not Found",
+		});
+
+		await expect(client.get("/test")).rejects.toThrow();
+		expect(errorHandler).toHaveBeenCalledOnce();
+		expect(errorHandler.mock.calls[0][0]).toHaveProperty("status", 404);
+	});
+
+	test("should support wildcard event listener", async () => {
+		const wildcardHandler = vi.fn();
+		const client = createClient({ apiKey: "test-key" });
+
+		client.on("*", wildcardHandler);
+
+		// Mock a failed request
+		mockFetchInstance.mockRejectedValueOnce({
+			data: { detail: "Validation error" },
+			status: 422,
+		});
+
+		await expect(client.post("/test", {})).rejects.toThrow();
+		expect(wildcardHandler).toHaveBeenCalledOnce();
+		expect(wildcardHandler.mock.calls[0][0]).toBe("error");
+	});
+
+	test("should remove event listener with off()", async () => {
+		const errorHandler = vi.fn();
+		const client = createClient({ apiKey: "test-key" });
+
+		client.on("error", errorHandler);
+		client.off("error", errorHandler);
+
+		// Mock a failed request
+		mockFetchInstance.mockRejectedValueOnce({
+			data: { detail: "Not found" },
+			status: 404,
+		});
+
+		await expect(client.get("/test")).rejects.toThrow();
+		expect(errorHandler).not.toHaveBeenCalled();
+	});
+
+	test("should only trigger once() listener one time", async () => {
+		const errorHandler = vi.fn();
+		const client = createClient({ apiKey: "test-key" });
+
+		client.once("error", errorHandler);
+
+		// Mock two failed requests
+		mockFetchInstance.mockRejectedValue({
+			data: { detail: "Error" },
+			status: 500,
+		});
+
+		await expect(client.get("/test1")).rejects.toThrow();
+		await expect(client.get("/test2")).rejects.toThrow();
+
+		expect(errorHandler).toHaveBeenCalledOnce();
+	});
+
+	test("should support multiple listeners", async () => {
+		const handler1 = vi.fn();
+		const handler2 = vi.fn();
+		const client = createClient({ apiKey: "test-key" });
+
+		client.on("error", handler1);
+		client.on("error", handler2);
+
+		// Mock a failed request
+		mockFetchInstance.mockRejectedValueOnce({
+			data: { detail: "Error" },
+			status: 500,
+		});
+
+		await expect(client.get("/test")).rejects.toThrow();
+		expect(handler1).toHaveBeenCalledOnce();
+		expect(handler2).toHaveBeenCalledOnce();
 	});
 });

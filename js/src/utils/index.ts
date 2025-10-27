@@ -11,9 +11,32 @@ export {
   type SortableObject,
   type SortableArray,
 } from "./get_compose_hash";
-export { getErrorMessage } from "./get_error_message";
 export { asHex } from "./as-hex";
 export { validateActionParameters, safeValidateActionParameters } from "./validate-parameters";
+
+// Error parsing utilities
+export {
+  // Error parser
+  parseApiError,
+  // Error classes
+  PhalaCloudError,
+  RequestError,
+  ValidationError,
+  AuthError,
+  BusinessError,
+  ServerError,
+  UnknownError,
+  // Formatting utilities
+  formatValidationErrors,
+  formatErrorMessage,
+  getErrorMessage,
+  // Deprecated utilities
+  getValidationFields,
+  // Types
+  type ValidationErrorItem,
+  ApiErrorSchema,
+  type ApiError,
+} from "./errors";
 
 // Network utilities
 export {
