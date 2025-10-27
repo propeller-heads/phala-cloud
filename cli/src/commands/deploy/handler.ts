@@ -287,12 +287,16 @@ const validateCpuMemoryDiskSize = async (options: Options) => {
 const validateNodeandKmsandImage = async (options: Options, client: Client) => {
 	const nodes_result = await safeGetAvailableNodes(client);
 	if (!nodes_result.success) {
-		if ("isRequestError" in nodes_result.error) {
+		if ("status" in nodes_result.error) {
+			// PhalaCloudError (includes RequestError)
 			throw new Error(
 				`HTTP ${nodes_result.error.status}: ${nodes_result.error.message}`,
 			);
 		}
-		throw new Error(`Validation error: ${nodes_result.error.issues}`);
+		// ZodError
+		throw new Error(
+			`Validation error: ${JSON.stringify(nodes_result.error.issues)}`,
+		);
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const nodes = nodes_result.data as any;
@@ -342,12 +346,16 @@ const validateNodeandKmsandImage = async (options: Options, client: Client) => {
 	if (target.support_onchain_kms) {
 		const kms_result = await safeGetKmsList(client);
 		if (!kms_result.success) {
-			if ("isRequestError" in kms_result.error) {
+			if ("status" in kms_result.error) {
+				// PhalaCloudError (includes RequestError)
 				throw new Error(
 					`HTTP ${kms_result.error.status}: ${kms_result.error.message}`,
 				);
 			}
-			throw new Error(`Validation error: ${kms_result.error.issues}`);
+			// ZodError
+			throw new Error(
+				`Validation error: ${JSON.stringify(kms_result.error.issues)}`,
+			);
 		}
 		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 		const kms_list = kms_result.data as any;
@@ -619,13 +627,15 @@ const updateCvm = async (
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
 	});
 	if (!provision_result.success) {
-		if ("isRequestError" in provision_result.error) {
+		if ("status" in provision_result.error) {
+			// PhalaCloudError (includes RequestError)
 			throw new Error(
 				`HTTP ${provision_result.error.status} ${provision_result.error.statusText}: ${provision_result.error.message}`,
 			);
 		}
+		// ZodError
 		throw new Error(
-			`Failed to provision cvm compose file: ${provision_result.error.message}`,
+			`Failed to provision cvm compose file: ${JSON.stringify(provision_result.error.issues)}`,
 		);
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
@@ -675,13 +685,15 @@ const updateCvm = async (
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);
 
 	if (!commitResult.success) {
-		if ("isRequestError" in commitResult.error) {
+		if ("status" in commitResult.error) {
+			// PhalaCloudError (includes RequestError)
 			throw new Error(
 				`HTTP ${commitResult.error.status} ${commitResult.error.statusText}: ${commitResult.error.message}`,
 			);
 		}
+		// ZodError
 		throw new Error(
-			`Failed to commit CVM compose file update: ${commitResult.error.message}`,
+			`Failed to commit CVM compose file update: ${JSON.stringify(commitResult.error.issues)}`,
 		);
 	}
 
