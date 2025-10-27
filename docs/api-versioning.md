@@ -38,7 +38,7 @@ import { createClient } from '@phala/cloud'
 
 const client = createClient({
   apiKey: 'your-api-key',
-  version: '2025-10-28'  // Optional, defaults to your token's version
+  version: '2025-10-28'  // Optional, defaults to the latest version for new tokens
 })
 ```
 
@@ -52,9 +52,16 @@ phala config set api-version 2025-10-28
 
 ### `2025-10-28` (Latest)
 The current version with all available features and improvements.
+- **Breaking Change**: `/teepods/available` endpoint no longer returns v0.3.x nodes
+- The `v03x_only` parameter is ignored when using this version
+- New API tokens created after this date default to this version
 
 ### `2025-05-31` (Baseline)
-The baseline version for backward compatibility. Existing API tokens created before versioning was introduced default to this version.
+The baseline version for backward compatibility.
+- Existing API tokens created before versioning was introduced default to this version
+- Fully supports the `v03x_only` parameter in `/teepods/available` endpoint:
+  - When `v03x_only=true`: Returns only v0.3.x nodes
+  - When `v03x_only=false` or not specified: Returns all available nodes
 
 ## Managing Your API Version
 
@@ -174,7 +181,9 @@ When a version is deprecated:
 
 ### What version does my API token use?
 
-New API tokens use the latest version by default. Existing tokens keep their original version unless you specify otherwise using the `X-Phala-Version` header.
+- **New API tokens**: Automatically use the latest version (`2025-10-28`) by default
+- **Existing tokens created before versioning**: Keep their original version (`2025-05-31`)
+- You can override the default by using the `X-Phala-Version` header or the SDK's `version` parameter
 
 ### Can I use different versions for different endpoints?
 
