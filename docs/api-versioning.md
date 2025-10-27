@@ -26,19 +26,34 @@ When you make API requests, the version determines the API behavior and response
 Include the `X-Phala-Version` header in your requests:
 
 ```bash
+# Use a specific version
 curl https://cloud-api.phala.network/api/v1/cvms \
   -H "X-API-Key: your-api-key" \
   -H "X-Phala-Version: 2025-10-28"
+
+# Use the LATEST version (always uses current version)
+curl https://cloud-api.phala.network/api/v1/cvms \
+  -H "X-API-Key: your-api-key" \
+  -H "X-Phala-Version: LATEST"
 ```
+
+**Tip**: Use `LATEST` (case-insensitive) to always get the newest API features without hardcoding version numbers.
 
 ### Using the JavaScript SDK
 
 ```javascript
 import { createClient } from '@phala/cloud'
 
+// Use a specific version
 const client = createClient({
   apiKey: 'your-api-key',
   version: '2025-10-28'  // Optional, defaults to the latest version for new tokens
+})
+
+// Use the LATEST version (always uses current version)
+const latestClient = createClient({
+  apiKey: 'your-api-key',
+  version: 'LATEST'  // Case-insensitive: 'LATEST', 'latest', 'Latest'
 })
 ```
 
