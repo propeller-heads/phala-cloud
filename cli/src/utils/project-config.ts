@@ -5,7 +5,7 @@ import { z } from "zod";
 import { logger } from "./logger";
 
 // Supported API versions from @phala/cloud
-const SUPPORTED_API_VERSIONS = ["2025-05-31"] as const;
+const SUPPORTED_API_VERSIONS = ["2025-05-31", "2025-10-28"] as const;
 
 // Project configuration schema
 export const ProjectConfigSchema = z

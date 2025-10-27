@@ -4,7 +4,7 @@ import { type SafeResult, RequestError, type ClientConfig } from "./types/client
 import type { Prettify } from "./types/common";
 export type { SafeResult } from "./types/client";
 
-const SUPPORTED_API_VERSIONS = ["2025-05-31"];
+const SUPPORTED_API_VERSIONS = ["2025-05-31", "2025-10-28"];
 const logger = debug("phala::api-client");
 
 /**
@@ -74,7 +74,7 @@ export class Client {
     const version =
       resolvedConfig.version && SUPPORTED_API_VERSIONS.includes(resolvedConfig.version)
         ? resolvedConfig.version!
-        : SUPPORTED_API_VERSIONS[0]!;
+        : SUPPORTED_API_VERSIONS[SUPPORTED_API_VERSIONS.length - 1]!; // Default to latest version
 
     this.config = resolvedConfig;
 
