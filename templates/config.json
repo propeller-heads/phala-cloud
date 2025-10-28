@@ -17,7 +17,7 @@
         "key": "VIBEVM_USERNAME",
         "required": true,
         "description": "Username for VibeVM.",
-        "default": "vibe"
+        "default": "admin"
       },
       {
         "key": "VIBEVM_PASSWORD",
@@ -32,15 +32,20 @@
         "default": "Phala-Network/erc-8004-tee-agent"
       },
       {
-        "key": "GH_TOKEN",
+        "key": "GITHUB_COMMIT_HASH",
+        "required": false,
+        "description": "Target github repository commit hash."
+      },
+      {
+        "key": "GITHUB_TOKEN",
         "required": false,
         "description": "Github token for cloning the repository. Generate one from https://github.com/settings/tokens"
       }
     ],
     "defaultResource": {
-      "vCPU": 4,
-      "memory": 8192,
-      "diskSize": 80
+      "vCPU": 2,
+      "memory": 4096,
+      "diskSize": 40
     },
     "tags": ["VibeVM", "TEE", "AI", "Agent", "Browser", "Shell", "File", "MCP", "VSCode"]
   },
