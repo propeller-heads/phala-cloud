@@ -112,12 +112,13 @@ export const ProvisionCvmComposeFileUpdateRequestSchema = z
     (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
     "One of id, uuid, app_id, or instance_id must be provided",
   )
-  .transform((data) => ({
-    cvmId: data.id || data.uuid || data.app_id || data.instance_id,
-    request: data.app_compose,
-    update_env_vars: data.update_env_vars,
-    _raw: data,
-  }));
+  .transform((data) => {
+    return {
+      cvmId: data.id || data.uuid || data.app_id || data.instance_id,
+      request: { ...data.app_compose, update_env_vars: data.update_env_vars },
+      _raw: data,
+    };
+  });
 
 export const ProvisionCvmComposeFileUpdateResultSchema = z
   .object({
