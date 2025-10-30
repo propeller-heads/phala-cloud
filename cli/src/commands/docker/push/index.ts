@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { getDockerCredentials } from "@/src/utils/credentials";
 import { DockerService } from "@/src/utils/docker";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -65,9 +66,8 @@ async function runDockerPush(
 		logger.success(`Docker image ${imageName} pushed successfully`);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to push Docker image: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to push Docker image");
+		logDetailedError(error);
 		return 1;
 	}
 }

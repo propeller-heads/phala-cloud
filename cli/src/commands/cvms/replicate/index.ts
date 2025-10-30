@@ -4,6 +4,7 @@ import { encryptEnvVars } from "@phala/cloud";
 import { getCvmComposeConfig, replicateCvm } from "@/src/api/cvms";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import {
 	cvmsReplicateCommandMeta,
@@ -84,11 +85,8 @@ phala cvms get ${replica.app_id}`,
 		);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to create CVM replica: ${
-				error instanceof Error ? error.message : String(error)
-			}`,
-		);
+		logger.error("Failed to create CVM replica");
+		logDetailedError(error);
 		return 1;
 	}
 }

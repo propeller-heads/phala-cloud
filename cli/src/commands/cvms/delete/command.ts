@@ -20,6 +20,13 @@ export const cvmsDeleteCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "force",
 		},
+		{
+			name: "yes",
+			shorthand: "y",
+			description: "Alias for --force (skip confirmation prompt)",
+			type: "boolean",
+			target: "yes",
+		},
 	],
 	examples: [
 		{
@@ -36,6 +43,7 @@ export const cvmsDeleteCommandMeta: CommandMeta = {
 export const cvmsDeleteCommandSchema = z.object({
 	appId: z.string().optional(),
 	force: z.boolean().default(false),
+	yes: z.boolean().default(false),
 });
 
 export type CvmsDeleteCommandInput = z.infer<typeof cvmsDeleteCommandSchema>;

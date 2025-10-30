@@ -48,6 +48,12 @@ export const cvmsResizeCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "yes",
 		},
+		{
+			name: "json",
+			description: "Output result in JSON format",
+			type: "boolean",
+			target: "json",
+		},
 	],
 	examples: [
 		{
@@ -69,6 +75,7 @@ export const cvmsResizeCommandSchema = z.object({
 	diskSize: z.string().optional(),
 	allowRestart: z.string().optional(),
 	yes: z.boolean().default(false),
+	json: z.boolean().default(false),
 });
 
 export type CvmsResizeCommandInput = z.infer<typeof cvmsResizeCommandSchema>;

@@ -2,6 +2,7 @@ import { createClient, safeGetCurrentUser } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getApiKey } from "@/src/utils/credentials";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { statusCommandMeta, statusCommandSchema } from "./command";
 import type { StatusCommandInput } from "./command";
@@ -67,9 +68,7 @@ export async function runStatusCommand(
 		logger.info('Please set a new API key with "phala auth login"');
 
 		if (debug) {
-			logger.debug(
-				`Error details: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			logDetailedError(error);
 		}
 		return 1;
 	}

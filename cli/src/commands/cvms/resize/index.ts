@@ -3,7 +3,9 @@ import inquirer from "inquirer";
 import { getCvmByAppId, resizeCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
+import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import {
@@ -91,84 +93,119 @@ async function runCvmsResizeCommand(
 			return 1;
 		}
 
-		if (vcpu === undefined) {
-			vcpu = await promptForNumber("Enter number of vCPUs:", cvm.vcpu);
-		}
-
-		if (memory === undefined) {
-			memory = await promptForNumber("Enter memory in MB:", cvm.memory);
-		}
-
-		if (diskSize === undefined) {
-			diskSize = await promptForNumber("Enter disk size in GB:", cvm.disk_size);
-		}
-
-		if (allowRestart === undefined) {
-			const response = await inquirer.prompt([
-				{
-					type: "confirm",
-					name: "allowRestart",
-					message: "Allow restart of the CVM if needed for resizing?",
-					default: false,
-				},
-			]);
-			allowRestart = response.allowRestart;
-		}
-
-		logger.keyValueTable({
-			vCPUs:
-				cvm.vcpu !== vcpu
-					? `${chalk.red(cvm.vcpu)} -> ${chalk.green(vcpu)}`
-					: cvm.vcpu,
-			Memory:
-				cvm.memory !== memory
-					? `${chalk.red(cvm.memory)} MB -> ${chalk.green(memory)} MB`
-					: cvm.memory,
-			"Disk Size":
-				cvm.disk_size !== diskSize
-					? `${chalk.red(cvm.disk_size)} GB -> ${chalk.green(diskSize)} GB`
-					: cvm.disk_size,
-			"Allow Restart": allowRestart ? chalk.green("Yes") : chalk.red("No"),
-		});
-
-		if (!input.yes) {
-			const { confirm } = await inquirer.prompt([
-				{
-					type: "confirm",
-					name: "confirm",
-					message: `Are you sure you want to resize CVM app_${resolvedAppId}?`,
-					default: false,
-				},
-			]);
-
-			if (!confirm) {
-				logger.info("Resize operation cancelled");
-				return 0;
+		// Skip prompts in non-interactive mode (--json flag)
+		if (!input.json) {
+			if (vcpu === undefined) {
+				vcpu = await promptForNumber("Enter number of vCPUs:", cvm.vcpu);
 			}
+
+			if (memory === undefined) {
+				memory = await promptForNumber("Enter memory in MB:", cvm.memory);
+			}
+
+			if (diskSize === undefined) {
+				diskSize = await promptForNumber("Enter disk size in GB:", cvm.disk_size);
+			}
+
+			if (allowRestart === undefined) {
+				const response = await inquirer.prompt([
+					{
+						type: "confirm",
+						name: "allowRestart",
+						message: "Allow restart of the CVM if needed for resizing?",
+						default: false,
+					},
+				]);
+				allowRestart = response.allowRestart;
+			}
+		} else {
+			// In --json mode, use current values as defaults if not specified
+			if (vcpu === undefined) vcpu = cvm.vcpu;
+			if (memory === undefined) memory = cvm.memory;
+			if (diskSize === undefined) diskSize = cvm.disk_size;
+			// Default to allowing restart in non-interactive mode to ensure resize can complete
+			// (vCPU changes typically require restart)
+			if (allowRestart === undefined) allowRestart = true;
 		}
 
-		const spinner = logger.startSpinner(
-			`Resizing CVM with App ID app_${resolvedAppId}`,
-		);
-		await resizeCvm(
-			resolvedAppId,
-			vcpu,
-			memory,
-			diskSize,
-			allowRestart ? 1 : 0,
-		);
-		spinner.stop(true);
+		if (!input.json) {
+			logger.keyValueTable({
+				vCPUs:
+					cvm.vcpu !== vcpu
+						? `${chalk.red(cvm.vcpu)} -> ${chalk.green(vcpu)}`
+						: cvm.vcpu,
+				Memory:
+					cvm.memory !== memory
+						? `${chalk.red(cvm.memory)} MB -> ${chalk.green(memory)} MB`
+						: cvm.memory,
+				"Disk Size":
+					cvm.disk_size !== diskSize
+						? `${chalk.red(cvm.disk_size)} GB -> ${chalk.green(diskSize)} GB`
+						: cvm.disk_size,
+				"Allow Restart": allowRestart ? chalk.green("Yes") : chalk.red("No"),
+			});
 
-		logger.break();
-		logger.success(
-			`Your CVM is being resized. You can check the dashboard for more details:
+			if (!input.yes) {
+				const { confirm } = await inquirer.prompt([
+					{
+						type: "confirm",
+						name: "confirm",
+						message: `Are you sure you want to resize CVM app_${resolvedAppId}?`,
+						default: false,
+					},
+				]);
+
+				if (!confirm) {
+					logger.info("Resize operation cancelled");
+					return 0;
+				}
+			}
+
+			const spinner = logger.startSpinner(
+				`Resizing CVM with App ID app_${resolvedAppId}`,
+			);
+			await retryOnConflict(
+				() => resizeCvm(
+					resolvedAppId,
+					vcpu,
+					memory,
+					diskSize,
+					allowRestart ? 1 : 0,
+				),
+				{ spinner }
+			);
+			spinner.stop(true);
+
+			logger.break();
+			logger.success(
+				`Your CVM is being resized. You can check the dashboard for more details:
 ${CLOUD_URL}/dashboard/cvms/app_${resolvedAppId}`,
-		);
+			);
+		} else {
+			await retryOnConflict(
+				() => resizeCvm(
+					resolvedAppId,
+					vcpu,
+					memory,
+					diskSize,
+					allowRestart ? 1 : 0,
+				)
+			);
+			console.log(
+				JSON.stringify({
+					success: true,
+					app_id: resolvedAppId,
+					vcpu,
+					memory,
+					disk_size: diskSize,
+					allow_restart: allowRestart,
+				}),
+			);
+		}
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to resize CVM: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to resize CVM");
+		logDetailedError(error);
 		return 1;
 	}
 }

@@ -6,6 +6,7 @@ import type { CvmInfoResponse } from "@/src/api/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { resolveCvmAppId } from "@/src/utils/cvms";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import {
 	cvmsGetCommandMeta,
@@ -78,11 +79,8 @@ async function runCvmsGetCommand(
 
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to get CVM details: ${
-				error instanceof Error ? error.message : String(error)
-			}`,
-		);
+		logger.error("Failed to get CVM details");
+		logDetailedError(error);
 		return 1;
 	}
 }

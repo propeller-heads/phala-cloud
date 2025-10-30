@@ -37,22 +37,22 @@ export const postCvmResponseSchema = z.object({
 			name: z.string(),
 		})
 		.nullable(),
-	user_id: z.number(),
+	user_id: z.number().nullable(),
 	app_id: z.string(),
 	vm_uuid: z.string().nullable(),
 	instance_id: z.string().nullable(),
 	app_url: z.string().nullable(),
-	base_image: z.string(),
+	base_image: z.string().nullable(),
 	vcpu: z.number(),
 	memory: z.number(),
 	disk_size: z.number(),
-	manifest_version: z.number(),
-	version: z.string(),
-	runner: z.string(),
-	docker_compose_file: z.string(),
+	manifest_version: z.number().nullable(),
+	version: z.string().nullable(),
+	runner: z.string().nullable(),
+	docker_compose_file: z.string().nullable(),
 	features: z.array(z.string()).nullable(),
 	created_at: z.string(),
-	encrypted_env_pubkey: z.string(),
+	encrypted_env_pubkey: z.string().nullable(),
 });
 
 // Encrypted Env Item Schema
@@ -148,22 +148,22 @@ export const replicateCvmResponseSchema = z.object({
 		id: z.number(),
 		name: z.string(),
 	}),
-	user_id: z.number(),
+	user_id: z.number().nullable(),
 	app_id: z.string(),
-	vm_uuid: z.string(),
+	vm_uuid: z.string().nullable(),
 	instance_id: z.string().nullable(),
 	app_url: z.string().nullable(),
-	base_image: z.string(),
+	base_image: z.string().nullable(),
 	vcpu: z.number(),
 	memory: z.number(),
 	disk_size: z.number(),
-	manifest_version: z.number(),
+	manifest_version: z.number().nullable(),
 	version: z.string().nullable(),
-	runner: z.string(),
-	docker_compose_file: z.string(),
+	runner: z.string().nullable(),
+	docker_compose_file: z.string().nullable(),
 	features: z.array(z.string()).nullable(),
 	created_at: z.string(),
-	encrypted_env_pubkey: z.string(),
+	encrypted_env_pubkey: z.string().nullable(),
 });
 
 export type ReplicateCvmResponse = z.infer<typeof replicateCvmResponseSchema>;
@@ -286,19 +286,8 @@ export interface PubkeyResponse {
 	app_id_salt: string;
 }
 
-// CVM Info Response (from SDK)
-export interface CvmInfoResponse {
-	id: number;
-	name: string;
-	status: string;
-	app_id: string;
-	vcpu: number;
-	memory: number;
-	disk_size: number;
-	base_image: string;
-	encrypted_env_pubkey: string;
-	env_pubkey?: string;
-}
+// CVM Info Response - re-export from SDK to avoid duplication
+export type { CvmLegacyDetail as CvmInfoResponse } from "@phala/cloud";
 
 // Upgrade Response
 export interface UpgradeResponse {

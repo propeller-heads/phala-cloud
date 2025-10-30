@@ -1,5 +1,6 @@
 import { defineCommand } from "@/src/core/define-command";
 import { listConfigValues } from "@/src/utils/config";
+import { logDetailedError } from "@/src/utils/error-handling";
 import type { CommandContext } from "@/src/core/types";
 import {
 	configListCommandMeta,
@@ -25,9 +26,8 @@ async function runConfigList(
 		}
 		return 0;
 	} catch (error) {
-		context.stderr.write(
-			`Failed to list configuration values: ${error instanceof Error ? error.message : String(error)}\n`,
-		);
+		context.stderr.write("Failed to list configuration values\n");
+		logDetailedError(error);
 		return 1;
 	}
 }

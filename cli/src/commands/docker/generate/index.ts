@@ -3,6 +3,7 @@ import path from "node:path";
 import inquirer from "inquirer";
 import { getDockerCredentials } from "@/src/utils/credentials";
 import { DockerService } from "@/src/utils/docker";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { validateFileExists } from "@/src/utils/prompts";
 import { defineCommand } from "@/src/core/define-command";
@@ -161,9 +162,8 @@ async function runDockerGenerate(
 		logger.success(`Docker Compose file generated successfully: ${outputPath}`);
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to generate Docker Compose file: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to generate Docker Compose file");
+		logDetailedError(error);
 		return 1;
 	}
 }

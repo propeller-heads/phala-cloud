@@ -1,6 +1,7 @@
 import prompts from "prompts";
 import { saveDockerCredentials } from "@/src/utils/credentials";
 import { DockerService } from "@/src/utils/docker";
+import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -82,9 +83,8 @@ async function runDockerLogin(
 		logger.success("Logged in to Docker Hub successfully");
 		return 0;
 	} catch (error) {
-		logger.error(
-			`Failed to login to Docker Hub: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		logger.error("Failed to login to Docker Hub");
+		logDetailedError(error);
 		return 1;
 	}
 }
