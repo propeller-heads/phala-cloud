@@ -2,18 +2,17 @@ import type { SafeResult } from "@phala/cloud";
 import { FetchError } from "ofetch";
 import type { ZodError } from "zod";
 
-// Type guard for request errors
+// Type guard for request errors (RequestError from SDK)
 function isRequestError(
 	error: unknown,
-): error is { isRequestError: true; status: number; statusText: string; message: string; data: unknown } {
+): error is { isRequestError: true; status: number; statusText: string; message: string; data?: unknown } {
 	return (
 		error !== null &&
 		typeof error === "object" &&
 		"isRequestError" in error &&
 		error.isRequestError === true &&
 		"status" in error &&
-		"message" in error &&
-		"data" in error
+		"message" in error
 	);
 }
 
@@ -103,9 +102,10 @@ export function formatErrorMessage(
 	error: SafeResult<never>["error"],
 	includeDetails = false,
 ): string {
-	if ("isRequestError" in error) {
+	// Check if it's a RequestError (has isRequestError discriminator)
+	if (isRequestError(error)) {
 		if (includeDetails && error.data && typeof error.data === "object") {
-			const detail = (error.data as any).detail;
+			const detail = (error.data as Record<string, unknown>).detail;
 			if (detail) {
 				return `${error.message}\nDetail: ${detail}`;
 			}
@@ -113,8 +113,14 @@ export function formatErrorMessage(
 		return error.message;
 	}
 
-	if ("issues" in error) {
+	// Check if it's a ZodError
+	if (isValidationError(error)) {
 		return `Validation error: ${JSON.stringify(error.issues)}`;
+	}
+
+	// PhalaCloudError or other errors
+	if ("message" in error && typeof error.message === "string") {
+		return error.message;
 	}
 
 	return "Unknown error occurred";
