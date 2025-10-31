@@ -246,3 +246,21 @@ export {
   UpdateCvmVisibilityRequestSchema,
   type UpdateCvmVisibilityRequest,
 } from "./cvms/update_cvm_visibility";
+
+export {
+  getAvailableOsImages,
+  safeGetAvailableOsImages,
+  OSImageVariantSchema,
+  GetAvailableOSImagesResponseSchema,
+  GetAvailableOSImagesRequestSchema,
+  type OSImageVariant,
+  type GetAvailableOSImagesResponse,
+  type GetAvailableOSImagesRequest,
+} from "./cvms/get_available_os_images";
+
+export {
+  updateOsImage,
+  safeUpdateOsImage,
+  UpdateOsImageRequestSchema,
+  type UpdateOsImageRequest,
+} from "./cvms/update_os_image";

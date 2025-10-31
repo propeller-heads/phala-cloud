@@ -121,6 +121,17 @@ import {
   safeUpdateCvmVisibility,
   type UpdateCvmVisibilityRequest,
 } from "./actions/cvms/update_cvm_visibility";
+import {
+  getAvailableOsImages,
+  safeGetAvailableOsImages,
+  type GetAvailableOSImagesRequest,
+  type GetAvailableOSImagesResponse,
+} from "./actions/cvms/get_available_os_images";
+import {
+  updateOsImage,
+  safeUpdateOsImage,
+  type UpdateOsImageRequest,
+} from "./actions/cvms/update_os_image";
 
 import type { KmsInfo } from "./types/kms_info";
 import type { VM } from "./types/cvm_info";
@@ -209,6 +220,10 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeUpdateCvmResources: typeof safeUpdateCvmResources;
     readonly updateCvmVisibility: typeof updateCvmVisibility;
     readonly safeUpdateCvmVisibility: typeof safeUpdateCvmVisibility;
+    readonly getAvailableOsImages: typeof getAvailableOsImages;
+    readonly safeGetAvailableOsImages: typeof safeGetAvailableOsImages;
+    readonly updateOsImage: typeof updateOsImage;
+    readonly safeUpdateOsImage: typeof safeUpdateOsImage;
     readonly getKmsInfo: typeof getKmsInfo;
     readonly safeGetKmsInfo: typeof safeGetKmsInfo;
     readonly getKmsList: typeof getKmsList;
@@ -264,6 +279,10 @@ export function createClient(config: ClientConfig = {}): Client {
     safeUpdateCvmResources,
     updateCvmVisibility,
     safeUpdateCvmVisibility,
+    getAvailableOsImages,
+    safeGetAvailableOsImages,
+    updateOsImage,
+    safeUpdateOsImage,
     getKmsInfo,
     safeGetKmsInfo,
     getKmsList,
@@ -786,6 +805,46 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeUpdateCvmVisibility(
     request: UpdateCvmVisibilityRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // OS Image Operations
+  getAvailableOsImages(request: GetAvailableOSImagesRequest): Promise<GetAvailableOSImagesResponse>;
+  getAvailableOsImages<T extends z.ZodTypeAny>(
+    request: GetAvailableOSImagesRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getAvailableOsImages(
+    request: GetAvailableOSImagesRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetAvailableOsImages(
+    request: GetAvailableOSImagesRequest,
+  ): Promise<SafeResult<GetAvailableOSImagesResponse>>;
+  safeGetAvailableOsImages<T extends z.ZodTypeAny>(
+    request: GetAvailableOSImagesRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetAvailableOsImages(
+    request: GetAvailableOSImagesRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  updateOsImage(request: UpdateOsImageRequest): Promise<void>;
+  updateOsImage<T extends z.ZodTypeAny>(
+    request: UpdateOsImageRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updateOsImage(request: UpdateOsImageRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeUpdateOsImage(request: UpdateOsImageRequest): Promise<SafeResult<void>>;
+  safeUpdateOsImage<T extends z.ZodTypeAny>(
+    request: UpdateOsImageRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdateOsImage(
+    request: UpdateOsImageRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 }
