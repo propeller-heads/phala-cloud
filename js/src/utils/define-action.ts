@@ -17,16 +17,14 @@ export function defineSimpleAction<TSchema extends z.ZodTypeAny, TReturnOverride
   type TDefault = [TReturnOverride] extends [never] ? z.infer<TSchema> : TReturnOverride;
 
   // Overloaded signatures for perfect type inference
-  function action(client: Client): Promise<TDefault>;
+  function action(client: Client, parameters: { schema: false }): Promise<unknown>;
   function action<T extends z.ZodTypeAny>(
     client: Client,
     parameters: { schema: T },
   ): Promise<z.infer<T>>;
-  function action(client: Client, parameters: { schema: false }): Promise<unknown>;
-  function action<T extends z.ZodTypeAny | false | undefined = undefined>(
-    client: Client,
-    parameters?: { schema?: T },
-  ): Promise<T extends z.ZodTypeAny ? z.infer<T> : T extends false ? unknown : TDefault> {
+  function action(client: Client): Promise<TDefault>;
+  // biome-ignore lint/suspicious/noExplicitAny: Implementation signature needs any for proper overload resolution
+  function action(client: Client, parameters?: { schema?: any }): Promise<any> {
     return _actionImpl(client, parameters);
   }
 
@@ -51,18 +49,14 @@ export function defineSimpleAction<TSchema extends z.ZodTypeAny, TReturnOverride
   }
 
   // Safe variant overloads
-  function safeAction(client: Client): Promise<SafeResult<TDefault>>;
+  function safeAction(client: Client, parameters: { schema: false }): Promise<SafeResult<unknown>>;
   function safeAction<T extends z.ZodTypeAny>(
     client: Client,
     parameters: { schema: T },
   ): Promise<SafeResult<z.infer<T>>>;
-  function safeAction(client: Client, parameters: { schema: false }): Promise<SafeResult<unknown>>;
-  function safeAction<T extends z.ZodTypeAny | false | undefined = undefined>(
-    client: Client,
-    parameters?: { schema?: T },
-  ): Promise<
-    SafeResult<T extends z.ZodTypeAny ? z.infer<T> : T extends false ? unknown : TDefault>
-  > {
+  function safeAction(client: Client): Promise<SafeResult<TDefault>>;
+  // biome-ignore lint/suspicious/noExplicitAny: Implementation signature needs any for proper overload resolution
+  function safeAction(client: Client, parameters?: { schema?: any }): Promise<any> {
     return _safeActionImpl(client, parameters);
   }
 
@@ -135,6 +129,7 @@ export function defineAction<TParams, TSchema extends z.ZodTypeAny, TReturnOverr
   type IsOptional = undefined extends TParams ? true : false;
 
   // Overloaded signatures with conditional params
+  // Order: most specific (no params) → least specific (with optional params)
   function action(
     client: Client,
     ...args: IsOptional extends true ? [params?: TParams] : [params: TParams]
@@ -151,12 +146,8 @@ export function defineAction<TParams, TSchema extends z.ZodTypeAny, TReturnOverr
       ? [params?: TParams, parameters?: { schema: false }]
       : [params: TParams, parameters: { schema: false }]
   ): Promise<unknown>;
-  function action<T extends z.ZodTypeAny | false | undefined = undefined>(
-    client: Client,
-    ...args: IsOptional extends true
-      ? [params?: TParams, parameters?: { schema?: T }]
-      : [params: TParams, parameters?: { schema?: T }]
-  ): Promise<T extends z.ZodTypeAny ? z.infer<T> : T extends false ? unknown : TDefault> {
+  // biome-ignore lint/suspicious/noExplicitAny: Implementation signature needs any for proper overload resolution
+  function action(client: Client, ...args: any[]): Promise<any> {
     const [params, parameters] = args;
     return _actionImpl(client, params as TParams, parameters);
   }
@@ -183,6 +174,7 @@ export function defineAction<TParams, TSchema extends z.ZodTypeAny, TReturnOverr
   }
 
   // Safe variant overloads with conditional params
+  // Order: most specific (with required params) → least specific (no params)
   function safeAction(
     client: Client,
     ...args: IsOptional extends true ? [params?: TParams] : [params: TParams]
@@ -199,14 +191,8 @@ export function defineAction<TParams, TSchema extends z.ZodTypeAny, TReturnOverr
       ? [params?: TParams, parameters?: { schema: false }]
       : [params: TParams, parameters: { schema: false }]
   ): Promise<SafeResult<unknown>>;
-  function safeAction<T extends z.ZodTypeAny | false | undefined = undefined>(
-    client: Client,
-    ...args: IsOptional extends true
-      ? [params?: TParams, parameters?: { schema?: T }]
-      : [params: TParams, parameters?: { schema?: T }]
-  ): Promise<
-    SafeResult<T extends z.ZodTypeAny ? z.infer<T> : T extends false ? unknown : TDefault>
-  > {
+  // biome-ignore lint/suspicious/noExplicitAny: Implementation signature needs any for proper overload resolution
+  function safeAction(client: Client, ...args: any[]): Promise<any> {
     const [params, parameters] = args;
     return _safeActionImpl(client, params as TParams, parameters);
   }
