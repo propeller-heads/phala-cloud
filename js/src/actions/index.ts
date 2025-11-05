@@ -226,6 +226,15 @@ export {
 } from "./cvms/get_cvm_network";
 
 export {
+  getCvmState,
+  safeGetCvmState,
+  CvmStateSchema,
+  GetCvmStateRequestSchema,
+  type GetCvmStateRequest,
+  type CvmState,
+} from "./cvms/get_cvm_state";
+
+export {
   getCvmAttestation,
   safeGetCvmAttestation,
   CvmAttestationSchema,
