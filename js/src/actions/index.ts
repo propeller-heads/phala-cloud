@@ -235,6 +235,16 @@ export {
 } from "./cvms/get_cvm_state";
 
 export {
+  watchCvmState,
+  WatchCvmStateRequestSchema,
+  type WatchCvmStateRequest,
+  type WatchCvmStateOptions,
+  type SSEEvent,
+  WatchAbortedError,
+  MaxRetriesExceededError,
+} from "./cvms/watch_cvm_state";
+
+export {
   getCvmAttestation,
   safeGetCvmAttestation,
   CvmAttestationSchema,
