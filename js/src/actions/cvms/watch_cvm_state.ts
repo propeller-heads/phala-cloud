@@ -12,8 +12,14 @@ type SSEEventType = "state" | "complete" | "timeout" | "error";
  * SSE event data structures
  */
 type SSEStateEvent = { type: "state"; data: CvmState };
-type SSECompleteEvent = { type: "complete"; data: { status: string; elapsed: number; target: string } };
-type SSETimeoutEvent = { type: "timeout"; data: { error: string; elapsed: number; target: string } };
+type SSECompleteEvent = {
+  type: "complete";
+  data: { status: string; elapsed: number; target: string };
+};
+type SSETimeoutEvent = {
+  type: "timeout";
+  data: { error: string; elapsed: number; target: string };
+};
 type SSEErrorEvent = { type: "error"; data: { error: string; elapsed?: number; message?: string } };
 
 export type SSEEvent = SSEStateEvent | SSECompleteEvent | SSETimeoutEvent | SSEErrorEvent;
