@@ -126,6 +126,15 @@ export {
 } from "./kms/get_kms_list";
 
 export {
+  nextAppIds,
+  safeNextAppIds,
+  NextAppIdsSchema,
+  NextAppIdsRequestSchema,
+  type NextAppIdsRequest,
+  type NextAppIds,
+} from "./kms/next_app_ids";
+
+export {
   listWorkspaces,
   safeListWorkspaces,
   WorkspaceResponseSchema,
