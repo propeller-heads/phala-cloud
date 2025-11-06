@@ -4,11 +4,58 @@
  * These tests verify that the action creators correctly infer types.
  */
 
-import { describe, it, expectTypeOf } from "vitest";
+import { describe, it, expectTypeOf, beforeEach, afterEach, vi } from "vitest";
 import { z } from "zod";
-import { createClient, type Client } from "../client";
+import { createClient, Client } from "../client";
 import { defineSimpleAction, defineAction } from "./define-action";
 import type { SafeResult } from "../client";
+
+// Mock client methods globally to prevent unhandled rejections
+// These type tests execute the actions to check return types,
+// so we need to mock the HTTP calls with data that passes most schemas
+beforeEach(() => {
+  vi.spyOn(Client.prototype, "get").mockImplementation(async (url: string) => {
+    // Only /item endpoint expects string id, all others expect number
+    const useStringId = url.includes("/item");
+
+    return {
+      id: useStringId ? "test-id" : 1,
+      name: "test",
+      title: "test",
+      data: "test",
+      value: "test",
+      status: "active",
+      success: true,
+      app_id: "test-app",
+      count: 0,
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      tags: [],
+      metadata: [],
+      result: 0,
+      required: "test",
+      optional: "test",
+      nullable: null,
+      optionalNullable: null,
+      email: "test@example.com",
+      custom_field: true,
+      meta: { total: 0, page: 1 },
+      nested: { deep: { value: true } },
+    } as any;
+  });
+
+  vi.spyOn(Client.prototype, "post").mockResolvedValue({
+    success: true,
+    id: 1,
+    status: "active",
+  } as any);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("defineSimpleAction type inference", () => {
   it("should infer return type from schema", () => {

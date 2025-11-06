@@ -77,6 +77,12 @@ import {
   type GetAppEnvEncryptPubKeyRequest,
   type GetAppEnvEncryptPubKey as GetAppEnvEncryptPubKeyResult,
 } from "./actions/kms/get_app_env_encrypt_pubkey";
+import {
+  nextAppIds,
+  safeNextAppIds,
+  type NextAppIdsRequest,
+  type NextAppIds,
+} from "./actions/kms/next_app_ids";
 import { startCvm, safeStartCvm, type StartCvmRequest } from "./actions/cvms/start_cvm";
 import { stopCvm, safeStopCvm, type StopCvmRequest } from "./actions/cvms/stop_cvm";
 import { shutdownCvm, safeShutdownCvm, type ShutdownCvmRequest } from "./actions/cvms/shutdown_cvm";
@@ -132,6 +138,12 @@ import {
   safeUpdateOsImage,
   type UpdateOsImageRequest,
 } from "./actions/cvms/update_os_image";
+import {
+  getCvmState,
+  safeGetCvmState,
+  type GetCvmStateRequest,
+  type CvmState,
+} from "./actions/cvms/get_cvm_state";
 
 import type { KmsInfo } from "./types/kms_info";
 import type { VM } from "./types/cvm_info";
@@ -230,6 +242,10 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeGetKmsList: typeof safeGetKmsList;
     readonly getAppEnvEncryptPubKey: typeof getAppEnvEncryptPubKey;
     readonly safeGetAppEnvEncryptPubKey: typeof safeGetAppEnvEncryptPubKey;
+    readonly nextAppIds: typeof nextAppIds;
+    readonly safeNextAppIds: typeof safeNextAppIds;
+    readonly getCvmState: typeof getCvmState;
+    readonly safeGetCvmState: typeof safeGetCvmState;
   } = {
     getCurrentUser,
     safeGetCurrentUser,
@@ -289,6 +305,10 @@ export function createClient(config: ClientConfig = {}): Client {
     safeGetKmsList,
     getAppEnvEncryptPubKey,
     safeGetAppEnvEncryptPubKey,
+    nextAppIds,
+    safeNextAppIds,
+    getCvmState,
+    safeGetCvmState,
   };
 
   return client.extend(allActions) as unknown as Client;
@@ -587,6 +607,26 @@ export interface Client extends BaseClient {
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 
+  nextAppIds(request?: NextAppIdsRequest): Promise<NextAppIds>;
+  nextAppIds<T extends z.ZodTypeAny>(
+    request: NextAppIdsRequest | undefined,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  nextAppIds(
+    request: NextAppIdsRequest | undefined,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeNextAppIds(request?: NextAppIdsRequest): Promise<SafeResult<NextAppIds>>;
+  safeNextAppIds<T extends z.ZodTypeAny>(
+    request: NextAppIdsRequest | undefined,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeNextAppIds(
+    request: NextAppIdsRequest | undefined,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
   // CVM Lifecycle Operations
   startCvm(request: StartCvmRequest): Promise<VM>;
   startCvm<T extends z.ZodTypeAny>(
@@ -845,6 +885,24 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeUpdateOsImage(
     request: UpdateOsImageRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // CVM State Operations
+  getCvmState(request: GetCvmStateRequest): Promise<CvmState>;
+  getCvmState<T extends z.ZodTypeAny>(
+    request: GetCvmStateRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmState(request: GetCvmStateRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeGetCvmState(request: GetCvmStateRequest): Promise<SafeResult<CvmState>>;
+  safeGetCvmState<T extends z.ZodTypeAny>(
+    request: GetCvmStateRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmState(
+    request: GetCvmStateRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 }

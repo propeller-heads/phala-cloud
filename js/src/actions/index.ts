@@ -126,6 +126,15 @@ export {
 } from "./kms/get_kms_list";
 
 export {
+  nextAppIds,
+  safeNextAppIds,
+  NextAppIdsSchema,
+  NextAppIdsRequestSchema,
+  type NextAppIdsRequest,
+  type NextAppIds,
+} from "./kms/next_app_ids";
+
+export {
   listWorkspaces,
   safeListWorkspaces,
   WorkspaceResponseSchema,
@@ -215,6 +224,25 @@ export {
   type GetCvmNetworkRequest,
   type CvmNetwork,
 } from "./cvms/get_cvm_network";
+
+export {
+  getCvmState,
+  safeGetCvmState,
+  CvmStateSchema,
+  GetCvmStateRequestSchema,
+  type GetCvmStateRequest,
+  type CvmState,
+} from "./cvms/get_cvm_state";
+
+export {
+  watchCvmState,
+  WatchCvmStateRequestSchema,
+  type WatchCvmStateRequest,
+  type WatchCvmStateOptions,
+  type SSEEvent,
+  WatchAbortedError,
+  MaxRetriesExceededError,
+} from "./cvms/watch_cvm_state";
 
 export {
   getCvmAttestation,
