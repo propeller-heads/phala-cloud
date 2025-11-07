@@ -13,7 +13,9 @@ export const ApiErrorSchema = z.object({
           msg: z.string(),
           type: z.string().optional(),
           ctx: z.record(z.unknown()).optional(),
-        }),
+          loc: z.array(z.union([z.string(), z.number()])).optional(),
+          input: z.unknown().optional(),
+        }).passthrough(), // Allow additional fields
       ),
       z.record(z.unknown()),
     ])
@@ -98,7 +100,14 @@ export class RequestError extends PhalaCloudError implements ApiError {
       detail?:
         | string
         | Record<string, unknown>
-        | Array<{ msg: string; type?: string; ctx?: Record<string, unknown> }>;
+        | Array<{
+            msg: string;
+            type?: string;
+            ctx?: Record<string, unknown>;
+            loc?: (string | number)[];
+            input?: unknown;
+            [key: string]: unknown;
+          }>;
       code?: string | undefined;
       type?: string | undefined;
     },
@@ -137,6 +146,9 @@ export class RequestError extends PhalaCloudError implements ApiError {
               msg: string;
               type?: string;
               ctx?: Record<string, unknown>;
+              loc?: (string | number)[];
+              input?: unknown;
+              [key: string]: unknown;
             }>,
         code: parseResult.data.code ?? undefined,
         type: parseResult.data.type ?? undefined,
@@ -180,10 +192,7 @@ export class ValidationError extends PhalaCloudError {
     data: {
       status: number;
       statusText: string;
-      detail?:
-        | string
-        | Record<string, unknown>
-        | Array<{ msg: string; type?: string; ctx?: Record<string, unknown> }>;
+      detail?: string | Record<string, unknown> | unknown[];
       validationErrors: ValidationErrorItem[];
     },
   ) {
@@ -232,10 +241,11 @@ export class UnknownError extends PhalaCloudError {
  * FastAPI validation error detail structure
  */
 interface FastApiValidationErrorItem {
-  loc: (string | number)[];
+  loc?: (string | number)[]; // Optional: some backends may not include location
   msg: string;
   type: string;
   ctx?: Record<string, unknown>;
+  input?: unknown; // Optional: input value that failed validation
 }
 
 /**
@@ -244,7 +254,12 @@ interface FastApiValidationErrorItem {
  * @example ["query", "page"] => "page"
  * @example ["body", "resources", "memory"] => "resources.memory"
  */
-function extractFieldPath(loc: (string | number)[]): string {
+function extractFieldPath(loc: (string | number)[] | undefined | null): string {
+  // Handle undefined or null loc
+  if (!loc || !Array.isArray(loc)) {
+    return "unknown";
+  }
+
   // Remove location prefixes like "body", "query", "path"
   const filtered = loc.filter((part) => {
     if (typeof part === "string") {
@@ -272,12 +287,23 @@ function parseValidationErrors(detail: unknown): {
     };
   }
 
-  const errors: ValidationErrorItem[] = detail.map((item: FastApiValidationErrorItem) => ({
-    field: extractFieldPath(item.loc),
-    message: item.msg,
-    type: item.type,
-    context: item.ctx,
-  }));
+  const errors: ValidationErrorItem[] = detail.map((item: FastApiValidationErrorItem, index: number) => {
+    const field = extractFieldPath(item.loc);
+
+    // If field is "unknown" and we have type info, use that
+    let displayField = field;
+    if (field === "unknown" && item.type) {
+      // Convert type like "missing" to something more descriptive
+      displayField = item.type === "missing" ? "required field" : item.type;
+    }
+
+    return {
+      field: displayField,
+      message: item.msg,
+      type: item.type,
+      context: item.ctx,
+    };
+  });
 
   // Generate summary message
   const count = errors.length;
