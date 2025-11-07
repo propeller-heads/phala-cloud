@@ -65,10 +65,15 @@ import { defineAction } from "../../utils/define-action";
  * ## Required Parameters
  *
  * - **name**: CVM instance name
- * - **instance_type**: Instance type identifier (e.g., "tdx.small", "tdx.medium")
  * - **compose_file**: Docker Compose configuration with `docker_compose_file` field
  *
  * ## Optional Parameters
+ *
+ * ### Instance Type
+ * - **instance_type**: Instance type identifier (default: "tdx.small")
+ *   - Use `listAllInstanceTypeFamilies()` or `listFamilyInstanceTypes()` to discover available types
+ *   - Examples: "tdx.small", "tdx.medium", "tdx.large"
+ *   - Omit to use the default small instance type
  *
  * ### Node Selection (all optional - system auto-selects if omitted)
  * - **node_id**: Specific node ID to deploy on
@@ -152,7 +157,7 @@ export const ProvisionCvmRequestSchema = z
     teepod_id: z.number().optional(), // deprecated, for compatibility
     region: z.string().optional(), // optional - region filter for auto-selection
     name: z.string(),
-    instance_type: z.string(), // required - must specify instance type
+    instance_type: z.string().default("tdx.small"), // defaults to "tdx.small"
     image: z.string().optional(),
     vcpu: z.number().optional(),
     memory: z.number().optional(),
@@ -161,7 +166,7 @@ export const ProvisionCvmRequestSchema = z
       allowed_envs: z.array(z.string()).optional(),
       pre_launch_script: z.string().optional(),
       docker_compose_file: z.string().optional(),
-      name: z.string().optional(),
+      name: z.string().default(""), // defaults to empty string (required by backend)
       kms_enabled: z.boolean().optional(),
       public_logs: z.boolean().optional(),
       public_sysinfo: z.boolean().optional(),
@@ -227,7 +232,8 @@ const { action: provisionCvm, safeAction: safeProvisionCvm } = defineAction<
   ProvisionCvmRequest,
   typeof ProvisionCvmSchema
 >(ProvisionCvmSchema, async (client, appCompose) => {
-  const body = handleGatewayCompatibility(appCompose);
+  const validated = ProvisionCvmRequestSchema.parse(appCompose);
+  const body = handleGatewayCompatibility(validated);
   let requestBody = { ...body };
   if (typeof body.node_id === "number") {
     requestBody = { ...body, teepod_id: body.node_id };
