@@ -1,10 +1,13 @@
 import fs from "fs";
 import arg from "arg";
-import { type Client, createClient } from "@phala/cloud/create-client";
+import { type Client, createClient } from "@phala/cloud";
 import { addComposeHash } from "@phala/cloud";
-import { encryptEnvVars } from "@phala/cloud";
 import { deployAppAuth } from "@phala/cloud";
+import { encryptEnvVars } from "@phala/cloud";
+import { parseEnvVars } from "@phala/cloud";
+import { ValidationError, formatValidationErrors } from "@phala/cloud";
 import type { EnvVar, KmsInfo } from "@phala/cloud";
+import type { ProvisionCvmRequest } from "@phala/cloud";
 import type { Chain } from "viem";
 
 // ==================================================================
@@ -20,6 +23,24 @@ function assert_not_null<T>(condition: T | null | undefined, message: string): N
   return condition!;
 }
 
+/**
+ * Remove undefined fields from object recursively (for cleaner API requests)
+ */
+function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null) {
+      // Recursively clean nested objects
+      if (typeof value === "object" && !Array.isArray(value)) {
+        result[key] = removeUndefined(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
 // ==================================================================
 //
 // Main function
@@ -28,15 +49,15 @@ function assert_not_null<T>(condition: T | null | undefined, message: string): N
 
 const typed: Parameters<typeof arg>[0] = {
   "--name": String,
-  "--vcpu": Number,
-  "--memory": Number,
+  "--instance-type": String,
   "--disk-size": Number,
-  "--node-id": Number,
-  "--kms-id": String,
+  "--region": String,
+  "--os-image": String,
+  "--kms": String,
   "--private-key": String,
   "--rpc-url": String,
   "--env": String,
-  "--uuid": String,
+  "--uuid": String, // for update
 };
 
 async function main(args: arg.Result<typeof typed>) {
@@ -61,14 +82,7 @@ async function main(args: arg.Result<typeof typed>) {
       process.exit(1);
     }
     const env_file = fs.readFileSync(args["--env"], "utf8");
-    env_vars = env_file
-      .split("\n")
-      .filter((line) => line.trim() !== "")
-      .map((line) => line.split("="))
-      .filter(([k, v]) => {
-        return !!k;
-      })
-      .map(([key, value]) => ({ key: key!, value: value ? `${value}` : "" }));
+    env_vars = parseEnvVars(env_file);
   }
 
   // If uuid specified, we considering it already exists and processing update on it.
@@ -145,108 +159,115 @@ async function deploy_new_cvm(
   env_vars: EnvVar[],
   args: arg.Result<typeof typed>,
 ) {
-  const nodeId = args["--node-id"];
-  const kmsId = args["--kms-id"];
-  const privateKey = args["--private-key"];
-  const rpcUrl = args["--rpc-url"];
-
+  //
+  // Step 1: Parse and validate parameters
+  //
   const name = args["--name"] || "app";
-  const vcpu = args["--vcpu"] || 1;
-  const memory = args["--memory"] || 1024;
-  const diskSize = args["--disk-size"] || 10;
+  const instance_type = args["--instance-type"] || "tdx.small"; // defaults to tdx.small
+  const disk_size = args["--disk-size"];
+  const region = args["--region"];
+  const os_image = args["--os-image"];
+  const kms_type = args["--kms"] as "PHALA" | "ETHEREUM" | "BASE" | undefined;
+  const private_key = args["--private-key"];
+  const rpc_url = args["--rpc-url"];
+
+  // Check if using on-chain KMS
+  const is_onchain_kms = kms_type === "ETHEREUM" || kms_type === "BASE";
+  if (is_onchain_kms) {
+    if (!private_key) {
+      throw new Error("--private-key is required for on-chain KMS deployment");
+    }
+    if (!rpc_url) {
+      throw new Error("--rpc-url is required for on-chain KMS deployment");
+    }
+  }
 
   //
-  // Step 1: Get resources & check capacity.
+  // Step 2: Provision CVM (automatic resource selection)
   //
-  const resp = await client.getAvailableNodes();
-  // If no specified node, use the first one.
-  let target = null;
-  let kms = null;
-  if (nodeId) {
-    target = resp.nodes.find((node) => node.teepod_id === nodeId);
-    if (!target) {
-      throw new Error(`Node ${nodeId} not found`);
-    }
-    if (target.support_onchain_kms) {
-      if (!kmsId) {
-        throw new Error(`Node ${nodeId} requires a KMS ID for Contract Owned CVM`);
-      }
-      if (!privateKey) {
-        throw new Error(`You need specify a private key for Contract Owned CVM`);
-      }
-      const kms_list = await client.getKmsList();
-      kms = kms_list.items.find((kms) => kms.slug === kmsId || kms.id === kmsId) as KmsInfo;
-      if (!kms) {
-        throw new Error(`KMS ${kmsId} not found`);
-      }
-    }
-  } else {
-    target = resp.nodes[0];
-  }
-  if (!target) {
-    throw new Error("No available nodes found");
-  }
-  const image = target.images[0];
-  if (!image) {
-    throw new Error(`No available OS images found in the node ${target.name}.`);
-  }
-
-  // Step 2:
-  const app_compose = {
-    name: name,
+  console.log(`Provisioning CVM with instance type: ${instance_type}`);
+  const provision_payload = removeUndefined({
+    name,
+    instance_type,
     compose_file: {
       docker_compose_file: docker_compose_yml,
+      allowed_envs: env_vars.map((e) => e.key),
     },
-    // Resource
-    vcpu: vcpu,
-    memory: memory,
-    disk_size: diskSize,
-    node_id: target.teepod_id,
-    image: image.name,
-  };
+    disk_size,
+    region,
+    image: os_image,
+    kms: kms_type,
+  }) as ProvisionCvmRequest;
 
-  // Step 3: Deploy the app with Centralized KMS.
-  const app = await client.provisionCvm(app_compose);
+  const provision = await client.provisionCvm(provision_payload);
+  console.log(`Provisioned: compose_hash=${provision.compose_hash}`);
 
   //
-  // For centralized KMS, we can get the AppID & AppEnvEncryptPubkey from provision response.
+  // Step 3: Deploy based on KMS type
   //
   let result;
-  if (app.app_env_encrypt_pubkey && app.app_id) {
-    const encrypted_env_vars = await encryptEnvVars(env_vars, app.app_env_encrypt_pubkey);
+
+  if (provision.app_id && provision.app_env_encrypt_pubkey) {
+    //
+    // Centralized KMS (PHALA) - app_id provided by provision
+    //
+    console.log("Using centralized KMS (PHALA)");
+    const encrypted_env_vars =
+      env_vars.length > 0 ? await encryptEnvVars(env_vars, provision.app_env_encrypt_pubkey) : undefined;
+
     result = await client.commitCvmProvision({
-      app_id: app.app_id,
+      app_id: provision.app_id,
+      compose_hash: provision.compose_hash,
       encrypted_env: encrypted_env_vars,
-      compose_hash: app.compose_hash,
+      env_keys: env_vars.map((e) => e.key),
     });
   } else {
-    kms = assert_not_null<KmsInfo>(kms, "Assert kms is not null.");
-    const kms_slug = assert_not_null(kms.slug, "Assert kms.slug is not null.");
-    assert_not_null(kms.kms_contract_address, "Assert kms_contract_address is not null.");
-    assert_not_null(privateKey, "Assert privateKey is not null.");
-    assert_not_null(app.compose_hash, "Assert compose_hash is not null.");
-    const device_id = assert_not_null(target.device_id, "Assert device_id is not null.");
-    const rpc_url = assert_not_null(rpcUrl, "Assert rpcUrl is not null.");
-    const chain = assert_not_null<Chain>(kms.chain, "Assert kms.chain is not null.");
+    //
+    // On-chain KMS (ETHEREUM/BASE) - need to deploy contract to get app_id
+    //
+    console.log(`Using on-chain KMS (${kms_type})`);
 
+    // Get KMS info from provision response
+    const kms_id = assert_not_null(provision.kms_id, "KMS ID not returned from provision");
+    const device_id = assert_not_null(provision.device_id, "Device ID not returned from provision");
+
+    // Fetch KMS details
+    const kms_list = await client.getKmsList();
+    const kms = kms_list.items.find((k) => k.id === kms_id || k.slug === kms_id) as KmsInfo;
+    assert_not_null(kms, `KMS ${kms_id} not found`);
+    assert_not_null(kms.kms_contract_address, "KMS contract address not found");
+    assert_not_null(kms.chain, "KMS chain info not found");
+
+    // Deploy contract to get app_id
+    console.log("Deploying AppAuth contract...");
     const deployed_contract = await deployAppAuth({
-      chain,
-      rpcUrl: rpc_url,
+      chain: kms.chain,
+      rpcUrl: rpc_url!,
       kmsContractAddress: kms.kms_contract_address,
-      privateKey: privateKey,
+      privateKey: private_key!,
       deviceId: device_id,
-      composeHash: app.compose_hash,
+      composeHash: provision.compose_hash,
     });
-    const app_id = assert_not_null(deployed_contract.appId, "Assert appId is not null.");
-    const resp = await client.getAppEnvEncryptPubKey({
+
+    const app_id = assert_not_null(deployed_contract.appId, "App ID not returned from contract deployment");
+    console.log(`Contract deployed: app_id=${app_id}`);
+
+    // Get encryption public key for env vars
+    const kms_slug = assert_not_null(kms.slug, "KMS slug not found");
+    const pubkey_resp = await client.getAppEnvEncryptPubKey({
       app_id: app_id,
       kms: kms_slug,
     });
-    const encrypted_env_vars = await encryptEnvVars(env_vars, resp.public_key);
+
+    const encrypted_env_vars =
+      env_vars.length > 0 ? await encryptEnvVars(env_vars, pubkey_resp.public_key) : undefined;
+
+    // Commit CVM with contract info
     result = await client.commitCvmProvision({
       app_id: app_id,
+      compose_hash: provision.compose_hash,
       encrypted_env: encrypted_env_vars,
-      compose_hash: app.compose_hash,
+      env_keys: env_vars.map((e) => e.key),
       kms_id: kms_slug,
       contract_address: deployed_contract.appAuthAddress,
       deployer_address: deployed_contract.deployer,
@@ -262,6 +283,17 @@ main(arg(typed))
     process.exit(0);
   })
   .catch((error) => {
-    console.trace(error);
+    // Handle validation errors with detailed field information
+    if (error instanceof ValidationError) {
+      console.error("\n❌ Validation Error:");
+      console.error(`   ${error.message}\n`);
+      console.error("   Details:");
+      console.error(formatValidationErrors(error.validationErrors));
+      console.error("");
+    } else {
+      // For other errors, show full trace
+      console.error("\n❌ Error:");
+      console.trace(error);
+    }
     process.exit(1);
   });
