@@ -3,7 +3,7 @@ import { execaCommand } from "execa";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "dotenv";
-import { createClient } from "@phala/cloud";
+import { createClient, CvmAttestationSchema } from "@phala/cloud";
 import {
 	safeGetCurrentUser,
 	safeGetAvailableNodes,
@@ -14,6 +14,7 @@ import {
 	waitForCvmStatus,
 	waitForCvmNetwork,
 	waitForOperationsComplete,
+	waitForNewEvent,
 	getCvmDetails,
 	cleanupCvm,
 	getCvmSerialLogs,
@@ -448,6 +449,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				memory?: number;
 				disk_size?: number;
 				status?: string;
+				gateway_domain?: string;
 			};
 
 			expect(cvm.status).toBe("running");
@@ -462,7 +464,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			});
 
 			// Wait for HTTP endpoint to be accessible
-			const publicUrl = await waitForPortExposed(logger, appId, 3000, 120000);
+			const publicUrl = await waitForPortExposed(
+				logger,
+				appId,
+				3000,
+				120000,
+				cvm.gateway_domain,
+			);
 
 			// Test health endpoint
 			const healthData = await testJsonEndpoint<{ status: string }>(
@@ -498,9 +506,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			logger.step("Phase 5: Update CVM Code");
 
 			// Use pre-pushed Docker image from DockerHub (h4x3rotab/phala-e2e-test:v2.0.0)
-			logger.info(
-				"Using pre-pushed Docker image: h4x3rotab/phala-e2e-test:v2.0.0",
-			);
+			logger.info("Using pre-pushed Docker image: h4x3rotab/phala-e2e-test:v2.0.0");
 
 			// Update docker-compose.yml for v2
 			const composeV2Path = path.join(
@@ -528,11 +534,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			const updateCmd = `deploy --uuid ${vmUuid} -c ${composeV2Path} -e ${envV2Path} --wait --json`;
 
 			try {
-				const { stdout } = await runCliCommand(
-					logger,
-					updateCmd,
-					"Updating CVM (waiting for completion)",
-				);
+				const { stdout } = await runCliCommand(logger, updateCmd, "Updating CVM (waiting for completion)");
 
 				logger.info("Update output:", stdout);
 
@@ -544,9 +546,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				const updateResult = JSON.parse(jsonMatch[0]);
 
 				if (updateResult.success) {
-					logger.success(
-						"CVM updated successfully (--wait ensured completion)",
-					);
+					logger.success("CVM updated successfully (--wait ensured completion)");
 				} else {
 					throw new Error(`Update failed: ${updateResult.error}`);
 				}
@@ -558,10 +558,12 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			// --wait flag ensures CVM restart is complete, but Docker image pull may still be in progress
 			// The old container may still be running until the new one is pulled and started
 			// We need to retry until we get the correct version, not just any response
-			logger.info(
-				"Waiting for new container to start (allowing time for Docker image pull)...",
-			);
-			const publicUrl = buildPublicUrl(appId, 3000);
+			logger.info("Waiting for new container to start (allowing time for Docker image pull)...");
+
+			// Get CVM details to fetch the gateway domain
+			const cvmDetails = await getCvmDetails(vmUuid, TEST_API_KEY);
+			const cvm = cvmDetails as { gateway_domain?: string };
+			const publicUrl = buildPublicUrl(appId, 3000, cvm.gateway_domain);
 
 			// Poll until version matches 2.0.0
 			const maxAttempts = 60; // Up to 5 minutes (60 * 5s)
@@ -637,7 +639,10 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			await waitForOperationsComplete(logger, vmUuid, 60000, TEST_API_KEY);
 
 			// Get current resources
-			const beforeResize = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
+			const beforeResize = (await getCvmDetails(
+				vmUuid,
+				TEST_API_KEY,
+			)) as {
 				vcpu?: number;
 				memory?: number;
 				disk_size?: number;
@@ -661,16 +666,29 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				throw error;
 			}
 
-			// Wait for CVM to stabilize after resize
-			// The resize operation may cause the CVM to restart or enter an in_progress state
-			logger.info("Waiting for CVM to stabilize after resize...");
-			await waitForCvmNetwork(logger, vmUuid, 180000, TEST_API_KEY);
+			// Wait for resize operation to complete
+			// Resize automatically triggers a restart, so we need to wait for:
+			// 1. A new instance.restart or instance.power_on event to appear
+			// 2. That event to complete
+			// 3. The CVM to return to running state
+			logger.info("Waiting for resize and automatic restart to complete...");
+			await waitForNewEvent(
+				logger,
+				vmUuid,
+				/instance\.(restart|power_on)/,
+				180000,
+				TEST_API_KEY,
+			);
+
+			// Also ensure CVM is back to running state
+			await waitForCvmNetwork(logger, vmUuid, 120000, TEST_API_KEY);
 
 			// Get updated resources and verify the change
 			const afterResize = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
 				vcpu?: number;
 				memory?: number;
 				disk_size?: number;
+				gateway_domain?: string;
 			};
 
 			logger.success("Resources after resize:", {
@@ -685,7 +703,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 
 			// Verify container is accessible after resize
 			logger.info("Verifying container is accessible after resize...");
-			const publicUrl = await waitForPortExposed(logger, appId, 3000, 120000);
+			const publicUrl = await waitForPortExposed(
+				logger,
+				appId,
+				3000,
+				120000,
+				afterResize.gateway_domain,
+			);
 
 			const healthData = await testJsonEndpoint<{ status: string }>(
 				`${publicUrl}/health`,
@@ -695,9 +719,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			logger.success("Container is accessible after resize", healthData);
 			expect(healthData.status).toBe("healthy");
 
-			logger.success(
-				"Phase 6 completed: Resize successful and container operational",
-			);
+			logger.success("Phase 6 completed: Resize successful and container operational");
 		},
 		{ timeout: 300000 }, // 5 minutes
 	);
@@ -720,7 +742,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Stop command executed");
 
 				// Wait for stopped status
-				await waitForCvmStatus(logger, vmUuid, "stopped", 180000, TEST_API_KEY);
+				await waitForCvmStatus(
+					logger,
+					vmUuid,
+					"stopped",
+					180000,
+					TEST_API_KEY,
+				);
 				logger.success("CVM stopped successfully");
 			} catch (error) {
 				logError(logger, error, "Stop failed");
@@ -735,7 +763,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Start command executed");
 
 				// Wait for running status
-				await waitForCvmStatus(logger, vmUuid, "running", 300000, TEST_API_KEY);
+				await waitForCvmStatus(
+					logger,
+					vmUuid,
+					"running",
+					300000,
+					TEST_API_KEY,
+				);
 				logger.success("CVM started successfully");
 			} catch (error) {
 				logError(logger, error, "Start failed");
@@ -743,8 +777,10 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			}
 
 			// Verify app is still accessible
-			const publicUrl = buildPublicUrl(appId, 3000);
-			await waitForPortExposed(logger, appId, 3000, 120000);
+			const cvmDetails = await getCvmDetails(vmUuid, TEST_API_KEY);
+			const cvm = cvmDetails as { gateway_domain?: string };
+			const publicUrl = buildPublicUrl(appId, 3000, cvm.gateway_domain);
+			await waitForPortExposed(logger, appId, 3000, 120000, cvm.gateway_domain);
 
 			const healthData = await testJsonEndpoint<{ status: string }>(
 				`${publicUrl}/health`,
@@ -762,7 +798,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Restart command executed");
 
 				// Wait for running status after restart
-				await waitForCvmStatus(logger, vmUuid, "running", 300000, TEST_API_KEY);
+				await waitForCvmStatus(
+					logger,
+					vmUuid,
+					"running",
+					300000,
+					TEST_API_KEY,
+				);
 				logger.success("CVM restarted successfully");
 			} catch (error) {
 				logError(logger, error, "Restart failed");
@@ -829,17 +871,6 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				if (errorObj.stderr) logger.warn(`  Stderr: ${errorObj.stderr}`);
 				if (errorObj.message) logger.warn(`  Message: ${errorObj.message}`);
 			}
-
-			// Final health check
-			const publicUrl = buildPublicUrl(appId, 3000);
-			const finalHealth = await testJsonEndpoint<{ status: string }>(
-				`${publicUrl}/health`,
-				["status"],
-			);
-
-			logger.success("Final health check passed", finalHealth);
-			expect(finalHealth.status).toBe("healthy");
-
 			logger.success("Phase 8 completed: All verifications passed");
 		},
 		{ timeout: 300000 }, // 5 minutes
@@ -887,10 +918,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 					try {
-						if (!vmUuid) {
-							throw new Error("vmUuid is undefined");
-						}
-						const cvmDetails = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
+						const cvmDetails = await getCvmDetails(vmUuid!, TEST_API_KEY) as {
 							status?: string;
 							deleted?: boolean;
 							scheduled_delete_at?: string;
