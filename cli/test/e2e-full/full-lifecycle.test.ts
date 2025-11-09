@@ -3,7 +3,7 @@ import { execaCommand } from "execa";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "dotenv";
-import { createClient, CvmAttestationSchema } from "@phala/cloud";
+import { createClient } from "@phala/cloud";
 import {
 	safeGetCurrentUser,
 	safeGetAvailableNodes,
@@ -558,7 +558,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			// --wait flag ensures CVM restart is complete, but Docker image pull may still be in progress
 			// The old container may still be running until the new one is pulled and started
 			// We need to retry until we get the correct version, not just any response
-			logger.info("Waiting for new container to start (allowing time for Docker image pull)...");
+			logger.info(
+				"Waiting for new container to start (allowing time for Docker image pull)...",
+			);
 
 			// Get CVM details to fetch the gateway domain
 			const cvmDetails = await getCvmDetails(vmUuid, TEST_API_KEY);

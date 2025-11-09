@@ -289,7 +289,9 @@ export async function waitForNewEvent(
 
 				if (matches) {
 					if (!foundNewEvent) {
-						logger.info(`New event detected: ${evt.event_type} - ${evt.status}`);
+						logger.info(
+							`New event detected: ${evt.event_type} - ${evt.status}`,
+						);
 						foundNewEvent = true;
 					}
 
