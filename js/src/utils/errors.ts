@@ -9,11 +9,15 @@ export const ApiErrorSchema = z.object({
     .union([
       z.string(),
       z.array(
-        z.object({
-          msg: z.string(),
-          type: z.string().optional(),
-          ctx: z.record(z.unknown()).optional(),
-        }),
+        z
+          .object({
+            msg: z.string(),
+            type: z.string().optional(),
+            ctx: z.record(z.unknown()).optional(),
+            loc: z.array(z.union([z.string(), z.number()])).optional(),
+            input: z.unknown().optional(),
+          })
+          .passthrough(), // Allow additional fields
       ),
       z.record(z.unknown()),
     ])
@@ -98,7 +102,14 @@ export class RequestError extends PhalaCloudError implements ApiError {
       detail?:
         | string
         | Record<string, unknown>
-        | Array<{ msg: string; type?: string; ctx?: Record<string, unknown> }>;
+        | Array<{
+            msg: string;
+            type?: string;
+            ctx?: Record<string, unknown>;
+            loc?: (string | number)[];
+            input?: unknown;
+            [key: string]: unknown;
+          }>;
       code?: string | undefined;
       type?: string | undefined;
     },
@@ -137,6 +148,9 @@ export class RequestError extends PhalaCloudError implements ApiError {
               msg: string;
               type?: string;
               ctx?: Record<string, unknown>;
+              loc?: (string | number)[];
+              input?: unknown;
+              [key: string]: unknown;
             }>,
         code: parseResult.data.code ?? undefined,
         type: parseResult.data.type ?? undefined,
@@ -183,7 +197,14 @@ export class ValidationError extends PhalaCloudError {
       detail?:
         | string
         | Record<string, unknown>
-        | Array<{ msg: string; type?: string; ctx?: Record<string, unknown> }>;
+        | Array<{
+            msg: string;
+            type?: string;
+            ctx?: Record<string, unknown>;
+            loc?: (string | number)[];
+            input?: unknown;
+            [key: string]: unknown;
+          }>;
       validationErrors: ValidationErrorItem[];
     },
   ) {
@@ -232,10 +253,11 @@ export class UnknownError extends PhalaCloudError {
  * FastAPI validation error detail structure
  */
 interface FastApiValidationErrorItem {
-  loc: (string | number)[];
+  loc?: (string | number)[]; // Optional: some backends may not include location
   msg: string;
   type: string;
   ctx?: Record<string, unknown>;
+  input?: unknown; // Optional: input value that failed validation
 }
 
 /**
@@ -244,7 +266,12 @@ interface FastApiValidationErrorItem {
  * @example ["query", "page"] => "page"
  * @example ["body", "resources", "memory"] => "resources.memory"
  */
-function extractFieldPath(loc: (string | number)[]): string {
+function extractFieldPath(loc: (string | number)[] | undefined | null): string {
+  // Handle undefined or null loc
+  if (!loc || !Array.isArray(loc)) {
+    return "unknown";
+  }
+
   // Remove location prefixes like "body", "query", "path"
   const filtered = loc.filter((part) => {
     if (typeof part === "string") {
@@ -272,12 +299,25 @@ function parseValidationErrors(detail: unknown): {
     };
   }
 
-  const errors: ValidationErrorItem[] = detail.map((item: FastApiValidationErrorItem) => ({
-    field: extractFieldPath(item.loc),
-    message: item.msg,
-    type: item.type,
-    context: item.ctx,
-  }));
+  const errors: ValidationErrorItem[] = detail.map(
+    (item: FastApiValidationErrorItem, index: number) => {
+      const field = extractFieldPath(item.loc);
+
+      // If field is "unknown" and we have type info, use that
+      let displayField = field;
+      if (field === "unknown" && item.type) {
+        // Convert type like "missing" to something more descriptive
+        displayField = item.type === "missing" ? "required field" : item.type;
+      }
+
+      return {
+        field: displayField,
+        message: item.msg,
+        type: item.type,
+        context: item.ctx,
+      };
+    },
+  );
 
   // Generate summary message
   const count = errors.length;
@@ -354,6 +394,7 @@ function extractPrimaryMessage(status: number, detail: unknown, defaultMessage: 
  * Parse RequestError into PhalaCloudError instance
  *
  * Returns the appropriate error subclass based on status code:
+ * - New structured errors (with error_code) → ResourceError
  * - 422 → ValidationError (with validationErrors array)
  * - 401, 403 → AuthError
  * - 400, 409, etc. → BusinessError
@@ -368,7 +409,13 @@ function extractPrimaryMessage(status: number, detail: unknown, defaultMessage: 
  * try {
  *   await client.post('/cvms', data);
  * } catch (error) {
- *   if (error instanceof ValidationError) {
+ *   if (error instanceof ResourceError) {
+ *     // New structured error with error code
+ *     console.error(`Error [${error.errorCode}]: ${error.message}`);
+ *     if (error.suggestions) {
+ *       error.suggestions.forEach(s => console.log(s));
+ *     }
+ *   } else if (error instanceof ValidationError) {
  *     // TypeScript knows error.validationErrors exists
  *     error.validationErrors.forEach(e => {
  *       console.error(`${e.field}: ${e.message}`);
@@ -384,18 +431,24 @@ export function parseApiError(requestError: RequestError): PhalaCloudError {
   const statusText = requestError.statusText ?? "Unknown Error";
   const detail = requestError.detail;
 
-  // Categorize error type
+  // Try to parse as structured error first (new format with error codes)
+  const structured = parseStructuredError(detail);
+  if (structured) {
+    return new ResourceError(structured.message, {
+      status,
+      statusText,
+      detail,
+      errorCode: structured.error_code,
+      structuredDetails: structured.details,
+      suggestions: structured.suggestions,
+      links: structured.links,
+    });
+  }
+
+  // Fallback to original logic for backward compatibility
   const errorType = categorizeErrorType(status);
-
-  // Extract primary message
   const message = extractPrimaryMessage(status, detail, requestError.message);
-
-  // Common data for all error types
-  const commonData = {
-    status,
-    statusText,
-    detail,
-  };
+  const commonData = { status, statusText, detail };
 
   // Return appropriate error subclass
   if (errorType === "validation" && Array.isArray(detail)) {
@@ -554,4 +607,192 @@ export function getErrorMessage(error: ApiError): string {
   }
 
   return "Unknown error occurred";
+}
+
+/**
+ * Structured error detail from new error format (ERR-xxxx codes)
+ */
+export interface StructuredErrorDetail {
+  field?: string;
+  value?: unknown;
+  message?: string;
+}
+
+/**
+ * Error link from structured error response
+ */
+export interface ErrorLink {
+  url: string;
+  label: string;
+}
+
+/**
+ * New structured error response format with unique error codes
+ */
+export interface StructuredErrorResponse {
+  error_code: string; // e.g., "ERR-01-001"
+  message: string;
+  details?: StructuredErrorDetail[];
+  suggestions?: string[];
+  links?: ErrorLink[];
+}
+
+/**
+ * Resource provisioning error with structured details
+ * Extends BusinessError to handle new error format from backend
+ *
+ * Use instanceof to check: if (error instanceof ResourceError) { ... }
+ * Or use property: if (error.isResourceError) { ... }
+ */
+export class ResourceError extends BusinessError {
+  public readonly isResourceError = true as const;
+  public readonly errorCode?: string;
+  public readonly structuredDetails?: StructuredErrorDetail[];
+  public readonly suggestions?: string[];
+  public readonly links?: ErrorLink[];
+
+  constructor(
+    message: string,
+    data: {
+      status: number;
+      statusText: string;
+      detail?:
+        | string
+        | Record<string, unknown>
+        | Array<{
+            msg: string;
+            type?: string;
+            ctx?: Record<string, unknown>;
+            loc?: (string | number)[];
+            input?: unknown;
+            [key: string]: unknown;
+          }>;
+      errorCode?: string;
+      structuredDetails?: StructuredErrorDetail[];
+      suggestions?: string[];
+      links?: ErrorLink[];
+    },
+  ) {
+    super(message, data);
+    this.errorCode = data.errorCode;
+    this.structuredDetails = data.structuredDetails;
+    this.suggestions = data.suggestions;
+    this.links = data.links;
+  }
+}
+
+/**
+ * Parse structured error response (new format with ERR-xxxx codes)
+ */
+function parseStructuredError(detail: unknown): StructuredErrorResponse | null {
+  if (!detail || typeof detail !== "object") {
+    return null;
+  }
+
+  const obj = detail as Record<string, unknown>;
+
+  // Check if it's the new structured error format
+  if (
+    obj.error_code &&
+    typeof obj.error_code === "string" &&
+    obj.message &&
+    typeof obj.message === "string"
+  ) {
+    return {
+      error_code: obj.error_code,
+      message: obj.message,
+      details: obj.details as StructuredErrorDetail[] | undefined,
+      suggestions: obj.suggestions as string[] | undefined,
+      links: obj.links as ErrorLink[] | undefined,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Format structured error for display
+ *
+ * @param error - Resource error with structured details
+ * @param options - Formatting options
+ * @returns Formatted error message
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await client.provisionCvm(payload);
+ * } catch (error) {
+ *   if (error instanceof ResourceError) {
+ *     console.error(formatStructuredError(error));
+ *   }
+ * }
+ * // Output:
+ * // Error [ERR-01-001]: The requested instance type does not exist
+ * //
+ * // Details:
+ * //   - Instance type 'invalid' is not recognized
+ * //
+ * // Suggestions:
+ * //   - Use a valid instance type: tdx.small, tdx.medium, or tdx.large
+ * //   - Alternatively, specify CPU and memory requirements manually
+ * //
+ * // Learn more:
+ * //   - View available instance types: https://cloud.phala.network/instances
+ * //   - Contact support: https://cloud.phala.network/support
+ * ```
+ */
+export function formatStructuredError(
+  error: ResourceError,
+  options?: {
+    /** Show error code in output (default: true) */
+    showErrorCode?: boolean;
+    /** Show suggestions (default: true) */
+    showSuggestions?: boolean;
+    /** Show links (default: true) */
+    showLinks?: boolean;
+  },
+): string {
+  const { showErrorCode = true, showSuggestions = true, showLinks = true } = options ?? {};
+
+  const parts: string[] = [];
+
+  // Error code and message
+  if (showErrorCode && error.errorCode) {
+    parts.push(`Error [${error.errorCode}]: ${error.message}`);
+  } else {
+    parts.push(error.message);
+  }
+
+  // Details
+  if (error.structuredDetails && error.structuredDetails.length > 0) {
+    parts.push("");
+    parts.push("Details:");
+    error.structuredDetails.forEach((d) => {
+      if (d.message) {
+        parts.push(`  - ${d.message}`);
+      } else if (d.field && d.value !== undefined) {
+        parts.push(`  - ${d.field}: ${d.value}`);
+      }
+    });
+  }
+
+  // Suggestions
+  if (showSuggestions && error.suggestions && error.suggestions.length > 0) {
+    parts.push("");
+    parts.push("Suggestions:");
+    error.suggestions.forEach((s) => {
+      parts.push(`  - ${s}`);
+    });
+  }
+
+  // Links
+  if (showLinks && error.links && error.links.length > 0) {
+    parts.push("");
+    parts.push("Learn more:");
+    error.links.forEach((link) => {
+      parts.push(`  - ${link.label}: ${link.url}`);
+    });
+  }
+
+  return parts.join("\n");
 }

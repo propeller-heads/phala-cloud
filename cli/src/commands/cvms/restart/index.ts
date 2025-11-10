@@ -23,7 +23,9 @@ async function runCvmsRestartCommand(
 		const cvmInfo = await getCvmByAppId(resolvedAppId);
 
 		if (cvmInfo.in_progress) {
-			logger.warn("CVM is currently in progress (updating/restarting). Waiting for operation to complete...");
+			logger.warn(
+				"CVM is currently in progress (updating/restarting). Waiting for operation to complete...",
+			);
 
 			// Wait for CVM to be ready using existing utility
 			await waitForCvmReady(cvmInfo.vm_uuid, 300000, true);
@@ -34,10 +36,9 @@ async function runCvmsRestartCommand(
 		);
 
 		// Retry on conflict errors (409) with the shared utility
-		const response = await retryOnConflict(
-			() => restartCvm(resolvedAppId),
-			{ spinner }
-		);
+		const response = await retryOnConflict(() => restartCvm(resolvedAppId), {
+			spinner,
+		});
 
 		spinner.stop(true);
 		logger.break();

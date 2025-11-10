@@ -14,9 +14,8 @@ describe("getCvmState", () => {
 
   it("should fetch current CVM state", async () => {
     const mockState = {
+      name: "test-cvm",
       status: "running",
-      derived_status: "running",
-      vm_uuid: "vm-123",
       instance_id: "instance-456",
       uptime: "2h30m",
     };
@@ -30,7 +29,7 @@ describe("getCvmState", () => {
   });
 
   it("should call API without target parameter (immediate mode)", async () => {
-    const mockState = { status: "stopped", derived_status: "stopped" };
+    const mockState = { name: "test-cvm", status: "stopped" };
     vi.spyOn(client, "get").mockResolvedValue(mockState);
 
     await getCvmState(client, { id: "cvm-456" });
@@ -41,7 +40,7 @@ describe("getCvmState", () => {
 
   describe("safeGetCvmState", () => {
     it("should return success result", async () => {
-      const mockState = { status: "running", derived_status: "running" };
+      const mockState = { name: "test-cvm", status: "running" };
       vi.spyOn(client, "get").mockResolvedValue(mockState);
 
       const result = await safeGetCvmState(client, { id: "cvm-123" });

@@ -212,17 +212,13 @@ describe("provisionCvm", () => {
       expect(result).not.toHaveProperty("node_id");
     });
 
-    it("should handle missing compose_file gracefully", async () => {
+    it("should reject when compose_file is missing", async () => {
       const configWithoutComposeFile = {
         ...mockAppCompose,
       };
       delete (configWithoutComposeFile as any).compose_file;
 
-      const backendResponse = { ...mockProvisionData, teepod_id: 1 };
-      delete (backendResponse as any).node_id;
-      mockPost.mockResolvedValueOnce(backendResponse);
-
-      await expect(provisionCvm(client, configWithoutComposeFile)).resolves.toBeDefined();
+      await expect(provisionCvm(client, configWithoutComposeFile)).rejects.toThrow();
     });
 
     it("should allow extra fields in API response for forward compatibility", async () => {

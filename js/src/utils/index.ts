@@ -26,14 +26,19 @@ export {
   BusinessError,
   ServerError,
   UnknownError,
+  ResourceError,
   // Formatting utilities
   formatValidationErrors,
   formatErrorMessage,
+  formatStructuredError,
   getErrorMessage,
   // Deprecated utilities
   getValidationFields,
   // Types
   type ValidationErrorItem,
+  type StructuredErrorDetail,
+  type ErrorLink,
+  type StructuredErrorResponse,
   ApiErrorSchema,
   type ApiError,
 } from "./errors";

@@ -3,9 +3,13 @@ import { FetchError } from "ofetch";
 import type { ZodError } from "zod";
 
 // Type guard for request errors (RequestError from SDK)
-function isRequestError(
-	error: unknown,
-): error is { isRequestError: true; status: number; statusText: string; message: string; data?: unknown } {
+function isRequestError(error: unknown): error is {
+	isRequestError: true;
+	status: number;
+	statusText: string;
+	message: string;
+	data?: unknown;
+} {
 	return (
 		error !== null &&
 		typeof error === "object" &&
@@ -40,7 +44,9 @@ export function logDetailedError(
 	context?: string,
 	stderr?: NodeJS.WriteStream,
 ): void {
-	const output = stderr ? stderr.write.bind(stderr) : (msg: string) => console.error(msg);
+	const output = stderr
+		? stderr.write.bind(stderr)
+		: (msg: string) => console.error(msg);
 	const prefix = context ? `[${context}]` : "";
 
 	// Check if it's a SafeResult request error (from safe API)

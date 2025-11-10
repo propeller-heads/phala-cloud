@@ -1,13 +1,24 @@
 import { z } from "zod";
 import { type Client } from "../../client";
-import { isHex } from "viem";
 import { defineAction } from "../../utils/define-action";
 
 /**
  * Commit CVM Provision (Create CVM from provisioned data)
  *
  * This action creates a CVM using previously provisioned data and encrypted environment variables.
- * It should be called after `provisionCvm` to complete the CVM deployment process.
+ * It MUST be called after `provisionCvm` to complete the CVM deployment process.
+ *
+ * ## Two-Step Deployment Flow
+ *
+ * 1. **Provision** (`provisionCvm`): Prepares resources and returns `compose_hash` (and `app_id` for PHALA KMS)
+ * 2. **Commit** (this function): Creates the actual CVM using provisioned data
+ *
+ * ## KMS Type and app_id Source
+ *
+ * The `app_id` source depends on the KMS type used during provisioning:
+ *
+ * - **PHALA KMS** (default): `app_id` is obtained from centralized KMS - returned by `provisionCvm()`
+ * - **ETHEREUM/BASE KMS** (on-chain): `app_id` must be obtained by deploying your contract and interacting with the on-chain KMS - NOT provided by `provisionCvm()`
  *
  * @example
  * ```typescript
@@ -15,20 +26,43 @@ import { defineAction } from "../../utils/define-action";
  *
  * const client = createClient();
  *
- * // First, provision the CVM
- * const provision = await provisionCvm(client, appCompose);
- *
- * // Then, commit the provision with encrypted environment variables
- * const cvm = await commitCvmProvision(client, {
- *   encrypted_env: "hex-encoded-encrypted-environment-data", // String, not array
- *   app_id: provision.app_id,
- *   compose_hash: provision.compose_hash,
- *   kms_id: "your-kms-id",
- *   contract_address: "0x123...",
- *   deployer_address: "0x456..."
+ * // Example 1: PHALA KMS (default - app_id from provision)
+ * const provision = await provisionCvm(client, {
+ *   name: "my-cvm",
+ *   instance_type: "tdx.small",
+ *   kms: "PHALA",  // or omit for default
+ *   compose_file: { docker_compose_file: "..." },
  * });
  *
- * console.log(cvm.id);
+ * // app_id is provided by provision API
+ * const cvm = await commitCvmProvision(client, {
+ *   app_id: provision.app_id,           // From provision response
+ *   compose_hash: provision.compose_hash,
+ *   encrypted_env: "...",
+ * });
+ *
+ * // Example 2: On-chain KMS (app_id from contract deployment)
+ * const provision = await provisionCvm(client, {
+ *   name: "my-cvm",
+ *   instance_type: "tdx.small",
+ *   kms: "ETHEREUM",  // or "BASE" for Base network
+ *   compose_file: { docker_compose_file: "..." },
+ * });
+ *
+ * // Step 1: Deploy your contract and get app_id from on-chain KMS
+ * const contractTx = await deployContract({
+ *   kmsContract: "0x...",
+ *   // ... contract deployment params
+ * });
+ * const appId = await getAppIdFromKms(contractTx);
+ *
+ * // Step 2: Commit with app_id from on-chain interaction
+ * const cvm = await commitCvmProvision(client, {
+ *   app_id: appId,                        // From on-chain KMS, NOT from provision
+ *   compose_hash: provision.compose_hash, // From provision response
+ *   contract_address: "0x123...",         // Your deployed contract
+ *   deployer_address: "0x456...",         // Deployer address
+ * });
  * ```
  *
  * ## Returns
@@ -37,9 +71,22 @@ import { defineAction } from "../../utils/define-action";
  *
  * The created CVM details including id, name, status, and other metadata. Return type depends on schema parameter.
  *
- * ## Parameters
+ * ## Required Parameters
  *
- * ### schema (optional)
+ * - **app_id**: Application identifier
+ *   - For PHALA KMS: Use `provision.app_id` from `provisionCvm()` response
+ *   - For ETHEREUM/BASE KMS (on-chain): Obtain from your on-chain KMS contract deployment
+ * - **compose_hash**: Must be obtained from `provisionCvm()` response (used to retrieve provision data from Redis)
+ *
+ * ## Optional Parameters
+ *
+ * - **encrypted_env**: Hex-encoded encrypted environment variables
+ * - **env_keys**: List of environment variable keys to allow
+ * - **kms_id**: KMS instance identifier (if using specific KMS)
+ * - **contract_address**: On-chain KMS contract address (required for ETHEREUM/BASE KMS)
+ * - **deployer_address**: Deployer address for on-chain verification (required for ETHEREUM/BASE KMS)
+ *
+ * ## Schema Parameter
  *
  * - **Type:** `ZodSchema | false`
  * - **Default:** `CommitCvmProvisionSchema`
@@ -119,7 +166,7 @@ export const CommitCvmProvisionRequestSchema = z
   .object({
     encrypted_env: z.string().optional().nullable(),
     app_id: z.string(),
-    compose_hash: z.string().optional(),
+    compose_hash: z.string(),
     kms_id: z.string().optional(),
     contract_address: z.string().optional(),
     deployer_address: z.string().optional(),

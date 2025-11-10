@@ -11,7 +11,10 @@ import {
 	type CvmsAttestationCommandInput,
 } from "./command";
 
-async function resolveAppId(appId?: string, silent = false): Promise<string | undefined> {
+async function resolveAppId(
+	appId?: string,
+	silent = false,
+): Promise<string | undefined> {
 	if (!appId) {
 		if (!silent) {
 			logger.info("No CVM specified, fetching available CVMs...");
@@ -38,7 +41,7 @@ async function runCvmsAttestationCommand(
 			? null
 			: logger.startSpinner(
 					`Fetching attestation information for CVM app_${resolvedAppId}...`,
-			  );
+				);
 
 		try {
 			const attestationData: CvmAttestationResponse =

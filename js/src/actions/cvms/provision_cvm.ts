@@ -3,46 +3,111 @@ import { type Client } from "../../client";
 import { defineAction } from "../../utils/define-action";
 
 /**
- * Provision a CVM (Confidential Virtual Machine)
+ * Provision a CVM
  *
- * This action provisions a new CVM on a specified node, returning the app_id, encryption public key, and other metadata required for secure deployment.
+ * Performs a pre-deployment eligibility check, validating whether the requested resources
+ * are available and the user has sufficient permissions to deploy. Returns provision data
+ * including `app_id`, encryption public key (`app_env_encrypt_pubkey`), and `compose_hash`
+ * required for the subsequent `commitCvmProvision` call.
+ *
+ * ## Automatic Resource Selection
+ *
+ * The new matching engine automatically selects optimal resources based on your requirements:
+ * - **Node Selection**: Specify `node_id` or `region`, or omit both for automatic best-match selection
+ * - **OS Image**: Specify exact image name or let system choose the latest stable version
+ * - **KMS**: Choose KMS type via `kms` parameter (defaults to PHALA) or specify `kms_id` directly
  *
  * @example
  * ```typescript
- * import { createClient, getAvailableNodes, provisionCvm } from '@phala/cloud'
+ * import { createClient, provisionCvm, commitCvmProvision } from '@phala/cloud'
  *
  * const client = createClient();
- * const nodes = await getAvailableNodes(client);
- * const node = nodes.nodes[0];
  *
- * const docker_compose = `
- *version: '3'
- *services:
- *  demo:
- *    image: leechael/phala-cloud-bun-starter:latest
- *    container_name: demo
- *    ports:
- *      - "3000:3000"
- *    volumes:
- *      - /var/run/tappd.sock:/var/run/tappd.sock
- *`;
- *
- * const app_compose = {
- *   name: 'my-app',
- *   node_id: node.node_id,
- *   image: node.images[0].name,
- *   vcpu: 1,
- *   memory: 1024,
- *   disk_size: 10,
+ * // Example 1: Minimal configuration with auto-selection
+ * const provision = await provisionCvm(client, {
+ *   name: 'my-app',              // Unique in workspace level
+ *   instance_type: 'tdx.small',
  *   compose_file: {
- *     docker_compose_file: docker_compose,
- *     name: '',  // Internal field, use empty string
+ *     docker_compose_file: `
+ * services:
+ *   demo:
+ *     image: leechael/phala-cloud-bun-starter:latest
+ *     ports:
+ *       - "80:3000"
+ *     volumes:
+ *       - /var/run/dstack.sock:/var/run/dstack.sock
+ * `,
  *   },
- * };
+ * });
  *
- * const result = await provisionCvm(client, app_compose);
- * console.log(result.app_id);
+ * // Example 2: With region preference
+ * const provision = await provisionCvm(client, {
+ *   name: 'my-app',
+ *   instance_type: 'tdx.medium',
+ *   region: 'us-east',            // Filter by region
+ *   compose_file: { /* ... *\/ },
+ * });
+ *
+ * // Example 3: With specific node and KMS type
+ * const provision = await provisionCvm(client, {
+ *   name: 'my-app',
+ *   node_id: 123,                 // Specific node
+ *   kms: 'PHALA',                 // KMS type (PHALA, BASE, ETHERUEM)
+ *   disk_size: 40,
+ *   image: 'dstack-0.5.5',
+ *   compose_file: { /* ... *\/ },
+ * });
+ *
+ * console.log(provision.app_id);
+ * console.log(provision.compose_hash); // Required for commitCvmProvision
  * ```
+ *
+ * ## Required Parameters
+ *
+ * - **name**: CVM instance name
+ * - **compose_file**: Docker Compose configuration with `docker_compose_file` field
+ *
+ * ## Optional Parameters
+ *
+ * ### Instance Type
+ * - **instance_type**: Instance type identifier (default: "tdx.small")
+ *   - Use `listAllInstanceTypeFamilies()` or `listFamilyInstanceTypes()` to discover available types
+ *   - Examples: "tdx.small", "tdx.medium", "tdx.large"
+ *   - Omit to use the default small instance type
+ *
+ * ### Node Selection (all optional - system auto-selects if omitted)
+ * - **node_id**: Specific node ID to deploy on
+ * - **region**: Region preference (e.g., "us-east", "eu-west")
+ * - If both omitted, system automatically selects the best available node
+ *
+ * ### OS Image Selection
+ * - **image**: OS image name (optional)
+ *   - Omit to let the system automatically select the latest stable image
+ *   - Specify a specific image name if needed (e.g., "dstack-0.5.5")
+ *
+ * ### KMS Configuration
+ * - **kms**: KMS type - "PHALA" (default), "ETHEREUM", or "BASE"
+ * - **kms_contract**: (Advanced) Specific KMS contract address
+ *   - Omit to let the system automatically select an appropriate KMS contract
+ *   - Specify only when: migrating KMS contracts, or selecting a specific contract on networks with multiple deployments
+ *
+ * ### Other Options
+ * - **disk_size**: Disk size in GB (optional)
+ *   - Each instance type has a default disk size
+ *   - Specify only if you need a different size than the default
+ * - **env_keys**: List of allowed environment variable keys
+ * - **listed**: Whether the CVM is publicly listed (default: true)
+ *
+ * ## Returns
+ *
+ * Provision data object containing:
+ * - **app_id**: Application identifier (required for commit step)
+ * - **app_env_encrypt_pubkey**: Public key for encrypting environment variables
+ * - **compose_hash**: Hash identifying this provision (required for commit step)
+ * - **device_id**: Device identifier for attestation
+ * - **fmspc**: Firmware Security Patch Configuration value
+ * - **os_image_hash**: Hash of the selected OS image
+ * - **instance_type**: The matched instance type identifier
  *
  * ## Safe Version
  *
@@ -52,6 +117,7 @@ import { defineAction } from "../../utils/define-action";
  * const result = await safeProvisionCvm(client, app_compose);
  * if (result.success) {
  *   console.log(result.data.app_id);
+ *   console.log(result.data.compose_hash);
  * } else {
  *   console.error('Failed to provision CVM:', result.error.message);
  * }
@@ -67,6 +133,7 @@ export const ProvisionCvmSchema = z
     fmspc: z.string().nullable().optional(),
     device_id: z.string().nullable().optional(),
     os_image_hash: z.string().nullable().optional(),
+    instance_type: z.string().nullable().optional(),
     teepod_id: z.number().nullable().optional(), // Will be transformed to node_id
     node_id: z.number().nullable().optional(),
     kms_id: z.string().nullable().optional(),
@@ -86,18 +153,20 @@ export type ProvisionCvm = z.infer<typeof ProvisionCvmSchema>;
 // Request schema (for reference, not used directly in function signature)
 export const ProvisionCvmRequestSchema = z
   .object({
-    node_id: z.number().optional(), // recommended
+    node_id: z.number().optional(), // recommended - optional, system auto-selects if not specified
     teepod_id: z.number().optional(), // deprecated, for compatibility
+    region: z.string().optional(), // optional - region filter for auto-selection
     name: z.string(),
-    image: z.string(),
-    vcpu: z.number(),
-    memory: z.number(),
-    disk_size: z.number(),
+    instance_type: z.string().default("tdx.small"), // defaults to "tdx.small"
+    image: z.string().optional(),
+    vcpu: z.number().optional(),
+    memory: z.number().optional(),
+    disk_size: z.number().optional(),
     compose_file: z.object({
       allowed_envs: z.array(z.string()).optional(),
       pre_launch_script: z.string().optional(),
       docker_compose_file: z.string().optional(),
-      name: z.string().optional(),
+      name: z.string().optional().default(""), // optional with default empty string
       kms_enabled: z.boolean().optional(),
       public_logs: z.boolean().optional(),
       public_sysinfo: z.boolean().optional(),
@@ -105,13 +174,14 @@ export const ProvisionCvmRequestSchema = z
       tproxy_enabled: z.boolean().optional(), // deprecated, for compatibility
     }),
     listed: z.boolean().optional(),
-    instance_type: z.string().nullable().optional(),
     kms_id: z.string().optional(),
+    kms: z.enum(["PHALA", "ETHEREUM", "BASE"]).optional(), // KMS type selection (defaults to PHALA)
+    kms_contract: z.string().optional(), // KMS contract address for on-chain KMS
     env_keys: z.array(z.string()).optional(),
   })
   .passthrough();
 
-export type ProvisionCvmRequest = z.infer<typeof ProvisionCvmRequestSchema> & {
+export type ProvisionCvmRequest = z.input<typeof ProvisionCvmRequestSchema> & {
   node_id?: number; // recommended
   teepod_id?: number; // deprecated
   compose_file?: {
@@ -162,7 +232,8 @@ const { action: provisionCvm, safeAction: safeProvisionCvm } = defineAction<
   ProvisionCvmRequest,
   typeof ProvisionCvmSchema
 >(ProvisionCvmSchema, async (client, appCompose) => {
-  const body = handleGatewayCompatibility(appCompose);
+  const validated = ProvisionCvmRequestSchema.parse(appCompose);
+  const body = handleGatewayCompatibility(validated);
   let requestBody = { ...body };
   if (typeof body.node_id === "number") {
     requestBody = { ...body, teepod_id: body.node_id };

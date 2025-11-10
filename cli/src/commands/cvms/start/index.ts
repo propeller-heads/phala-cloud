@@ -23,10 +23,9 @@ async function runCvmsStartCommand(
 			`Starting CVM with App ID app_${resolvedAppId}`,
 		);
 
-		const response = await retryOnConflict(
-			() => startCvm(resolvedAppId),
-			{ spinner }
-		);
+		const response = await retryOnConflict(() => startCvm(resolvedAppId), {
+			spinner,
+		});
 
 		spinner.stop(true);
 		logger.break();
