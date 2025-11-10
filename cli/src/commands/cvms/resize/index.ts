@@ -104,7 +104,10 @@ async function runCvmsResizeCommand(
 			}
 
 			if (diskSize === undefined) {
-				diskSize = await promptForNumber("Enter disk size in GB:", cvm.disk_size);
+				diskSize = await promptForNumber(
+					"Enter disk size in GB:",
+					cvm.disk_size,
+				);
 			}
 
 			if (allowRestart === undefined) {
@@ -165,14 +168,15 @@ async function runCvmsResizeCommand(
 				`Resizing CVM with App ID app_${resolvedAppId}`,
 			);
 			await retryOnConflict(
-				() => resizeCvm(
-					resolvedAppId,
-					vcpu,
-					memory,
-					diskSize,
-					allowRestart ? 1 : 0,
-				),
-				{ spinner }
+				() =>
+					resizeCvm(
+						resolvedAppId,
+						vcpu,
+						memory,
+						diskSize,
+						allowRestart ? 1 : 0,
+					),
+				{ spinner },
 			);
 			spinner.stop(true);
 
@@ -182,14 +186,8 @@ async function runCvmsResizeCommand(
 ${CLOUD_URL}/dashboard/cvms/app_${resolvedAppId}`,
 			);
 		} else {
-			await retryOnConflict(
-				() => resizeCvm(
-					resolvedAppId,
-					vcpu,
-					memory,
-					diskSize,
-					allowRestart ? 1 : 0,
-				)
+			await retryOnConflict(() =>
+				resizeCvm(resolvedAppId, vcpu, memory, diskSize, allowRestart ? 1 : 0),
 			);
 			console.log(
 				JSON.stringify({

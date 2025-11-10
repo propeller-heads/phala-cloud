@@ -32,7 +32,10 @@ import inquirer from "inquirer";
  * @param silent If true, don't log success/error messages (useful for JSON output mode)
  * @returns CVM appId string (without app_ prefix) or throws if not found
  */
-export async function checkCvmExists(appId: string, silent = false): Promise<string> {
+export async function checkCvmExists(
+	appId: string,
+	silent = false,
+): Promise<string> {
 	const client = await getClient();
 	const result = await safeGetCvmList(client);
 

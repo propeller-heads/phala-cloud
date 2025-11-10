@@ -446,6 +446,92 @@ Get detailed information about a specific CVM.
 phala cvms get app_123456
 ```
 
+#### Deploy (Simplified)
+
+```bash
+phala deploy [options]
+```
+
+Create a new CVM with automatic resource matching. This is the recommended command for most users as it simplifies deployment by automatically selecting optimal resources based on availability.
+
+**Key Features:**
+- **Auto Resource Matching**: Backend automatically finds the best available node based on your requirements
+- **All Parameters Optional**: Specify only what you need; the system handles the rest
+- **Structured Error Messages**: Clear error codes (ERR-xxxx) with actionable suggestions
+- **On-chain KMS Support**: Built-in support for decentralized key management
+
+**Options:**
+- `-n, --name <name>`: Name of the CVM (auto-generated from folder name if not provided)
+- `-c, --compose <compose>`: Path to Docker Compose file (default: docker-compose.yml)
+- `-t, --instance-type <type>`: Instance type (e.g., tdx.small, tdx.medium, tdx.large) - **optional**, auto-selected if not specified
+- `-r, --region <region>`: Preferred region (e.g., us-west, eu-central) - **optional**, auto-selected if not specified
+- `--vcpu <vcpu>`: Number of vCPUs - **optional**, auto-matched if not specified
+- `--memory <memory>`: Memory with unit (e.g., 2G, 1024MB) - **optional**, auto-matched if not specified
+- `--disk-size <diskSize>`: Disk size with unit (e.g., 50G, 100GB) - **optional**, auto-matched if not specified
+- `--image <image>`: OS image version - **optional**, auto-selected if not specified
+- `--node-id <nodeId>`: Specific node ID - **optional**, auto-selected if not specified
+- `-e, --env-file <envFile>`: Path to environment variables file
+- `-i, --interactive`: Enable interactive mode for required parameters
+- `--kms-id <kmsId>`: KMS ID for on-chain key management
+- `--private-key <key>`: Private key for on-chain KMS deployment
+- `--rpc-url <url>`: RPC URL for blockchain interaction
+- `--uuid <uuid>`: UUID of existing CVM to upgrade
+- `--wait`: Wait for deployment/update to complete before returning
+- `-j, --json`: Output in JSON format
+- `-d, --debug`: Enable debug logging
+
+**Examples:**
+
+```bash
+# Simplest - auto-select everything
+phala deploy
+
+# Specify instance type and region
+phala deploy --instance-type tdx.medium --region us-west
+
+# Manual resource specification
+phala deploy --vcpu 4 --memory 8G --disk-size 100G
+
+# With on-chain KMS
+phala deploy --kms-id ethereum --private-key <key> --rpc-url <url>
+
+# Deploy to specific node (advanced)
+phala deploy --node-id 6
+
+# Interactive mode for guided setup
+phala deploy --interactive
+```
+
+**Error Handling:**
+
+The deploy command provides structured error messages with unique error codes for easy troubleshooting:
+
+```
+Error [ERR-1003]: The selected node does not have enough CPU capacity
+
+Details:
+  - Need 4 CPUs, but only 2 are available
+  - node_id: 6
+
+Suggestions:
+  - Choose a smaller instance type
+  - Reduce the number of CPUs requested
+  - Remove the --node-id flag to search all available nodes
+
+Need help? Contact support: https://cloud.phala.network/contact
+Reference error code: ERR-1003
+```
+
+Common error codes:
+- `ERR-1001`: Instance type not found
+- `ERR-1002`: No available resources match requirements
+- `ERR-1003`: Insufficient CPU capacity
+- `ERR-1004`: Insufficient memory
+- `ERR-2003`: OS image not available
+- `ERR-2005`: Node not accessible
+
+For a complete list of error codes, refer to the error code documentation.
+
 #### Create CVM
 
 ```bash

@@ -9,13 +9,15 @@ export const ApiErrorSchema = z.object({
     .union([
       z.string(),
       z.array(
-        z.object({
-          msg: z.string(),
-          type: z.string().optional(),
-          ctx: z.record(z.unknown()).optional(),
-          loc: z.array(z.union([z.string(), z.number()])).optional(),
-          input: z.unknown().optional(),
-        }).passthrough(), // Allow additional fields
+        z
+          .object({
+            msg: z.string(),
+            type: z.string().optional(),
+            ctx: z.record(z.unknown()).optional(),
+            loc: z.array(z.union([z.string(), z.number()])).optional(),
+            input: z.unknown().optional(),
+          })
+          .passthrough(), // Allow additional fields
       ),
       z.record(z.unknown()),
     ])
@@ -297,23 +299,25 @@ function parseValidationErrors(detail: unknown): {
     };
   }
 
-  const errors: ValidationErrorItem[] = detail.map((item: FastApiValidationErrorItem, index: number) => {
-    const field = extractFieldPath(item.loc);
+  const errors: ValidationErrorItem[] = detail.map(
+    (item: FastApiValidationErrorItem, index: number) => {
+      const field = extractFieldPath(item.loc);
 
-    // If field is "unknown" and we have type info, use that
-    let displayField = field;
-    if (field === "unknown" && item.type) {
-      // Convert type like "missing" to something more descriptive
-      displayField = item.type === "missing" ? "required field" : item.type;
-    }
+      // If field is "unknown" and we have type info, use that
+      let displayField = field;
+      if (field === "unknown" && item.type) {
+        // Convert type like "missing" to something more descriptive
+        displayField = item.type === "missing" ? "required field" : item.type;
+      }
 
-    return {
-      field: displayField,
-      message: item.msg,
-      type: item.type,
-      context: item.ctx,
-    };
-  });
+      return {
+        field: displayField,
+        message: item.msg,
+        type: item.type,
+        context: item.ctx,
+      };
+    },
+  );
 
   // Generate summary message
   const count = errors.length;
@@ -688,7 +692,12 @@ function parseStructuredError(detail: unknown): StructuredErrorResponse | null {
   const obj = detail as Record<string, unknown>;
 
   // Check if it's the new structured error format
-  if (obj.error_code && typeof obj.error_code === "string" && obj.message && typeof obj.message === "string") {
+  if (
+    obj.error_code &&
+    typeof obj.error_code === "string" &&
+    obj.message &&
+    typeof obj.message === "string"
+  ) {
     return {
       error_code: obj.error_code,
       message: obj.message,

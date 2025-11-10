@@ -53,9 +53,10 @@ export async function retryOnConflict<T>(
 			lastError = error;
 
 			// Check if it's a 409 Conflict error
-			const is409 = error.message?.includes("409") ||
-			              error.status === 409 ||
-			              error.message?.includes("Conflict");
+			const is409 =
+				error.message?.includes("409") ||
+				error.status === 409 ||
+				error.message?.includes("Conflict");
 
 			if (is409 && attempt < maxRetries) {
 				// CVM is busy, retry after delay
@@ -65,11 +66,11 @@ export async function retryOnConflict<T>(
 
 				if (logRetries) {
 					logger.warn(
-						`CVM is busy, retrying in ${retryDelayMs}ms... (attempt ${attempt + 1}/${maxRetries})`
+						`CVM is busy, retrying in ${retryDelayMs}ms... (attempt ${attempt + 1}/${maxRetries})`,
 					);
 				}
 
-				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+				await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
 
 				// Note: Don't restart spinner - logger.startSpinner() wrapper doesn't support .start()
 				// The next operation attempt will use its own spinner if needed
@@ -82,6 +83,6 @@ export async function retryOnConflict<T>(
 
 	// All retries exhausted
 	throw new Error(
-		`Failed after ${maxRetries} retries due to conflicts: ${lastError?.message || lastError}`
+		`Failed after ${maxRetries} retries due to conflicts: ${lastError?.message || lastError}`,
 	);
 }

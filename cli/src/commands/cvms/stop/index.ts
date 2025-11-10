@@ -23,10 +23,9 @@ async function runCvmsStopCommand(
 			`Stopping CVM with App ID app_${resolvedAppId}`,
 		);
 
-		const response = await retryOnConflict(
-			() => stopCvm(resolvedAppId),
-			{ spinner }
-		);
+		const response = await retryOnConflict(() => stopCvm(resolvedAppId), {
+			spinner,
+		});
 
 		spinner.stop(true);
 		logger.break();

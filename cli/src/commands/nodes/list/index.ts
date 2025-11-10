@@ -27,7 +27,9 @@ async function runNodesListCommand(
 
 		// JSON output mode
 		if (input.json) {
-			console.log(JSON.stringify({ nodes: teepods, kms_list: kmsList }, null, 2));
+			console.log(
+				JSON.stringify({ nodes: teepods, kms_list: kmsList }, null, 2),
+			);
 			return 0;
 		}
 

@@ -17,9 +17,12 @@ import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
 	type Client,
 	type EnvVar,
+	type ErrorLink,
 	type ProvisionCvmComposeFileUpdateRequest,
+	ResourceError,
 	createClient,
 	encryptEnvVars,
+	formatStructuredError,
 	parseEnvVars,
 	safeAddComposeHash,
 	safeCommitCvmComposeFileUpdate,
@@ -43,10 +46,12 @@ import type { DeployCommandInput } from "./command";
 interface Options {
 	name?: string;
 	compose?: string;
+	instanceType?: string;
 	vcpu?: string;
 	memory?: string;
 	diskSize?: string;
 	image?: string;
+	region?: string;
 	nodeId?: string;
 	envFile?: string | boolean;
 	interactive?: boolean;
@@ -61,6 +66,84 @@ interface Options {
 	apiKey?: string;
 	wait?: boolean;
 	[key: string]: unknown;
+}
+
+/**
+ * Handle provision error with structured error response
+ */
+function handleProvisionError(
+	error: unknown,
+	options: Options,
+): string | object {
+	// Check if it's a ResourceError with structured details
+	if (error instanceof ResourceError) {
+		if (options.json) {
+			return {
+				success: false,
+				error_code: error.errorCode,
+				message: error.message,
+				details: error.structuredDetails,
+				suggestions: error.suggestions,
+				links: error.links,
+			};
+		}
+		return formatStructuredError(error);
+	}
+
+	// Parse structured error from plain object (backward compatibility)
+	if (error && typeof error === "object" && "response" in error) {
+		const errorData = (error as Record<string, unknown>).response?.data?.detail;
+		if (errorData && typeof errorData === "object" && errorData.error_code) {
+			const { error_code, message, details, suggestions, links } = errorData;
+
+			if (options.json) {
+				return {
+					success: false,
+					error_code,
+					message,
+					details,
+					suggestions,
+					links,
+				};
+			}
+
+			let output = `\nError [${error_code}]: ${message}\n`;
+
+			if (details && details.length > 0) {
+				output += "\nDetails:\n";
+				for (const d of details) {
+					if (d.message) {
+						output += `  - ${d.message}\n`;
+					} else if (d.field && d.value !== undefined) {
+						output += `  - ${d.field}: ${d.value}\n`;
+					}
+				}
+			}
+
+			if (suggestions && suggestions.length > 0) {
+				output += "\nSuggestions:\n";
+				for (const s of suggestions) {
+					output += `  - ${s}\n`;
+				}
+			}
+
+			if (links && links.length > 0) {
+				output += "\nLearn more:\n";
+				for (const link of links) {
+					output += `  - ${link.label}: ${link.url}\n`;
+				}
+			}
+
+			return output;
+		}
+	}
+
+	// Fallback to generic error
+	const message =
+		error instanceof Error ? error.message : String(error || "Unknown error");
+	return options.json
+		? { success: false, error: message }
+		: `\nError: ${message}\n`;
 }
 
 async function getApiClient({
@@ -287,148 +370,59 @@ const validateCpuMemoryDiskSize = async (options: Options) => {
 	};
 };
 
-const validateNodeandKmsandImage = async (options: Options, client: Client) => {
-	const nodes_result = await safeGetAvailableNodes(client);
-	if (!nodes_result.success) {
-		logDetailedError(nodes_result.error, "Get Available Nodes");
-		throw new Error(`Failed to get available nodes: ${nodes_result.error.message}`);
-	}
-	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-	const nodes = nodes_result.data as any;
-	let target = null;
-	let kms = null;
-	let privateKey = options.privateKey;
-	// If specified node, find it
-	if (options.nodeId) {
-		target = nodes.nodes.find(
-			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-			(node: any) => node.teepod_id === Number(options.nodeId),
-		);
-		if (!target) {
-			throw new Error(
-				// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-				`Node ${options.nodeId} not found, available nodes: ${nodes.nodes.map((t: any) => t.teepod_id).join(", ")}`,
-			);
-		}
-	} else {
-		// If interactive, let user select a node
-		if (options.interactive) {
-			const { node } = await inquirer.prompt([
-				{
-					type: "list",
-					name: "node",
-					message: "Select a Node to use:",
-					// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-					choices: nodes.nodes.map((t: any) => ({
-						name: `${t.name} (Region: ${t.region_identifier})`,
-						value: t,
-					})),
-				},
-			]);
-			target = node;
-		} else {
-			// If no specified node, use the first one.
-			target = nodes.nodes[0];
-		}
-	}
-	if (!target) {
-		throw new Error(
-			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-			`No available nodes found, available nodes: ${nodes.nodes.map((t: any) => t.teepod_id).join(", ")}`,
-		);
-	}
-	// If the target node supports on-chain kms, check if kms is specified
-	if (target.support_onchain_kms) {
-		const kms_result = await safeGetKmsList(client);
-		if (!kms_result.success) {
-			logDetailedError(kms_result.error, "Get KMS List");
-			throw new Error(`Failed to get KMS list: ${kms_result.error.message}`);
-		}
-		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-		const kms_list = kms_result.data as any;
-		if (!options.kmsId) {
-			if (options.interactive) {
-				const { kmsChoice } = await inquirer.prompt([
-					{
-						type: "list",
-						name: "kmsChoice",
-						message: "Select a KMS to use:",
-						// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-						choices: kms_list.items.map((t: any) => ({
-							name: t.chain_id
-								? `${t.slug} (Chain ID: ${t.chain_id})`
-								: `${t.slug} (No chain required)`,
-							value: t,
-						})),
-					},
-				]);
-				kms = kmsChoice;
-			} else {
-				throw new Error(
-					// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-					`Node ${target.name} requires a KMS ID for Contract Owned CVM, available kms: ${kms_list.items.map((t: any) => t.slug).join(", ")}`,
-				);
-			}
-		} else {
-			// Find the specified kms
-			kms = kms_list.items.find(
-				// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-				(kms: any) => kms.slug === options.kmsId || kms.id === options.kmsId,
-			);
-		}
-		if (!kms) {
-			throw new Error(
-				// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-				`KMS ${options.kmsId} not found, available kms: ${kms_list.items.map((t: any) => t.slug).join(", ")}`,
-			);
-		}
-		privateKey = await validatePrivateKey(
-			{ ...options, kmsId: kms.id },
-			kms.chain_id,
-		);
-	}
-
-	// Default image is the first one
-	let image = target.images[0];
-	if (options.image) {
-		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-		image = target.images.find((image: any) => image.name === options.image);
-		if (!image) {
-			throw new Error(
-				// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-				`Image ${options.image} not found in the node ${target.name}, available images: ${target.images.map((t: any) => t.name).join(", ")}.`,
-			);
-		}
-	} else {
-		if (options.interactive) {
-			const { imageChoice } = await inquirer.prompt([
-				{
-					type: "list",
-					name: "imageChoice",
-					message: "Select an image to use:",
-					// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-					choices: target.images.map((t: any) => ({
-						name: `${t.name}`,
-						value: t,
-					})),
-				},
-			]);
-			image = imageChoice;
-		}
-	}
-	if (!image) {
-		throw new Error(
-			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-			`No available OS images found in the node ${target.name}, available images: ${target.images.map((t: any) => t.name).join(", ")}.`,
-		);
-	}
-
-	return {
-		target,
-		kms,
-		image,
-		privateKey,
+/**
+ * Build provision payload from options
+ * All parameters are optional - backend will auto-match resources
+ */
+const buildProvisionPayload = (
+	options: Options,
+	name: string,
+	dockerComposeYml: string,
+	envs: EnvVar[],
+) => {
+	const payload: Record<string, unknown> = {
+		name: name,
+		compose_file: {
+			name: "", // Required by backend schema, defaults to empty string
+			docker_compose_file: dockerComposeYml,
+			allowed_envs: envs?.map((e) => e.key) || [],
+		},
 	};
+
+	// Only add user-specified parameters - let backend auto-match the rest
+	if (options.instanceType) {
+		payload.instance_type = options.instanceType;
+	}
+
+	if (options.vcpu) {
+		payload.vcpu = Number(options.vcpu);
+	}
+
+	if (options.memory) {
+		payload.memory = parseMemoryInput(options.memory);
+	}
+
+	if (options.diskSize) {
+		payload.disk_size = parseDiskSizeInput(options.diskSize);
+	}
+
+	if (options.nodeId) {
+		payload.teepod_id = Number(options.nodeId);
+	}
+
+	if (options.region) {
+		payload.region = options.region;
+	}
+
+	if (options.image) {
+		payload.image = options.image;
+	}
+
+	if (options.kmsId) {
+		payload.kms_id = options.kmsId;
+	}
+
+	return payload;
 };
 
 const deployNewCvm = async (
@@ -437,105 +431,126 @@ const deployNewCvm = async (
 	envs: EnvVar[],
 	client: Client,
 	stdout: NodeJS.WriteStream,
+	stderr: NodeJS.WriteStream,
 ) => {
 	const name = await validateName(validatedOptions);
-	const { vcpu, memoryMB, diskSizeGB } =
-		await validateCpuMemoryDiskSize(validatedOptions);
-	const { target, kms, image, privateKey } = await validateNodeandKmsandImage(
+	const payload = buildProvisionPayload(
 		validatedOptions,
-		client,
+		name,
+		docker_compose_yml,
+		envs || [],
 	);
 
-	const app_compose = {
-		name: name,
-		compose_file: {
-			docker_compose_file: docker_compose_yml,
-			allowed_envs: envs.map((env) => env.key),
-		},
-		vcpu: vcpu,
-		memory: memoryMB,
-		disk_size: diskSizeGB,
-		node_id: target.teepod_id,
-		image: image.name,
-		kms_id: kms?.slug,
-	};
+	stdout.write(`Provisioning CVM ${name}...\n`);
 
-	stdout.write(`Deploying CVM ${name}...\n`);
-
-	// Deploy the app with Centralized KMS
-	const provision_result = await safeProvisionCvm(client, app_compose);
+	// Provision - backend will auto-match resources
+	const provision_result = await safeProvisionCvm(client, payload);
 	if (!provision_result.success) {
-		logDetailedError(provision_result.error, "Provision CVM");
-		throw new Error(`Failed to provision CVM: ${provision_result.error.message}`);
+		const formattedError = handleProvisionError(
+			provision_result.error,
+			validatedOptions,
+		);
+		if (validatedOptions.json) {
+			stdout.write(`${JSON.stringify(formattedError, null, 2)}\n`);
+		} else {
+			stderr.write(String(formattedError));
+		}
+		throw provision_result.error;
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const app = provision_result.data as any;
 	let commit_result;
 
-	// For centralized KMS, we can get the AppID & AppEnvEncryptPubkey from provision response.
-	if ((app.app_env_encrypt_pubkey && app.app_id) || !kms?.chain_id) {
-		const encrypted_env_vars = await encryptEnvVars(
-			envs,
-			app.app_env_encrypt_pubkey,
-		);
-		commit_result = await safeCommitCvmProvision(client, {
-			app_id: app.app_id,
-			encrypted_env: encrypted_env_vars,
-			compose_hash: app.compose_hash,
-			kms_id: kms?.slug,
-		});
-	} else {
-		// For decentralized KMS, we need to deploy the app with on-chain KMS.
-		const kms_slug = kms.slug;
-		const kms_contract_address = kms.kms_contract_address;
-		const chain = kms.chain;
-		const compose_hash = app.compose_hash;
-		const device_id = target.device_id;
-		const rpc_url = validatedOptions.rpcUrl;
+	// Check if we need on-chain KMS deployment
+	const needsOnchainKms = validatedOptions.kmsId && !app.app_id;
 
+	if (needsOnchainKms) {
+		// For on-chain KMS, we need to get KMS info and deploy contract
+		const kms_result = await safeGetKmsList(client);
+		if (!kms_result.success) {
+			throw new Error(`Failed to get KMS list: ${kms_result.error.message}`);
+		}
+
+		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+		const kms_list = kms_result.data as any;
+		const kms = kms_list.items.find(
+			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+			(k: any) =>
+				k.slug === validatedOptions.kmsId || k.id === validatedOptions.kmsId,
+		);
+
+		if (!kms || !kms.chain_id) {
+			throw new Error(`KMS ${validatedOptions.kmsId} not found or invalid`);
+		}
+
+		// Validate private key for on-chain KMS
+		const privateKey = await validatePrivateKey(validatedOptions, kms.chain_id);
+
+		// Deploy contract
 		const deploy_result = await safeDeployAppAuth({
-			chain: chain,
-			rpcUrl: rpc_url,
-			kmsContractAddress: kms_contract_address,
+			chain: kms.chain,
+			rpcUrl: validatedOptions.rpcUrl,
+			kmsContractAddress: kms.kms_contract_address,
 			privateKey: privateKey as `0x${string}`,
-			deviceId: device_id,
-			composeHash: compose_hash,
+			deviceId: app.device_id,
+			composeHash: app.compose_hash,
 		});
+
 		if (!deploy_result.success) {
 			logDetailedError(deploy_result, "Deploy App Auth");
-			const errorMsg = typeof deploy_result === 'object' && deploy_result !== null ? JSON.stringify(deploy_result) : String(deploy_result);
-			throw new Error(`Deployment contract failed: ${errorMsg}`);
+			throw new Error("Contract deployment failed");
 		}
+
 		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 		const deployed_contract = deploy_result.data as any;
-		const app_id = deployed_contract.appId;
+
+		// Get encryption key
 		const resp = await safeGetAppEnvEncryptPubKey(client, {
-			app_id: app_id,
-			kms: kms_slug,
+			app_id: deployed_contract.appId,
+			kms: kms.slug,
 		});
+
 		if (!resp.success) {
-			logDetailedError(resp.error, "Get App Env Encrypt PubKey");
-			throw new Error(`Failed to get app env encrypt pubkey: ${resp.error.message}`);
+			throw new Error(
+				`Failed to get app env encrypt pubkey: ${resp.error.message}`,
+			);
 		}
+
 		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 		const pubkey_signature = resp.data as any;
 		const encrypted_env_vars = await encryptEnvVars(
 			envs,
 			pubkey_signature.public_key,
 		);
+
 		commit_result = await safeCommitCvmProvision(client, {
-			app_id: app_id,
+			app_id: deployed_contract.appId,
 			encrypted_env: encrypted_env_vars,
 			compose_hash: app.compose_hash,
-			kms_id: kms_slug,
+			kms_id: kms.slug,
 			contract_address: deployed_contract.appAuthAddress,
 			deployer_address: deployed_contract.deployer,
+		});
+	} else {
+		// Centralized KMS or provision already has app_id
+		const encrypted_env_vars =
+			envs && envs.length > 0
+				? await encryptEnvVars(envs, app.app_env_encrypt_pubkey)
+				: undefined;
+
+		commit_result = await safeCommitCvmProvision(client, {
+			app_id: app.app_id,
+			encrypted_env: encrypted_env_vars,
+			compose_hash: app.compose_hash,
+			kms_id: validatedOptions.kmsId,
 		});
 	}
 
 	if (!commit_result.success) {
 		logDetailedError(commit_result.error, "Commit CVM Provision");
-		throw new Error(`Failed to commit CVM provision: ${commit_result.error.message}`);
+		throw new Error(
+			`Failed to commit CVM provision: ${commit_result.error.message}`,
+		);
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const cvm = commit_result.data as any;
@@ -588,7 +603,9 @@ const updateCvm = async (
 	}
 	if (!app_compose_result.success) {
 		logDetailedError(app_compose_result.error, "Get CVM Compose File");
-		throw new Error(`Failed to get cvm compose file: ${app_compose_result.error.message}`);
+		throw new Error(
+			`Failed to get cvm compose file: ${app_compose_result.error.message}`,
+		);
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const cvm = cvm_result.data as any;
@@ -608,8 +625,13 @@ const updateCvm = async (
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
 	});
 	if (!provision_result.success) {
-		logDetailedError(provision_result.error, "Provision CVM Compose File Update");
-		throw new Error(`Failed to provision cvm compose file: ${provision_result.error.message}`);
+		logDetailedError(
+			provision_result.error,
+			"Provision CVM Compose File Update",
+		);
+		throw new Error(
+			`Failed to provision cvm compose file: ${provision_result.error.message}`,
+		);
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const provision = provision_result.data as any;
@@ -630,7 +652,10 @@ const updateCvm = async (
 		});
 		if (!receipt_result.success) {
 			logDetailedError(receipt_result, "Add Compose Hash");
-			const errorMsg = typeof receipt_result === 'object' && receipt_result !== null ? JSON.stringify(receipt_result) : String(receipt_result);
+			const errorMsg =
+				typeof receipt_result === "object" && receipt_result !== null
+					? JSON.stringify(receipt_result)
+					: String(receipt_result);
 			throw new Error(`Failed to add compose hash: ${errorMsg}`);
 		}
 	} else {
@@ -659,7 +684,9 @@ const updateCvm = async (
 
 	if (!commitResult.success) {
 		logDetailedError(commitResult.error, "Commit CVM Compose File Update");
-		throw new Error(`Failed to commit CVM compose file update: ${commitResult.error.message}`);
+		throw new Error(
+			`Failed to commit CVM compose file update: ${commitResult.error.message}`,
+		);
 	}
 	// Wait for update to complete if --wait flag is set
 	if (validatedOptions.wait) {
@@ -674,7 +701,9 @@ const updateCvm = async (
 			);
 		} catch (error: unknown) {
 			logDetailedError(error, "Wait for CVM Ready");
-			throw new Error(`Wait failed: ${error instanceof Error ? error.message : String(error)}`);
+			throw new Error(
+				`Wait failed: ${error instanceof Error ? error.message : String(error)}`,
+			);
 		}
 	}
 
@@ -746,6 +775,7 @@ export async function runDeploy(
 				envs ?? [],
 				client,
 				context.stdout,
+				context.stderr,
 			);
 		}
 	} catch (error) {

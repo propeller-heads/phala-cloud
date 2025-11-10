@@ -42,32 +42,49 @@ export const deployCommandMeta: CommandMeta = {
 			target: "compose",
 		},
 		{
+			name: "instance-type",
+			shorthand: "t",
+			description:
+				"Instance type (e.g., tdx.small, tdx.medium, tdx.large). Optional - auto-selected if not specified.",
+			type: "string",
+			target: "instanceType",
+		},
+		{
 			name: "vcpu",
-			description: `Number of vCPUs, default is ${DEFAULT_VCPU}`,
+			description: `Number of vCPUs (optional, auto-matched if not specified), default is ${DEFAULT_VCPU}`,
 			type: "string",
 			target: "vcpu",
 		},
 		{
 			name: "memory",
-			description: `Memory with optional unit (e.g., 2G, 1024MB), default is ${DEFAULT_MEMORY}MB`,
+			description: `Memory with optional unit (optional, auto-matched if not specified), e.g., 2G, 1024MB, default is ${DEFAULT_MEMORY}MB`,
 			type: "string",
 			target: "memory",
 		},
 		{
 			name: "disk-size",
-			description: `Disk size with optional unit (e.g., 50G, 100GB), default is ${DEFAULT_DISK_SIZE}GB`,
+			description: `Disk size with optional unit (optional, auto-matched if not specified), e.g., 50G, 100GB, default is ${DEFAULT_DISK_SIZE}GB`,
 			type: "string",
 			target: "diskSize",
 		},
 		{
 			name: "image",
-			description: "Version of dstack image to use",
+			description:
+				"OS image version (optional, auto-selected if not specified)",
 			type: "string",
 			target: "image",
 		},
 		{
+			name: "region",
+			shorthand: "r",
+			description:
+				"Preferred region (e.g., us-west, eu-central). Optional - auto-selected if not specified.",
+			type: "string",
+			target: "region",
+		},
+		{
 			name: "node-id",
-			description: "Node ID to use",
+			description: "Node ID (optional, auto-selected if not specified)",
 			type: "string",
 			target: "nodeId",
 		},
@@ -132,21 +149,33 @@ export const deployCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "Deploy with docker-compose.yml in current directory",
+			name: "Deploy with auto-selection (simplest)",
 			value: "phala deploy",
 		},
 		{
-			name: "Deploy with specific compose file",
-			value: "phala deploy -c docker-compose.yml",
+			name: "Deploy with specific instance type",
+			value: "phala deploy --instance-type tdx.medium",
 		},
 		{
-			name: "Deploy with interactive mode",
-			value: "phala deploy --interactive",
+			name: "Deploy to specific region",
+			value: "phala deploy --region us-west",
 		},
 		{
-			name: "Deploy to specific node with KMS",
+			name: "Deploy with instance type and region",
+			value: "phala deploy --instance-type tdx.small --region eu-central",
+		},
+		{
+			name: "Deploy with manual resource specs",
+			value: "phala deploy --vcpu 4 --memory 8G --disk-size 100G",
+		},
+		{
+			name: "Deploy with on-chain KMS",
 			value:
-				"phala deploy -c docker-compose.yml --node-id 6 --kms-id t16z-dev --private-key <key> --rpc-url <url>",
+				"phala deploy --kms-id ethereum --private-key <key> --rpc-url <url>",
+		},
+		{
+			name: "Deploy to specific node (advanced)",
+			value: "phala deploy --node-id 6",
 		},
 	],
 };
@@ -157,10 +186,12 @@ export const deployCommandSchema = z.object({
 	debug: z.boolean().default(false),
 	apiKey: z.string().optional(),
 	name: z.string().optional(),
+	instanceType: z.string().optional(),
 	vcpu: z.string().optional(),
 	memory: z.string().optional(),
 	diskSize: z.string().optional(),
 	image: z.string().optional(),
+	region: z.string().optional(),
 	nodeId: z.string().optional(),
 	envFile: z.string().optional(),
 	interactive: z.boolean().default(false),

@@ -174,16 +174,13 @@ export const CommitCvmProvisionRequestSchema = z
   })
   .passthrough();
 
-export type CommitCvmProvisionRequest = z.infer<
-  typeof CommitCvmProvisionRequestSchema
->;
+export type CommitCvmProvisionRequest = z.infer<typeof CommitCvmProvisionRequestSchema>;
 
-const { action: commitCvmProvision, safeAction: safeCommitCvmProvision } =
-  defineAction<CommitCvmProvisionRequest, typeof CommitCvmProvisionSchema>(
-    CommitCvmProvisionSchema,
-    async (client, payload) => {
-      return await client.post("/cvms", payload);
-    },
-  );
+const { action: commitCvmProvision, safeAction: safeCommitCvmProvision } = defineAction<
+  CommitCvmProvisionRequest,
+  typeof CommitCvmProvisionSchema
+>(CommitCvmProvisionSchema, async (client, payload) => {
+  return await client.post("/cvms", payload);
+});
 
 export { commitCvmProvision, safeCommitCvmProvision };
