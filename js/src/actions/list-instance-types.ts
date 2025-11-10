@@ -2,14 +2,6 @@ import { z } from "zod";
 import { type Client } from "../client";
 import { defineAction } from "../utils/define-action";
 
-// Request Schema
-export const ListInstanceTypesRequestSchema = z
-  .object({
-    page: z.number().int().min(1).optional().default(1),
-    page_size: z.number().int().min(1).max(1000).optional().default(100),
-  })
-  .strict();
-
 // Response Schemas
 export const InstanceTypeSchema = z
   .object({
@@ -20,59 +12,103 @@ export const InstanceTypeSchema = z
     memory_mb: z.number(),
     hourly_rate: z.string(),
     requires_gpu: z.boolean(),
-    public: z.boolean(),
-    enabled: z.boolean(),
+    default_disk_size_gb: z.number().default(20),
+    family: z.string().nullable(),
   })
   .passthrough();
 
-export const PaginatedInstanceTypesSchema = z
+export const FamilyGroupSchema = z
+  .object({
+    name: z.string(),
+    items: z.array(InstanceTypeSchema),
+    total: z.number(),
+  })
+  .strict();
+
+export const AllFamiliesResponseSchema = z
+  .object({
+    result: z.array(FamilyGroupSchema),
+  })
+  .strict();
+
+export const FamilyInstanceTypesResponseSchema = z
   .object({
     items: z.array(InstanceTypeSchema),
     total: z.number(),
-    page: z.number(),
-    page_size: z.number(),
-    pages: z.number(),
+    family: z.string(),
   })
   .strict();
 
 // Type definitions
-export type ListInstanceTypesRequest = z.infer<typeof ListInstanceTypesRequestSchema>;
 export type InstanceType = z.infer<typeof InstanceTypeSchema>;
-export type PaginatedInstanceTypes = z.infer<typeof PaginatedInstanceTypesSchema>;
+export type FamilyGroup = z.infer<typeof FamilyGroupSchema>;
+export type AllFamiliesResponse = z.infer<typeof AllFamiliesResponseSchema>;
+export type FamilyInstanceTypesResponse = z.infer<typeof FamilyInstanceTypesResponseSchema>;
+
+// Request Schema
+export const ListFamilyInstanceTypesRequestSchema = z
+  .object({
+    family: z.string(),
+  })
+  .strict();
+
+// Type definition
+export type ListFamilyInstanceTypesRequest = z.infer<typeof ListFamilyInstanceTypesRequestSchema>;
 
 /**
- * List available instance types with pagination
+ * List all instance type families with their items
+ *
+ * Returns all public instance types grouped by family.
+ * No pagination - returns the complete list.
  *
  * @param client - The API client
- * @param request - Optional request parameters for pagination
- * @param request.page - Page number (1-based)
- * @param request.page_size - Number of items per page
  * @param parameters - Optional behavior parameters
- * @returns Paginated list of instance types
+ * @returns All families with their instance types
  *
  * @example
  * ```typescript
- * // Get first page with default size
- * const types = await listInstanceTypes(client, { page: 1 })
- *
- * // Get with custom page size
- * const types = await listInstanceTypes(client, { page: 1, page_size: 50 })
- *
- * // Get all types (use large page size)
- * const types = await listInstanceTypes(client, { page_size: 1000 })
+ * // Get all families
+ * const response = await listAllInstanceTypeFamilies(client)
+ * // response.result contains array of { name, items, total }
  * ```
  */
-const { action: listInstanceTypes, safeAction: safeListInstanceTypes } = defineAction<
-  ListInstanceTypesRequest | undefined,
-  typeof PaginatedInstanceTypesSchema
->(PaginatedInstanceTypesSchema, async (client, request) => {
-  const validatedRequest = ListInstanceTypesRequestSchema.parse(request ?? {});
+const { action: listAllInstanceTypeFamilies, safeAction: safeListAllInstanceTypeFamilies } =
+  defineAction<void, typeof AllFamiliesResponseSchema>(
+    AllFamiliesResponseSchema,
+    async (client) => {
+      return await client.get("/instance-types");
+    },
+  );
 
-  const queryParams = new URLSearchParams();
-  queryParams.append("page", validatedRequest.page.toString());
-  queryParams.append("page_size", validatedRequest.page_size.toString());
-
-  return await client.get(`/api/instance-types?${queryParams.toString()}`);
+/**
+ * List instance types for a specific family
+ *
+ * @param client - The API client
+ * @param request - Request with family parameter
+ * @param request.family - Family name (e.g., 'cpu', 'gpu')
+ * @param parameters - Optional behavior parameters
+ * @returns Instance types for the specified family
+ *
+ * @example
+ * ```typescript
+ * // Get CPU instance types
+ * const cpuTypes = await listFamilyInstanceTypes(client, { family: 'cpu' })
+ *
+ * // Get GPU instance types
+ * const gpuTypes = await listFamilyInstanceTypes(client, { family: 'gpu' })
+ * ```
+ */
+const { action: listFamilyInstanceTypes, safeAction: safeListFamilyInstanceTypes } = defineAction<
+  ListFamilyInstanceTypesRequest,
+  typeof FamilyInstanceTypesResponseSchema
+>(FamilyInstanceTypesResponseSchema, async (client, request) => {
+  const validated = ListFamilyInstanceTypesRequestSchema.parse(request);
+  return await client.get(`/instance-types/${validated.family}`);
 });
 
-export { listInstanceTypes, safeListInstanceTypes };
+export {
+  listAllInstanceTypeFamilies,
+  safeListAllInstanceTypeFamilies,
+  listFamilyInstanceTypes,
+  safeListFamilyInstanceTypes,
+};

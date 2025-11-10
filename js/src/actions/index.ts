@@ -152,14 +152,20 @@ export {
 } from "./workspaces/get_workspace";
 
 export {
-  listInstanceTypes,
-  safeListInstanceTypes,
-  PaginatedInstanceTypesSchema,
+  listAllInstanceTypeFamilies,
+  safeListAllInstanceTypeFamilies,
+  listFamilyInstanceTypes,
+  safeListFamilyInstanceTypes,
+  AllFamiliesResponseSchema,
+  FamilyInstanceTypesResponseSchema,
+  FamilyGroupSchema,
   InstanceTypeSchema,
-  type PaginatedInstanceTypes,
+  ListFamilyInstanceTypesRequestSchema,
+  type AllFamiliesResponse,
+  type FamilyInstanceTypesResponse,
+  type FamilyGroup,
   type InstanceType,
-  type ListInstanceTypesRequest,
-  ListInstanceTypesRequestSchema,
+  type ListFamilyInstanceTypesRequest,
 } from "./list-instance-types";
 
 export {

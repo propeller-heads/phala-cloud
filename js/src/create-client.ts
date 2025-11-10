@@ -9,10 +9,14 @@ import {
   type AvailableNodes,
 } from "./actions/get_available_nodes";
 import {
-  listInstanceTypes,
-  safeListInstanceTypes,
-  type PaginatedInstanceTypes,
-  type ListInstanceTypesRequest,
+  listAllInstanceTypeFamilies,
+  safeListAllInstanceTypeFamilies,
+  listFamilyInstanceTypes,
+  safeListFamilyInstanceTypes,
+  type AllFamiliesResponse,
+  type FamilyInstanceTypesResponse,
+  type ListFamilyInstanceTypesRequest,
+  type InstanceType,
 } from "./actions/list-instance-types";
 import {
   listWorkspaces,
@@ -188,8 +192,10 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeGetCurrentUser: typeof safeGetCurrentUser;
     readonly getAvailableNodes: typeof getAvailableNodes;
     readonly safeGetAvailableNodes: typeof safeGetAvailableNodes;
-    readonly listInstanceTypes: typeof listInstanceTypes;
-    readonly safeListInstanceTypes: typeof safeListInstanceTypes;
+    readonly listAllInstanceTypeFamilies: typeof listAllInstanceTypeFamilies;
+    readonly safeListAllInstanceTypeFamilies: typeof safeListAllInstanceTypeFamilies;
+    readonly listFamilyInstanceTypes: typeof listFamilyInstanceTypes;
+    readonly safeListFamilyInstanceTypes: typeof safeListFamilyInstanceTypes;
     readonly listWorkspaces: typeof listWorkspaces;
     readonly safeListWorkspaces: typeof safeListWorkspaces;
     readonly getWorkspace: typeof getWorkspace;
@@ -251,8 +257,10 @@ export function createClient(config: ClientConfig = {}): Client {
     safeGetCurrentUser,
     getAvailableNodes,
     safeGetAvailableNodes,
-    listInstanceTypes,
-    safeListInstanceTypes,
+    listAllInstanceTypeFamilies,
+    safeListAllInstanceTypeFamilies,
+    listFamilyInstanceTypes,
+    safeListFamilyInstanceTypes,
     listWorkspaces,
     safeListWorkspaces,
     getWorkspace,
@@ -342,26 +350,40 @@ export interface Client extends BaseClient {
   >;
   safeGetAvailableNodes(parameters: { schema: false }): Promise<SafeResult<unknown>>;
 
-  // Actions with optional request parameters
-  listInstanceTypes(request?: ListInstanceTypesRequest): Promise<PaginatedInstanceTypes>;
-  listInstanceTypes<T extends z.ZodTypeAny>(
-    request: ListInstanceTypesRequest | undefined,
+  // Instance type actions - no parameters
+  listAllInstanceTypeFamilies(): Promise<AllFamiliesResponse>;
+  listAllInstanceTypeFamilies<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<
+    z.infer<T>
+  >;
+  listAllInstanceTypeFamilies(parameters: { schema: false }): Promise<unknown>;
+
+  safeListAllInstanceTypeFamilies(): Promise<SafeResult<AllFamiliesResponse>>;
+  safeListAllInstanceTypeFamilies<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<
+    SafeResult<z.infer<T>>
+  >;
+  safeListAllInstanceTypeFamilies(parameters: { schema: false }): Promise<SafeResult<unknown>>;
+
+  listFamilyInstanceTypes(
+    request: ListFamilyInstanceTypesRequest,
+  ): Promise<FamilyInstanceTypesResponse>;
+  listFamilyInstanceTypes<T extends z.ZodTypeAny>(
+    request: ListFamilyInstanceTypesRequest,
     parameters: { schema: T },
   ): Promise<z.infer<T>>;
-  listInstanceTypes(
-    request: ListInstanceTypesRequest | undefined,
+  listFamilyInstanceTypes(
+    request: ListFamilyInstanceTypesRequest,
     parameters: { schema: false },
   ): Promise<unknown>;
 
-  safeListInstanceTypes(
-    request?: ListInstanceTypesRequest,
-  ): Promise<SafeResult<PaginatedInstanceTypes>>;
-  safeListInstanceTypes<T extends z.ZodTypeAny>(
-    request: ListInstanceTypesRequest | undefined,
+  safeListFamilyInstanceTypes(
+    request: ListFamilyInstanceTypesRequest,
+  ): Promise<SafeResult<FamilyInstanceTypesResponse>>;
+  safeListFamilyInstanceTypes<T extends z.ZodTypeAny>(
+    request: ListFamilyInstanceTypesRequest,
     parameters: { schema: T },
   ): Promise<SafeResult<z.infer<T>>>;
-  safeListInstanceTypes(
-    request: ListInstanceTypesRequest | undefined,
+  safeListFamilyInstanceTypes(
+    request: ListFamilyInstanceTypesRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 
