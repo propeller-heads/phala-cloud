@@ -92,9 +92,31 @@ function handleProvisionError(
 
 	// Parse structured error from plain object (backward compatibility)
 	if (error && typeof error === "object" && "response" in error) {
-		const errorData = (error as Record<string, unknown>).response?.data?.detail;
-		if (errorData && typeof errorData === "object" && errorData.error_code) {
-			const { error_code, message, details, suggestions, links } = errorData;
+		const errorWithResponse = error as {
+			response?: {
+				data?: {
+					detail?: unknown;
+				};
+			};
+		};
+		const errorData = errorWithResponse.response?.data?.detail;
+		if (
+			errorData &&
+			typeof errorData === "object" &&
+			"error_code" in errorData
+		) {
+			const { error_code, message, details, suggestions, links } =
+				errorData as {
+					error_code: string;
+					message: string;
+					details?: Array<{
+						field?: string;
+						value?: unknown;
+						message?: string;
+					}>;
+					suggestions?: string[];
+					links?: Array<{ url: string; label: string }>;
+				};
 
 			if (options.json) {
 				return {

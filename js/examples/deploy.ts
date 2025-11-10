@@ -26,8 +26,8 @@ function assert_not_null<T>(condition: T | null | undefined, message: string): N
 /**
  * Remove undefined fields from object recursively (for cleaner API requests)
  */
-function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
-  const result: any = {};
+function removeUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined && value !== null) {
       // Recursively clean nested objects
@@ -213,7 +213,9 @@ async function deploy_new_cvm(
     //
     console.log("Using centralized KMS (PHALA)");
     const encrypted_env_vars =
-      env_vars.length > 0 ? await encryptEnvVars(env_vars, provision.app_env_encrypt_pubkey) : undefined;
+      env_vars.length > 0
+        ? await encryptEnvVars(env_vars, provision.app_env_encrypt_pubkey)
+        : undefined;
 
     result = await client.commitCvmProvision({
       app_id: provision.app_id,
@@ -249,7 +251,10 @@ async function deploy_new_cvm(
       composeHash: provision.compose_hash,
     });
 
-    const app_id = assert_not_null(deployed_contract.appId, "App ID not returned from contract deployment");
+    const app_id = assert_not_null(
+      deployed_contract.appId,
+      "App ID not returned from contract deployment",
+    );
     console.log(`Contract deployed: app_id=${app_id}`);
 
     // Get encryption public key for env vars

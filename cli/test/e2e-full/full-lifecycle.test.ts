@@ -63,10 +63,11 @@ async function runCliCommand(
 			},
 		});
 
-		logger.info(`✅ Command completed successfully`);
+		logger.info("✅ Command completed successfully");
 		return result;
-	} catch (error: any) {
-		logger.error(`❌ Command failed with exit code ${error.exitCode}`);
+	} catch (error: unknown) {
+		const errorObj = error as { exitCode?: number };
+		logger.error(`❌ Command failed with exit code ${errorObj.exitCode}`);
 		throw error;
 	}
 }
@@ -200,7 +201,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			const cvms = result.data.items || [];
 
 			// Find CVMs that match our test naming pattern
-			const testCvms = cvms.filter((cvm: any) =>
+			const testCvms = cvms.filter((cvm: { name?: string }) =>
 				cvm.name?.startsWith("phala-e2e-"),
 			);
 
@@ -813,14 +814,20 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 					JSON.stringify(attestation, null, 2),
 				);
 				logger.success("Attestation retrieved and saved to artifact");
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// Log detailed error information
+				const errorObj = error as {
+					exitCode?: number;
+					stdout?: string;
+					stderr?: string;
+					message?: string;
+				};
 				logger.warn("Attestation command failed:");
 				logger.warn(`  Command: ${attestCmd}`);
-				logger.warn(`  Exit code: ${error.exitCode}`);
-				if (error.stdout) logger.warn(`  Stdout: ${error.stdout}`);
-				if (error.stderr) logger.warn(`  Stderr: ${error.stderr}`);
-				if (error.message) logger.warn(`  Message: ${error.message}`);
+				logger.warn(`  Exit code: ${errorObj.exitCode}`);
+				if (errorObj.stdout) logger.warn(`  Stdout: ${errorObj.stdout}`);
+				if (errorObj.stderr) logger.warn(`  Stderr: ${errorObj.stderr}`);
+				if (errorObj.message) logger.warn(`  Message: ${errorObj.message}`);
 			}
 
 			// Final health check
@@ -880,7 +887,10 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 					try {
-						const cvmDetails = (await getCvmDetails(vmUuid!, TEST_API_KEY)) as {
+						if (!vmUuid) {
+							throw new Error("vmUuid is undefined");
+						}
+						const cvmDetails = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
 							status?: string;
 							deleted?: boolean;
 							scheduled_delete_at?: string;

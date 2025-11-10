@@ -14,7 +14,7 @@ export interface RetryOptions {
 	/**
 	 * Optional spinner to stop/start during retries
 	 */
-	spinner?: any;
+	spinner?: { stop: (clear?: boolean) => void };
 
 	/**
 	 * Whether to log retry attempts (default: true)
@@ -44,19 +44,23 @@ export async function retryOnConflict<T>(
 		logRetries = true,
 	} = options;
 
-	let lastError: any;
+	let lastError: unknown;
 
 	for (let attempt = 0; attempt <= maxRetries; attempt++) {
 		try {
 			return await operation();
-		} catch (error: any) {
+		} catch (error: unknown) {
 			lastError = error;
 
 			// Check if it's a 409 Conflict error
+			const errorObj = error as {
+				message?: string;
+				status?: number;
+			};
 			const is409 =
-				error.message?.includes("409") ||
-				error.status === 409 ||
-				error.message?.includes("Conflict");
+				errorObj.message?.includes("409") ||
+				errorObj.status === 409 ||
+				errorObj.message?.includes("Conflict");
 
 			if (is409 && attempt < maxRetries) {
 				// CVM is busy, retry after delay
@@ -82,7 +86,8 @@ export async function retryOnConflict<T>(
 	}
 
 	// All retries exhausted
+	const lastErrorObj = lastError as { message?: string } | undefined;
 	throw new Error(
-		`Failed after ${maxRetries} retries due to conflicts: ${lastError?.message || lastError}`,
+		`Failed after ${maxRetries} retries due to conflicts: ${lastErrorObj?.message || String(lastError)}`,
 	);
 }

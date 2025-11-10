@@ -6,7 +6,13 @@ import type { TestLogger } from "./logger";
  * Format error with full HTTP response details
  */
 function formatErrorDetails(error: unknown): string {
-	const errorObj = error as any;
+	const errorObj = error as {
+		isRequestError?: boolean;
+		status?: number;
+		statusText?: string;
+		message?: string;
+		data?: unknown;
+	};
 
 	// Check if it's a SafeResult error
 	if (
@@ -369,7 +375,7 @@ export async function cleanupCvm(
 		// Note: Using the SDK's delete method if available
 		// For now, we'll just log the intent
 		logger.info(`CVM ${appId} would be deleted here`);
-		logger.success(`CVM cleanup completed`);
+		logger.success("CVM cleanup completed");
 	} catch (error) {
 		logger.error("Failed to cleanup CVM:");
 		logger.error(formatErrorDetails(error));

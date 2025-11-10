@@ -99,7 +99,12 @@ export function logError(
 	logger.error(`${context}`);
 
 	// Check if it's a FetchError (from throwing API)
-	const errorObj = error as any;
+	const errorObj = error as {
+		status?: number;
+		statusText?: string;
+		message?: string;
+		data?: unknown;
+	};
 	const isFetchError =
 		errorObj &&
 		typeof errorObj === "object" &&

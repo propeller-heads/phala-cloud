@@ -1,4 +1,4 @@
-const http = require("http");
+const http = require("node:http");
 
 const PORT = process.env.PORT || 3000;
 const BUILD_VERSION = process.env.BUILD_VERSION || "1.0.0";
