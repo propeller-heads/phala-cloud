@@ -181,7 +181,7 @@ export const ProvisionCvmRequestSchema = z
   })
   .passthrough();
 
-export type ProvisionCvmRequest = z.infer<typeof ProvisionCvmRequestSchema> & {
+export type ProvisionCvmRequest = z.input<typeof ProvisionCvmRequestSchema> & {
   node_id?: number; // recommended
   teepod_id?: number; // deprecated
   compose_file?: {
