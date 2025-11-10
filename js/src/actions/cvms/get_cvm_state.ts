@@ -7,12 +7,15 @@ import { CvmIdSchema, type CvmIdInput } from "../../types/cvm_id";
  * CVM state response schema
  */
 export const CvmStateSchema = z.object({
-  status: z.string(),
-  derived_status: z.string().optional(),
-  vm_uuid: z.string().optional(),
+  id: z.string().optional(),
   instance_id: z.string().optional(),
+  name: z.string(),
+  status: z.string(),
   uptime: z.string().optional(),
-  // Add other state fields as needed
+  exited_at: z.string().optional(),
+  boot_progress: z.string().optional(),
+  boot_error: z.string().optional(),
+  shutdown_progress: z.string().optional(),
 });
 
 export type CvmState = z.infer<typeof CvmStateSchema>;
