@@ -166,7 +166,7 @@ export const ProvisionCvmRequestSchema = z
       allowed_envs: z.array(z.string()).optional(),
       pre_launch_script: z.string().optional(),
       docker_compose_file: z.string().optional(),
-      name: z.string().default(""), // defaults to empty string (required by backend)
+      name: z.string().optional().default(""), // optional with default empty string
       kms_enabled: z.boolean().optional(),
       public_logs: z.boolean().optional(),
       public_sysinfo: z.boolean().optional(),
