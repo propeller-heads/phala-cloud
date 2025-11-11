@@ -67,8 +67,8 @@ export const sshCommandMeta: CommandMeta = {
 			value: "phala ssh app_123 -p 16185",
 		},
 		{
-			name: "Connect with custom gateway domain",
-			value: "phala ssh app_123 -g dstack-dev-v05x.phatfn.xyz -p 16185",
+			name: "Connect with custom gateway (skips API call)",
+			value: "phala ssh app_123 -g dev.dstack.local -p 16185",
 		},
 		{
 			name: "Connect with custom timeout",

@@ -14,8 +14,9 @@ import { logger } from "./logger";
 // Extends CvmIdObjectSchema and applies refineCvmId validation
 export const ProjectConfigSchema: z.ZodTypeAny = refineCvmId(
 	CvmIdObjectSchema.extend({
-		api_version: z.enum(SUPPORTED_API_VERSIONS),
+		api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
 		gateway_domain: z.string().optional(),
+		gateway_port: z.number().int().positive().optional(),
 	}),
 );
 
@@ -25,6 +26,7 @@ export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 export type RuntimeProjectConfig = Partial<ProjectConfig> & {
 	cvm_id?: string;
 	gateway_domain?: string;
+	gateway_port?: number;
 };
 
 const CONFIG_FILE_NAME = "phala.toml";

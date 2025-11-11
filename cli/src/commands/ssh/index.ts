@@ -33,6 +33,13 @@ async function runSshCommand(
 		// Resolve gateway domain: CLI option > project config > API
 		let gatewayDomain =
 			input.gatewayDomain ?? context.projectConfig.gateway_domain;
+
+		// Resolve port: CLI option > project config > default (443)
+		const port =
+			input.port !== "443"
+				? input.port
+				: (context.projectConfig.gateway_port?.toString() ?? "443");
+
 		let instanceId: string;
 
 		// Only fetch CVM info if we don't have gateway domain
@@ -68,9 +75,6 @@ async function runSshCommand(
 				instanceId = cvmId;
 			}
 		}
-
-		// Use port from input (defaults to 443)
-		const port = input.port;
 
 		// Handle SSH key file
 		let keyFile = input.identity;
