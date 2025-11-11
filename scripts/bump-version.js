@@ -83,19 +83,40 @@ function checkVersionExists(packageName, version) {
   return new Promise((resolve) => {
     const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`;
 
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
+      // Consume response body to prevent hanging
+      res.resume();
+
+      // Determine the result based on status code
+      let result;
       if (res.statusCode === 200) {
-        resolve(true);
+        result = true;
       } else if (res.statusCode === 404) {
-        resolve(false);
+        result = false;
       } else {
-        // On network errors or other status codes, assume version doesn't exist
-        // to avoid blocking the release
         console.warn(`Warning: Unable to verify version existence (status ${res.statusCode})`);
-        resolve(false);
+        result = false;
       }
-    }).on('error', (err) => {
-      console.warn(`Warning: Network error checking version: ${err.message}`);
+
+      // Wait for response to finish, then close request and resolve
+      res.on('end', () => {
+        req.destroy(); // Immediately close the connection
+        resolve(result);
+      });
+    });
+
+    // Set timeout to prevent hanging (30 seconds)
+    req.setTimeout(30000, () => {
+      req.destroy();
+      console.warn('Warning: Request timeout after 30s');
+      resolve(false);
+    });
+
+    req.on('error', (err) => {
+      // Only log if this wasn't caused by our own destroy()
+      if (err.code !== 'ECONNRESET' || !req.destroyed) {
+        console.warn(`Warning: Network error checking version: ${err.message}`);
+      }
       resolve(false);
     });
   });

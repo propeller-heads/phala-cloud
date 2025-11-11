@@ -3,11 +3,43 @@ name: Release Command
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to release (cli or js)'
+        required: true
+        type: choice
+        options:
+          - cli
+          - js
+      release_type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Prerelease tag (leave empty for stable release)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - beta
+          - alpha
+          - rc
+      ref:
+        description: 'Branch/ref to release from (default: main)'
+        required: false
+        type: string
+        default: 'main'
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write  # Required for npm Trusted Publishers (OIDC)
 
 env:
   NODE_VERSION: '20'
@@ -15,6 +47,7 @@ env:
 jobs:
   parse:
     if: >
+      github.event_name == 'issue_comment' &&
       (contains(github.event.comment.body, '!release') ||
        contains(github.event.comment.body, '!Release') ||
        contains(github.event.comment.body, '!RELEASE')) &&
@@ -173,20 +206,25 @@ jobs:
             core.setOutput('request_url', context.payload.comment.html_url);
 
   release:
-    needs: parse
-    if: needs.parse.outputs.should_release == 'true'
+    needs: [parse]
+    if: |
+      always() &&
+      (
+        (needs.parse.result == 'success' && needs.parse.outputs.should_release == 'true') ||
+        (github.event_name == 'workflow_dispatch')
+      )
     concurrency:
-      group: release-${{ needs.parse.outputs.package }}-${{ needs.parse.outputs.ref }}
+      group: release-${{ github.event_name == 'workflow_dispatch' && inputs.package || needs.parse.outputs.package }}-${{ github.event_name == 'workflow_dispatch' && inputs.ref || needs.parse.outputs.ref }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     env:
-      PACKAGE: ${{ needs.parse.outputs.package }}
-      RELEASE_TYPE: ${{ needs.parse.outputs.release_type }}
-      PRERELEASE: ${{ needs.parse.outputs.prerelease }}
-      NPM_TAG: ${{ needs.parse.outputs.npm_tag }}
-      SOURCE_REF: ${{ needs.parse.outputs.ref }}
+      PACKAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.package || needs.parse.outputs.package }}
+      RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || needs.parse.outputs.release_type }}
+      PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || needs.parse.outputs.prerelease }}
+      NPM_TAG: ${{ github.event_name == 'workflow_dispatch' && (inputs.prerelease || 'latest') || needs.parse.outputs.npm_tag }}
+      SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || needs.parse.outputs.ref }}
       ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
-      REQUESTED_BY: ${{ needs.parse.outputs.requested_by }}
+      REQUESTED_BY: ${{ github.event_name == 'workflow_dispatch' && github.actor || needs.parse.outputs.requested_by }}
       REQUEST_URL: ${{ needs.parse.outputs.request_url }}
       PR_TITLE: ${{ needs.parse.outputs.pr_title }}
       PR_URL: ${{ needs.parse.outputs.pr_url }}
@@ -223,11 +261,6 @@ jobs:
 
           if [ -z "${SOURCE_REF:-}" ]; then
             echo "SOURCE_REF is not set"
-            exit 1
-          fi
-
-          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "NPM_TOKEN secret is required"
             exit 1
           fi
 
@@ -359,75 +392,6 @@ jobs:
 
           git commit -m "chore(${PACKAGE}): release v${NEW_VERSION}"
 
-      - name: Configure npm authentication
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
-      - name: Verify npm authentication and permissions
-        working-directory: ${{ env.PACKAGE }}
-        run: |
-          set -e
-
-          # Get package name from package.json
-          PKG_NAME=$(node -e "console.log(require('./package.json').name)")
-
-          echo "📦 Package: $PKG_NAME"
-          echo ""
-
-          # Verify authentication
-          echo "🔐 Verifying npm authentication..."
-          if ! NPM_USER=$(npm whoami 2>&1); then
-            echo "❌ ERROR: npm authentication failed"
-            echo ""
-            echo "The NPM_TOKEN secret is either:"
-            echo "  1. Not set in GitHub repository/environment secrets"
-            echo "  2. Invalid or expired"
-            echo "  3. Not properly configured for this workflow"
-            echo ""
-            echo "To fix this:"
-            echo "  1. Go to https://www.npmjs.com/settings/<your-username>/tokens"
-            echo "  2. Create a new 'Automation' token (not 'Publish' or 'Read-only')"
-            echo "  3. Add it as NPM_TOKEN in GitHub Settings → Secrets and variables → Actions"
-            echo "  4. If using environments, ensure the token is in the correct environment secrets"
-            echo ""
-            echo "npm whoami output:"
-            echo "$NPM_USER"
-            exit 1
-          fi
-
-          echo "✅ Authenticated as: $NPM_USER"
-          echo ""
-
-          # Check package publish permissions
-          echo "🔍 Checking publish permissions for $PKG_NAME..."
-
-          # Try to get package info (will fail if package doesn't exist or no access)
-          if npm view "$PKG_NAME" version > /dev/null 2>&1; then
-            echo "📋 Package exists on npm registry"
-
-            # Check if user has publish access
-            if npm access ls-collaborators "$PKG_NAME" 2>&1 | grep -q "$NPM_USER"; then
-              echo "✅ User $NPM_USER has access to publish $PKG_NAME"
-            else
-              echo "❌ ERROR: User $NPM_USER does NOT have permission to publish $PKG_NAME"
-              echo ""
-              echo "To fix this, one of the package maintainers needs to:"
-              echo "  1. Go to https://www.npmjs.com/package/${PKG_NAME}/access"
-              echo "  2. Invite $NPM_USER as a maintainer"
-              echo "  3. Or use a token from an existing maintainer account"
-              echo ""
-              echo "Current collaborators:"
-              npm access ls-collaborators "$PKG_NAME" 2>&1 || true
-              exit 1
-            fi
-          else
-            echo "⚠️  Package $PKG_NAME not found on npm (this might be the first publish)"
-            echo "   If this is the first publish, ensure $NPM_USER has permission to publish to @phala scope"
-          fi
-
-          echo ""
-          echo "✅ All npm checks passed"
-
       - name: Resolve workspace dependencies
         working-directory: ${{ env.PACKAGE }}
         run: |
@@ -445,9 +409,19 @@ jobs:
             "
           fi
 
+      - name: Upgrade npm for trusted publishing
+        run: |
+          # Ensure npm 11.5.1 or later for OIDC trusted publishing support
+          npm install -g npm@latest
+          npm --version
+
       - name: Publish to npm
         working-directory: ${{ env.PACKAGE }}
-        run: npm publish --access public --tag "$NPM_TAG"
+        run: |
+          # Publish using OIDC authentication (npm Trusted Publishers)
+          # Requires npm >= 11.5.1 and id-token: write permission
+          # Provenance attestations are generated automatically
+          npm publish --access public --tag "$NPM_TAG"
 
       - name: Create tag
         run: git tag "$TAG_NAME"
