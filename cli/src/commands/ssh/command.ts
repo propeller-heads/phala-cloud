@@ -8,7 +8,7 @@ export const sshCommandMeta: CommandMeta = {
 		{
 			name: "cvm-id",
 			description:
-				"CVM ID (app_id or UUID). If not provided, reads from phala.toml",
+				"CVM ID. If not provided, reads from phala.toml",
 			required: false,
 			target: "cvmId",
 		},
