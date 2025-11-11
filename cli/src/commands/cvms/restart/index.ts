@@ -28,7 +28,7 @@ async function runCvmsRestartCommand(
 			);
 
 			// Wait for CVM to be ready using existing utility
-			await waitForCvmReady(cvmInfo.vm_uuid, 300000, true);
+			await waitForCvmReady(cvmInfo.vm_uuid, 300000);
 		}
 
 		const spinner = logger.startSpinner(

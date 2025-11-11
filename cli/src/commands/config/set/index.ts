@@ -1,5 +1,6 @@
 import { defineCommand } from "@/src/core/define-command";
 import { setConfigValue } from "@/src/utils/config";
+import { logger } from "@/src/utils/logger";
 
 import type { CommandContext } from "@/src/core/types";
 import {

@@ -920,7 +920,10 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 					try {
-						const cvmDetails = await getCvmDetails(vmUuid!, TEST_API_KEY) as {
+						if (!vmUuid) {
+							throw new Error("vmUuid is undefined");
+						}
+						const cvmDetails = await getCvmDetails(vmUuid, TEST_API_KEY) as {
 							status?: string;
 							deleted?: boolean;
 							scheduled_delete_at?: string;

@@ -38,7 +38,7 @@ async function runCvmsAttestationCommand(
 		);
 
 		try {
-			let attestationData: CvmAttestationResponse =
+			const attestationData: CvmAttestationResponse =
 				await getCvmAttestation(resolvedAppId);
 			spinner.stop(true);
 
