@@ -6,7 +6,6 @@ import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
-import { logDetailedError } from "@/src/utils/error-handling";
 import { logger } from "@/src/utils/logger";
 import { parse_cvm_id } from "@/src/utils/project-config";
 import {
@@ -162,7 +161,11 @@ async function runSshCommand(
 		});
 	} catch (error) {
 		logger.error("Failed to connect via SSH");
-		logDetailedError(error);
+		if (error instanceof Error) {
+			logger.error(error.message);
+		} else {
+			logger.error(String(error));
+		}
 		return 1;
 	}
 }
