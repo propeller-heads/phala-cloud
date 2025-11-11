@@ -134,12 +134,12 @@ describe("CvmIdBaseSchema", () => {
 
 describe("CvmIdSchema", () => {
   describe("transformation logic", () => {
-    it("should extract cvmId from id field", () => {
+    it("should extract cvmId from id field (custom format)", () => {
       const result = CvmIdSchema.parse({ id: "cvm-123" });
       expect(result.cvmId).toBe("cvm-123");
     });
 
-    it("should remove dashes from uuid", () => {
+    it("should remove dashes from uuid field", () => {
       const result = CvmIdSchema.parse({ uuid: "123e4567-e89b-42d3-a456-556642440000" });
       expect(result.cvmId).toBe("123e4567e89b42d3a456556642440000");
     });
@@ -149,23 +149,67 @@ describe("CvmIdSchema", () => {
       expect(result.cvmId).toBe("123e4567e89b42d3a456556642440000");
     });
 
-    it("should add app_ prefix to app_id without prefix", () => {
-      const result = CvmIdSchema.parse({ app_id: "abc123" });
-      expect(result.cvmId).toBe("app_abc123");
+    it("should add app_ prefix to 40-char hex app_id", () => {
+      const result = CvmIdSchema.parse({ app_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" });
+      expect(result.cvmId).toBe("app_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     });
 
     it("should keep app_ prefix if already present", () => {
-      const result = CvmIdSchema.parse({ app_id: "app_abc123" });
-      expect(result.cvmId).toBe("app_abc123");
+      const result = CvmIdSchema.parse({ app_id: "app_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" });
+      expect(result.cvmId).toBe("app_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     });
 
-    it("should add instance_ prefix to instance_id without prefix", () => {
-      const result = CvmIdSchema.parse({ instance_id: "def456" });
-      expect(result.cvmId).toBe("instance_def456");
+    it("should use custom app_id as-is if not 40-char hex", () => {
+      const result = CvmIdSchema.parse({ app_id: "custom-app-123" });
+      expect(result.cvmId).toBe("custom-app-123");
+    });
+
+    it("should use custom instance_id as-is (no auto-prefix)", () => {
+      const result = CvmIdSchema.parse({ instance_id: "custom-instance-456" });
+      expect(result.cvmId).toBe("custom-instance-456");
     });
 
     it("should keep instance_ prefix if already present", () => {
       const result = CvmIdSchema.parse({ instance_id: "instance_def456" });
+      expect(result.cvmId).toBe("instance_def456");
+    });
+  });
+
+  describe("auto-detection across different fields", () => {
+    it("should detect UUID in id field and remove dashes", () => {
+      const result = CvmIdSchema.parse({ id: "123e4567-e89b-42d3-a456-556642440000" });
+      expect(result.cvmId).toBe("123e4567e89b42d3a456556642440000");
+    });
+
+    it("should detect 40-char hex in id field and add app_ prefix", () => {
+      const result = CvmIdSchema.parse({ id: "50b0e827cc6c53f4010b57e588a18c5ef9388cc1" });
+      expect(result.cvmId).toBe("app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1");
+    });
+
+    it("should detect UUID in app_id field (user mistake) and remove dashes", () => {
+      const result = CvmIdSchema.parse({ app_id: "123e4567-e89b-42d3-a456-556642440000" });
+      expect(result.cvmId).toBe("123e4567e89b42d3a456556642440000");
+    });
+
+    it("should detect 40-char hex in id field when user is confused", () => {
+      // Note: uuid field has regex validation, so we can't test "wrong field" scenario there
+      // But we can test that id field properly detects 40-char hex
+      const result = CvmIdSchema.parse({ id: "cccccccccccccccccccccccccccccccccccccccc" });
+      expect(result.cvmId).toBe("app_cccccccccccccccccccccccccccccccccccccccc");
+    });
+
+    it("should detect 40-char hex in instance_id field and add app_ prefix", () => {
+      const result = CvmIdSchema.parse({ instance_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" });
+      expect(result.cvmId).toBe("app_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    });
+
+    it("should handle already prefixed app_id in id field", () => {
+      const result = CvmIdSchema.parse({ id: "app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1" });
+      expect(result.cvmId).toBe("app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1");
+    });
+
+    it("should handle already prefixed instance_id in id field", () => {
+      const result = CvmIdSchema.parse({ id: "instance_def456" });
       expect(result.cvmId).toBe("instance_def456");
     });
   });
@@ -175,8 +219,8 @@ describe("CvmIdSchema", () => {
       const result = CvmIdSchema.parse({
         id: "test-id",
         uuid: "123e4567-e89b-42d3-a456-556642440000",
-        app_id: "abc",
-        instance_id: "def",
+        app_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        instance_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       });
       expect(result.cvmId).toBe("test-id");
     });
@@ -184,23 +228,23 @@ describe("CvmIdSchema", () => {
     it("should prioritize uuid over app_id and instance_id", () => {
       const result = CvmIdSchema.parse({
         uuid: "123e4567-e89b-42d3-a456-556642440000",
-        app_id: "abc",
-        instance_id: "def",
+        app_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        instance_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       });
       expect(result.cvmId).toBe("123e4567e89b42d3a456556642440000");
     });
 
     it("should prioritize app_id over instance_id", () => {
       const result = CvmIdSchema.parse({
-        app_id: "abc",
-        instance_id: "def",
+        app_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        instance_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       });
-      expect(result.cvmId).toBe("app_abc");
+      expect(result.cvmId).toBe("app_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     });
 
     it("should use instance_id when it's the only one provided", () => {
-      const result = CvmIdSchema.parse({ instance_id: "def" });
-      expect(result.cvmId).toBe("instance_def");
+      const result = CvmIdSchema.parse({ instance_id: "custom-instance" });
+      expect(result.cvmId).toBe("custom-instance");
     });
   });
 

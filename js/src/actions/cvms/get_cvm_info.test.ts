@@ -132,13 +132,24 @@ describe("getCvmInfo", () => {
       expect(result).toEqual(mockCvmInfoData);
     });
 
-    it("should call correct endpoint with instance_id (adds prefix)", async () => {
+    it("should call correct endpoint with instance_id (40-char hex detected as app_id)", async () => {
       mockGet.mockResolvedValue(mockCvmInfoData);
 
+      // 40-char hex will be auto-detected as app_id regardless of field name
       const instance_id = "b".repeat(40);
       const result = await getCvmInfo(client, { instance_id });
 
-      expect(mockGet).toHaveBeenCalledWith(`/cvms/instance_${instance_id}`);
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${instance_id}`);
+      expect(result).toEqual(mockCvmInfoData);
+    });
+
+    it("should call correct endpoint with custom instance_id", async () => {
+      mockGet.mockResolvedValue(mockCvmInfoData);
+
+      const instance_id = "custom-instance-123";
+      const result = await getCvmInfo(client, { instance_id });
+
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/${instance_id}`);
       expect(result).toEqual(mockCvmInfoData);
     });
   });
@@ -184,9 +195,9 @@ describe("getCvmInfo", () => {
       await getCvmInfo(client, { app_id, instance_id });
       expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${app_id}`);
 
-      // instance_id when it's the only one
+      // instance_id when it's the only one (40-char hex detected as app_id)
       await getCvmInfo(client, { instance_id });
-      expect(mockGet).toHaveBeenCalledWith(`/cvms/instance_${instance_id}`);
+      expect(mockGet).toHaveBeenCalledWith(`/cvms/app_${instance_id}`);
     });
 
     it("should handle CVM ID with special characters", async () => {
