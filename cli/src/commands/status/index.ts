@@ -68,7 +68,9 @@ export async function runStatusCommand(
 		if (debug) {
 			logger.logDetailedError(error);
 		}
-		context.fail("Authentication failed. Your API key may be invalid or expired.");
+		context.fail(
+			"Authentication failed. Your API key may be invalid or expired.",
+		);
 		return 1;
 	}
 }

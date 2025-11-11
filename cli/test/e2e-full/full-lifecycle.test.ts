@@ -506,7 +506,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			logger.step("Phase 5: Update CVM Code");
 
 			// Use pre-pushed Docker image from DockerHub (h4x3rotab/phala-e2e-test:v2.0.0)
-			logger.info("Using pre-pushed Docker image: h4x3rotab/phala-e2e-test:v2.0.0");
+			logger.info(
+				"Using pre-pushed Docker image: h4x3rotab/phala-e2e-test:v2.0.0",
+			);
 
 			// Update docker-compose.yml for v2
 			const composeV2Path = path.join(
@@ -534,7 +536,11 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			const updateCmd = `deploy --uuid ${vmUuid} -c ${composeV2Path} -e ${envV2Path} --wait --json`;
 
 			try {
-				const { stdout } = await runCliCommand(logger, updateCmd, "Updating CVM (waiting for completion)");
+				const { stdout } = await runCliCommand(
+					logger,
+					updateCmd,
+					"Updating CVM (waiting for completion)",
+				);
 
 				logger.info("Update output:", stdout);
 
@@ -546,7 +552,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				const updateResult = JSON.parse(jsonMatch[0]);
 
 				if (updateResult.success) {
-					logger.success("CVM updated successfully (--wait ensured completion)");
+					logger.success(
+						"CVM updated successfully (--wait ensured completion)",
+					);
 				} else {
 					throw new Error(`Update failed: ${updateResult.error}`);
 				}
@@ -641,10 +649,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			await waitForOperationsComplete(logger, vmUuid, 60000, TEST_API_KEY);
 
 			// Get current resources
-			const beforeResize = (await getCvmDetails(
-				vmUuid,
-				TEST_API_KEY,
-			)) as {
+			const beforeResize = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
 				vcpu?: number;
 				memory?: number;
 				disk_size?: number;
@@ -721,7 +726,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			logger.success("Container is accessible after resize", healthData);
 			expect(healthData.status).toBe("healthy");
 
-			logger.success("Phase 6 completed: Resize successful and container operational");
+			logger.success(
+				"Phase 6 completed: Resize successful and container operational",
+			);
 		},
 		{ timeout: 300000 }, // 5 minutes
 	);
@@ -744,13 +751,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Stop command executed");
 
 				// Wait for stopped status
-				await waitForCvmStatus(
-					logger,
-					vmUuid,
-					"stopped",
-					180000,
-					TEST_API_KEY,
-				);
+				await waitForCvmStatus(logger, vmUuid, "stopped", 180000, TEST_API_KEY);
 				logger.success("CVM stopped successfully");
 			} catch (error) {
 				logError(logger, error, "Stop failed");
@@ -765,13 +766,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Start command executed");
 
 				// Wait for running status
-				await waitForCvmStatus(
-					logger,
-					vmUuid,
-					"running",
-					300000,
-					TEST_API_KEY,
-				);
+				await waitForCvmStatus(logger, vmUuid, "running", 300000, TEST_API_KEY);
 				logger.success("CVM started successfully");
 			} catch (error) {
 				logError(logger, error, "Start failed");
@@ -800,13 +795,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				logger.success("Restart command executed");
 
 				// Wait for running status after restart
-				await waitForCvmStatus(
-					logger,
-					vmUuid,
-					"running",
-					300000,
-					TEST_API_KEY,
-				);
+				await waitForCvmStatus(logger, vmUuid, "running", 300000, TEST_API_KEY);
 				logger.success("CVM restarted successfully");
 			} catch (error) {
 				logError(logger, error, "Restart failed");
@@ -923,7 +912,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 						if (!vmUuid) {
 							throw new Error("vmUuid is undefined");
 						}
-						const cvmDetails = await getCvmDetails(vmUuid, TEST_API_KEY) as {
+						const cvmDetails = (await getCvmDetails(vmUuid, TEST_API_KEY)) as {
 							status?: string;
 							deleted?: boolean;
 							scheduled_delete_at?: string;

@@ -141,7 +141,9 @@ export async function dispatchCommand(
 							? { success: true, message: data }
 							: {
 									success: true,
-									...(typeof data === "object" && data !== null ? data : { data }),
+									...(typeof data === "object" && data !== null
+										? data
+										: { data }),
 								};
 					stdout.write(`${JSON.stringify(output, null, 2)}\n`);
 				} else {

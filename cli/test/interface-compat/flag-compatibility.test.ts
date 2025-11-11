@@ -116,7 +116,10 @@ describe("CLI Interface Compatibility - Flag Support (v1.0.40 baseline)", () => 
 
 	describe("Nodes commands", () => {
 		test("nodes list supports all v1.0.40 flags", async () => {
-			await testCommandFlags("nodes list", v1_0_40_interface.nodesCommands.list);
+			await testCommandFlags(
+				"nodes list",
+				v1_0_40_interface.nodesCommands.list,
+			);
 		});
 	});
 

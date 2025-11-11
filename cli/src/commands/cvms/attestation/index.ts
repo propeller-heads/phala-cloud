@@ -43,7 +43,7 @@ async function runCvmsAttestationCommand(
 			spinner.stop(true);
 
 			if (!attestationData) {
-				context.fail('No attestation information found');
+				context.fail("No attestation information found");
 				return 1;
 			}
 

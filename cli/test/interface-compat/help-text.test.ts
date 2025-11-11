@@ -29,7 +29,14 @@ describe("CLI Interface Compatibility - Help Text (v1.0.40 baseline)", () => {
 		const criticalFlags = [
 			{
 				cmd: "deploy",
-				flags: ["--name", "--compose", "--env-file", "--vcpu", "--memory", "--disk-size"],
+				flags: [
+					"--name",
+					"--compose",
+					"--env-file",
+					"--vcpu",
+					"--memory",
+					"--disk-size",
+				],
 			},
 			{
 				cmd: "cvms create",
@@ -37,7 +44,13 @@ describe("CLI Interface Compatibility - Help Text (v1.0.40 baseline)", () => {
 			},
 			{
 				cmd: "cvms resize",
-				flags: ["--vcpu", "--memory", "--disk-size", "--allow-restart", "--yes"],
+				flags: [
+					"--vcpu",
+					"--memory",
+					"--disk-size",
+					"--allow-restart",
+					"--yes",
+				],
 			},
 			{
 				cmd: "docker build",

@@ -465,7 +465,13 @@ export const logger = {
 		// Type guard for request errors (RequestError from SDK)
 		const isRequestError = (
 			err: unknown,
-		): err is { isRequestError: true; status: number; statusText: string; message: string; data?: unknown } => {
+		): err is {
+			isRequestError: true;
+			status: number;
+			statusText: string;
+			message: string;
+			data?: unknown;
+		} => {
 			return (
 				err !== null &&
 				typeof err === "object" &&
@@ -498,7 +504,9 @@ export const logger = {
 
 		// Check if it's a validation error
 		if (isValidationError(error)) {
-			process.stderr.write(`${prefix}Validation error: ${JSON.stringify(error.issues)}\n`);
+			process.stderr.write(
+				`${prefix}Validation error: ${JSON.stringify(error.issues)}\n`,
+			);
 			return;
 		}
 
