@@ -58,6 +58,25 @@ import { defineAction } from "../../utils/define-action";
  *   compose_file: { /* ... *\/ },
  * });
  *
+ * // Example 4: Manual nonce specification (Advanced - PHALA KMS only)
+ * import { nextAppIds } from '@phala/cloud';
+ *
+ * // Step 1: Predict next available app_id and nonce
+ * const prediction = await nextAppIds(client, { counts: 1 });
+ * const { app_id, nonce } = prediction.app_ids[0];
+ *
+ * console.log(`Predicted app_id: ${app_id}, nonce: ${nonce}`);
+ *
+ * // Step 2: Provision with the predicted nonce and app_id
+ * const provision = await provisionCvm(client, {
+ *   name: 'my-app-with-manual-nonce',
+ *   instance_type: 'tdx.small',
+ *   kms: 'PHALA',                 // Required: only works with PHALA KMS
+ *   nonce: nonce,                 // Use predicted nonce
+ *   app_id: app_id,               // Use predicted app_id
+ *   compose_file: { /* ... *\/ },
+ * });
+ *
  * console.log(provision.app_id);
  * console.log(provision.compose_hash); // Required for commitCvmProvision
  * ```
@@ -74,6 +93,19 @@ import { defineAction } from "../../utils/define-action";
  *   - Use `listAllInstanceTypeFamilies()` or `listFamilyInstanceTypes()` to discover available types
  *   - Examples: "tdx.small", "tdx.medium", "tdx.large"
  *   - Omit to use the default small instance type
+ *
+ * ### Manual Nonce Specification (Advanced - PHALA KMS only)
+ * - **nonce**: User-specified nonce for deterministic app_id generation
+ * - **app_id**: Expected app_id (must match the nonce)
+ * - Workflow:
+ *   1. Call `nextAppIds()` to predict available app_ids and nonces
+ *   2. Use the predicted `nonce` and `app_id` in provision request
+ *   3. System validates that the app_id matches the nonce
+ * - When `nonce` is provided:
+ *   - `app_id` MUST also be provided
+ *   - Only works with PHALA KMS type
+ *   - Use case: Predicting app_id before deployment for smart contract integration
+ * - If both omitted, system automatically generates the next available nonce
  *
  * ### Node Selection (all optional - system auto-selects if omitted)
  * - **node_id**: Specific node ID to deploy on
@@ -178,6 +210,9 @@ export const ProvisionCvmRequestSchema = z
     kms: z.enum(["PHALA", "ETHEREUM", "BASE"]).optional(), // KMS type selection (defaults to PHALA)
     kms_contract: z.string().optional(), // KMS contract address for on-chain KMS
     env_keys: z.array(z.string()).optional(),
+    // Manual nonce specification (Advanced - PHALA KMS only)
+    nonce: z.number().optional(), // User-specified nonce for deterministic app_id generation
+    app_id: z.string().optional(), // Expected app_id (must match calculated app_id from nonce)
   })
   .passthrough();
 
@@ -189,6 +224,8 @@ export type ProvisionCvmRequest = z.input<typeof ProvisionCvmRequestSchema> & {
     tproxy_enabled?: boolean; // deprecated
     [key: string]: unknown;
   };
+  nonce?: number; // Manual nonce specification (Advanced - PHALA KMS only)
+  app_id?: string; // Expected app_id (must match calculated app_id from nonce)
 };
 
 // Helper functions
