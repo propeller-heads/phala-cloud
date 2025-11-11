@@ -448,11 +448,47 @@ jobs:
       - name: Publish to npm
         working-directory: ${{ env.PACKAGE }}
         run: |
+          echo "🚀 Publishing @phala/cloud..."
+          echo ""
+          echo "Package info:"
+          cat package.json | grep -E '"name"|"version"'
+          echo ""
+          echo "📋 Publish command: npm publish --access public --tag $NPM_TAG"
+          echo ""
+
           # Publish using OIDC authentication (npm Trusted Publishers)
-          # Falls back to NPM_TOKEN if USE_NPM_TOKEN env var is set to 'true'
           # Requires npm >= 11.5.1 and id-token: write permission
           # Provenance attestations are generated automatically
-          npm publish --access public --tag "$NPM_TAG"
+          npm publish --access public --tag "$NPM_TAG" --verbose 2>&1 | tee publish.log || {
+            echo ""
+            echo "❌ Publish failed!"
+            echo ""
+            echo "🔍 Checking authentication method used by npm..."
+            if grep -q "oidc" publish.log || grep -q "OIDC" publish.log; then
+              echo "   npm attempted to use OIDC authentication"
+            elif grep -q "token" publish.log || grep -q "TOKEN" publish.log; then
+              echo "   npm attempted to use token authentication"
+            fi
+
+            echo ""
+            echo "🔍 Checking Trusted Publisher configuration..."
+            echo "   Expected configuration on npmjs.com:"
+            echo "   - Package: @phala/cloud"
+            echo "   - Provider: GitHub Actions"
+            echo "   - Owner: Phala-Network"
+            echo "   - Repository: phala-cloud"
+            echo "   - Workflow: release-command.yml"
+            echo "   - Environment: (empty)"
+            echo ""
+            echo "   Actual workflow context:"
+            echo "   - Repository: ${{ github.repository }}"
+            echo "   - Workflow: ${{ github.workflow }}"
+            echo "   - Workflow file: ${{ github.workflow_ref }}"
+
+            exit 1
+          }
+
+          rm -f publish.log
 
       - name: Create tag
         run: git tag "$TAG_NAME"
