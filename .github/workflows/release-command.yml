@@ -321,13 +321,13 @@ jobs:
         working-directory: ${{ env.PACKAGE }}
         run: bun run type-check
 
-      - name: Run tests
-        working-directory: ${{ env.PACKAGE }}
-        run: bun run test
-
       - name: Build package
         working-directory: ${{ env.PACKAGE }}
         run: bun run build
+
+      - name: Run tests
+        working-directory: ${{ env.PACKAGE }}
+        run: bun run test
 
       - name: Analyze package contents
         id: pack_info

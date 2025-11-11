@@ -13,13 +13,6 @@ async function runLogoutCommand(
 	_input: LogoutCommandInput,
 	_context: CommandContext,
 ): Promise<number> {
-	// Show deprecation warning
-	logger.warn(
-		'The "phala auth logout" command is deprecated and will be removed in a future version.',
-	);
-	logger.info('Please use "phala logout" instead.');
-	logger.break();
-
 	try {
 		await removeApiKey();
 		logger.success("API key removed successfully");
@@ -32,7 +25,7 @@ async function runLogoutCommand(
 }
 
 export const logoutCommand = defineCommand({
-	path: ["auth", "logout"],
+	path: ["logout"],
 	meta: logoutCommandMeta,
 	schema: logoutCommandSchema,
 	handler: runLogoutCommand,
