@@ -3,7 +3,8 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const loginCommandMeta: CommandMeta = {
 	name: "login",
-	description: "Authenticate with Phala Cloud",
+	description:
+		"[DEPRECATED] Authenticate with Phala Cloud (use 'phala login' instead)",
 	arguments: [
 		{
 			name: "api-key",

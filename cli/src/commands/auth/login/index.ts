@@ -69,6 +69,13 @@ async function runLoginCommand(
 	input: LoginCommandInput,
 	_context: CommandContext,
 ): Promise<number> {
+	// Show deprecation warning
+	logger.warn(
+		'The "phala auth login" command is deprecated and will be removed in a future version.',
+	);
+	logger.info('Please use "phala login" instead for a better experience.');
+	logger.break();
+
 	try {
 		let apiKey = input.apiKey;
 		let user: UserInfoResponse | undefined;

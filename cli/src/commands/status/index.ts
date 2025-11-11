@@ -18,9 +18,7 @@ export async function runStatusCommand(
 	const apiKey = input.apiToken || getApiKey();
 
 	if (!apiKey) {
-		logger.warn(
-			'Not authenticated. Please set an API key with "phala auth login"',
-		);
+		logger.warn('Not authenticated. Please set an API key with "phala login"');
 		return 0;
 	}
 
@@ -63,7 +61,7 @@ export async function runStatusCommand(
 		logger.error(
 			"Authentication failed. Your API key may be invalid or expired.",
 		);
-		logger.info('Please set a new API key with "phala auth login"');
+		logger.info('Please set a new API key with "phala login"');
 
 		if (debug) {
 			logger.logDetailedError(error);

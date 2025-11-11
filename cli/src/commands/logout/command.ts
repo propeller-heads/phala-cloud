@@ -3,8 +3,7 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const logoutCommandMeta: CommandMeta = {
 	name: "logout",
-	description:
-		"[DEPRECATED] Remove the stored API key (use 'phala logout' instead)",
+	description: "Remove the stored API key",
 };
 
 export const logoutCommandSchema = z.object({});
