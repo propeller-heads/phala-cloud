@@ -415,10 +415,41 @@ jobs:
           npm install -g npm@latest
           npm --version
 
+      - name: Verify OIDC token and npm authentication
+        run: |
+          echo "🔍 Checking OIDC token availability..."
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ] && [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" ]; then
+            echo "✅ OIDC token environment variables are set"
+            echo "   ACTIONS_ID_TOKEN_REQUEST_URL: ${ACTIONS_ID_TOKEN_REQUEST_URL}"
+          else
+            echo "❌ OIDC token environment variables are NOT set"
+            echo "   This indicates that id-token: write permission may not be working"
+          fi
+
+          echo ""
+          echo "🔍 Checking npm whoami (should work with OIDC)..."
+          if npm whoami 2>&1 | grep -q "npm ERR!"; then
+            echo "⚠️  npm whoami failed (expected for OIDC - no pre-auth needed)"
+          else
+            echo "✅ npm authenticated as: $(npm whoami)"
+          fi
+
+          echo ""
+          echo "📋 npm config:"
+          npm config list
+
+          echo ""
+          echo "🔍 GitHub Actions context:"
+          echo "   Repository: ${{ github.repository }}"
+          echo "   Workflow: ${{ github.workflow }}"
+          echo "   Run ID: ${{ github.run_id }}"
+          echo "   Actor: ${{ github.actor }}"
+
       - name: Publish to npm
         working-directory: ${{ env.PACKAGE }}
         run: |
           # Publish using OIDC authentication (npm Trusted Publishers)
+          # Falls back to NPM_TOKEN if USE_NPM_TOKEN env var is set to 'true'
           # Requires npm >= 11.5.1 and id-token: write permission
           # Provenance attestations are generated automatically
           npm publish --access public --tag "$NPM_TAG"
