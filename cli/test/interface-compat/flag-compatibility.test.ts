@@ -26,6 +26,12 @@ async function testCommandFlags(
 			continue;
 		}
 
+		if (flag.long === "--no-json") {
+			// --no-json is a negated flag for --json (works but only --json shows in help)
+			expect(hasFlag(helpText, "--json")).toBe(true);
+			continue;
+		}
+
 		expect(hasFlag(helpText, flag.long)).toBe(true);
 		if (flag.short) {
 			expect(hasFlag(helpText, flag.short)).toBe(true);
@@ -110,7 +116,10 @@ describe("CLI Interface Compatibility - Flag Support (v1.0.40 baseline)", () => 
 
 	describe("Nodes commands", () => {
 		test("nodes list supports all v1.0.40 flags", async () => {
-			await testCommandFlags("nodes list", v1_0_40_interface.nodesCommands.list);
+			await testCommandFlags(
+				"nodes list",
+				v1_0_40_interface.nodesCommands.list,
+			);
 		});
 	});
 

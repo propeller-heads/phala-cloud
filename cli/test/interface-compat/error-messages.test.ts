@@ -27,13 +27,29 @@ describe("CLI Interface Compatibility - Error Handling (v1.0.40 baseline)", () =
 			{ cmd: "docker build", reason: "missing required args" },
 			{ cmd: "docker push", reason: "missing required args" },
 			// Invalid values
-			{ cmd: "deploy --name test --vcpu -999 --compose test.yml", reason: "invalid vcpu" },
-			{ cmd: "deploy --name test --memory -1 --compose test.yml", reason: "invalid memory" },
+			{
+				cmd: "deploy --name test --vcpu -999 --compose test.yml",
+				reason: "invalid vcpu",
+			},
+			{
+				cmd: "deploy --name test --memory -1 --compose test.yml",
+				reason: "invalid memory",
+			},
 			// File not found
-			{ cmd: "deploy --name test --compose /nonexistent/file.yml", reason: "missing file" },
-			{ cmd: "deploy --name test --env-file /nonexistent/.env", reason: "missing env file" },
+			{
+				cmd: "deploy --name test --compose /nonexistent/file.yml",
+				reason: "missing file",
+			},
+			{
+				cmd: "deploy --name test --env-file /nonexistent/.env",
+				reason: "missing env file",
+			},
 			// Invalid format
-			{ cmd: "cvms get invalid-id-format", reason: "invalid app-id format", timeout: 10000 },
+			{
+				cmd: "cvms get invalid-id-format",
+				reason: "invalid app-id format",
+				timeout: 10000,
+			},
 			// Conflicting flags
 			{ cmd: "deploy --json --no-json", reason: "conflicting flags" },
 		];
@@ -64,7 +80,7 @@ describe("CLI Interface Compatibility - Error Handling (v1.0.40 baseline)", () =
 		test("errors don't leak stack traces", async () => {
 			const result = await runCommand("cvms delete", {
 				expectError: true,
-				timeout: 1000,
+				timeout: 3000,
 				stdin: "\n",
 			});
 

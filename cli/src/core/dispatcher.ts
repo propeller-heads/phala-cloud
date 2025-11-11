@@ -6,6 +6,7 @@ import type { CommandRegistry } from "./registry";
 import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
 import { isInJsonMode } from "./json-mode";
+import { getProjectConfig } from "@/src/utils/project-config";
 
 export interface DispatchOptions {
 	readonly registry: CommandRegistry;
@@ -131,6 +132,7 @@ export async function dispatchCommand(
 			stdout,
 			stderr,
 			stdin,
+			projectConfig: getProjectConfig(),
 
 			success(data: unknown): void {
 				if (isInJsonMode()) {
@@ -139,7 +141,9 @@ export async function dispatchCommand(
 							? { success: true, message: data }
 							: {
 									success: true,
-									...(typeof data === "object" && data !== null ? data : { data }),
+									...(typeof data === "object" && data !== null
+										? data
+										: { data }),
 								};
 					stdout.write(`${JSON.stringify(output, null, 2)}\n`);
 				} else {

@@ -243,7 +243,11 @@ export async function waitForNewEvent(
 	// Get initial event logs to establish a baseline
 	const initialEvents = await getCvmEventLogs(logger, vmUuid, apiKey);
 	const initialEventIds = new Set(
-		initialEvents.map((e: unknown) => (e as { id?: string; timestamp?: string }).id || (e as { id?: string; timestamp?: string }).timestamp),
+		initialEvents.map(
+			(e: unknown) =>
+				(e as { id?: string; timestamp?: string }).id ||
+				(e as { id?: string; timestamp?: string }).timestamp,
+		),
 	);
 
 	logger.info(
