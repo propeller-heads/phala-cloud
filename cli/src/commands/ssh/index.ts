@@ -30,26 +30,44 @@ async function runSshCommand(
 			return 1;
 		}
 
-		const client = await getClient();
-		const cvm = await client.getCvmInfo({ id: cvmId });
+		// Resolve gateway domain: CLI option > project config > API
+		let gatewayDomain =
+			input.gatewayDomain ?? context.projectConfig.gateway_domain;
+		let instanceId: string;
 
-		if (!cvm.gateway_domain && !input.gatewayDomain) {
-			logger.error("CVM is not registered on any gateway.");
-			return 1;
+		// Only fetch CVM info if we don't have gateway domain
+		// (which also serves as a status check and validates the CVM exists)
+		if (!gatewayDomain) {
+			const client = await getClient();
+			const cvm = await client.getCvmInfo({ id: cvmId });
+
+			if (!cvm.gateway_domain) {
+				logger.error("CVM is not registered on any gateway.");
+				return 1;
+			}
+
+			// Check if CVM is running
+			if (cvm.status !== "running") {
+				logger.error(
+					`CVM is not running (current status: ${chalk.yellow(cvm.status)})`,
+				);
+				logger.info("Please start the CVM first using: phala cvms start");
+				return 1;
+			}
+
+			gatewayDomain = cvm.gateway_domain;
+			// Use app_id from API response (without app_ prefix)
+			instanceId = cvm.app_id;
+		} else {
+			// When skipping API call, extract raw app_id from cvmId
+			// cvmId could be: "app_xxx" (need to remove prefix) or "xxx" (UUID without dashes)
+			if (cvmId.startsWith("app_")) {
+				instanceId = cvmId.substring(4); // Remove "app_" prefix
+			} else {
+				// For UUID or other formats, use as-is
+				instanceId = cvmId;
+			}
 		}
-
-		// Check if CVM is running
-		if (cvm.status !== "running") {
-			logger.error(
-				`CVM is not running (current status: ${chalk.yellow(cvm.status)})`,
-			);
-			logger.info("Please start the CVM first using: phala cvms start");
-			return 1;
-		}
-
-		// Extract gateway domain and instance ID
-		const gatewayDomain = input.gatewayDomain ?? cvm.gateway_domain;
-		const instanceId = cvm.app_id;
 
 		// Use port from input (defaults to 443)
 		const port = input.port;
