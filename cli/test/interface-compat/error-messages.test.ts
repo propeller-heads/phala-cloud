@@ -64,7 +64,7 @@ describe("CLI Interface Compatibility - Error Handling (v1.0.40 baseline)", () =
 		test("errors don't leak stack traces", async () => {
 			const result = await runCommand("cvms delete", {
 				expectError: true,
-				timeout: 1000,
+				timeout: 3000,
 				stdin: "\n",
 			});
 

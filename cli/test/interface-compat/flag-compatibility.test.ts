@@ -26,6 +26,12 @@ async function testCommandFlags(
 			continue;
 		}
 
+		if (flag.long === "--no-json") {
+			// --no-json is a negated flag for --json (works but only --json shows in help)
+			expect(hasFlag(helpText, "--json")).toBe(true);
+			continue;
+		}
+
 		expect(hasFlag(helpText, flag.long)).toBe(true);
 		if (flag.short) {
 			expect(hasFlag(helpText, flag.short)).toBe(true);
