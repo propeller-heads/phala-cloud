@@ -1,5 +1,11 @@
 import chalk from "chalk";
 import ora, { type Ora } from "ora";
+import type { SafeResult } from "@phala/cloud";
+import type { ZodError } from "zod";
+import { isInJsonMode } from "@/src/core/json-mode";
+
+// Re-export setJsonMode for convenience
+export { setJsonMode } from "@/src/core/json-mode";
 
 /**
  * Wraps text at the specified width by splitting on spaces.
@@ -87,20 +93,45 @@ export function wrapLines(text: string, maxWidth: number): string[] {
 
 export const logger = {
 	error: (message: string, ...args: unknown[]) => {
-		console.error(chalk.red("✗"), chalk.red(message), ...args);
+		if (isInJsonMode()) return;
+		process.stderr.write(`${chalk.red("✗")} ${chalk.red(message)}`);
+		if (args.length > 0) {
+			process.stderr.write(` ${args.map(String).join(" ")}`);
+		}
+		process.stderr.write("\n");
 	},
 	warn: (message: string, ...args: unknown[]) => {
-		console.log(chalk.yellow("⚠"), chalk.yellow(message), ...args);
+		if (isInJsonMode()) return;
+		process.stderr.write(`${chalk.yellow("⚠")} ${chalk.yellow(message)}`);
+		if (args.length > 0) {
+			process.stderr.write(` ${args.map(String).join(" ")}`);
+		}
+		process.stderr.write("\n");
 	},
 	info: (message: string, ...args: unknown[]) => {
-		console.log(chalk.blue("ℹ"), chalk.blue(message), ...args);
+		if (isInJsonMode()) return;
+		process.stderr.write(`${chalk.blue("ℹ")} ${chalk.blue(message)}`);
+		if (args.length > 0) {
+			process.stderr.write(` ${args.map(String).join(" ")}`);
+		}
+		process.stderr.write("\n");
 	},
 	success: (message: string, ...args: unknown[]) => {
-		console.log(chalk.green("✓"), chalk.green(message), ...args);
+		if (isInJsonMode()) return;
+		process.stderr.write(`${chalk.green("✓")} ${chalk.green(message)}`);
+		if (args.length > 0) {
+			process.stderr.write(` ${args.map(String).join(" ")}`);
+		}
+		process.stderr.write("\n");
 	},
 	debug: (message: string, ...args: unknown[]) => {
+		if (isInJsonMode()) return;
 		if (process.env.DEBUG) {
-			console.log(chalk.gray("🔍"), chalk.gray(message), ...args);
+			process.stderr.write(`${chalk.gray("🔍")} ${chalk.gray(message)}`);
+			if (args.length > 0) {
+				process.stderr.write(` ${args.map(String).join(" ")}`);
+			}
+			process.stderr.write("\n");
 		}
 	},
 	table: <T>(
@@ -110,6 +141,7 @@ export const logger = {
 			| Array<{ key: keyof T | string; header?: string }>
 			| Array<{ key: string; header?: string }>,
 	) => {
+		if (isInJsonMode()) return;
 		if (data.length === 0) {
 			console.log(chalk.yellow("No data to display"));
 			return;
@@ -237,6 +269,7 @@ export const logger = {
 			maxWidth?: number;
 		},
 	) => {
+		if (isInJsonMode()) return;
 		const {
 			borderStyle = "single",
 			keyColor = chalk.blue,
@@ -380,12 +413,22 @@ export const logger = {
 	 * Prints a line break (empty line)
 	 */
 	break: () => {
-		console.log();
+		if (isInJsonMode()) return;
+		process.stderr.write("\n");
 	},
 	/**
-	 * Starts a spinner with the given message
+	 * Starts a spinner with the given message.
+	 * In JSON mode, returns a dummy spinner that does nothing.
 	 */
 	startSpinner: (message: string) => {
+		if (isInJsonMode()) {
+			// Return dummy spinner in JSON mode
+			return {
+				stop: () => {
+					// no-op
+				},
+			};
+		}
 		const spinner = ora(message).start();
 		return {
 			stop: (success = true, text?: string) => {
@@ -399,5 +442,71 @@ export const logger = {
 				}
 			},
 		};
+	},
+
+	/**
+	 * Logs detailed error information from any error type.
+	 * Handles SafeResult errors, RequestError, ZodError, and regular errors.
+	 * Automatically exposes HTTP status codes and response bodies when available.
+	 * Automatically suppressed in JSON mode.
+	 *
+	 * @param error - Error from SafeResult, RequestError, or any other error
+	 * @param context - Optional context string to help identify where the error occurred
+	 */
+	logDetailedError(
+		error: SafeResult<never>["error"] | unknown,
+		context?: string,
+	): void {
+		// In JSON mode, suppress detailed error logging (final output handles errors)
+		if (isInJsonMode()) return;
+
+		const prefix = context ? `[${context}] ` : "";
+
+		// Type guard for request errors (RequestError from SDK)
+		const isRequestError = (
+			err: unknown,
+		): err is { isRequestError: true; status: number; statusText: string; message: string; data?: unknown } => {
+			return (
+				err !== null &&
+				typeof err === "object" &&
+				"isRequestError" in err &&
+				err.isRequestError === true &&
+				"status" in err &&
+				"message" in err &&
+				"data" in err
+			);
+		};
+
+		// Type guard for validation errors
+		const isValidationError = (err: unknown): err is ZodError => {
+			return (
+				err !== null &&
+				typeof err === "object" &&
+				"issues" in err &&
+				Array.isArray((err as { issues: unknown }).issues)
+			);
+		};
+
+		// Check if it's a SafeResult request error
+		if (isRequestError(error)) {
+			process.stderr.write(`${prefix}HTTP ${error.status}: ${error.message}\n`);
+			if (error.data !== undefined && error.data !== null) {
+				process.stderr.write(`${JSON.stringify(error.data, null, 2)}\n`);
+			}
+			return;
+		}
+
+		// Check if it's a validation error
+		if (isValidationError(error)) {
+			process.stderr.write(`${prefix}Validation error: ${JSON.stringify(error.issues)}\n`);
+			return;
+		}
+
+		// Regular error
+		if (error instanceof Error) {
+			process.stderr.write(`${prefix}${error.message}\n`);
+		} else {
+			process.stderr.write(`${prefix}${String(error)}\n`);
+		}
 	},
 };

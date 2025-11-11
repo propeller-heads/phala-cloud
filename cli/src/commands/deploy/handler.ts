@@ -4,6 +4,7 @@ import {
 	projectConfigExists,
 } from "@/src/utils/project-config";
 import { getApiKey } from "@/src/utils/credentials";
+import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	CLOUD_URL,
 	DEFAULT_DISK_SIZE,
@@ -11,7 +12,7 @@ import {
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
 import { waitForCvmReady } from "@/src/utils/cvms";
-import { logDetailedError } from "@/src/utils/error-handling";
+
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
 import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
@@ -222,21 +223,21 @@ async function readDockerComposeFile({
 		} else {
 			throw new Error(
 				dedent(`
-        Docker Compose file is required.
+                       Docker Compose file is required.
 
-        Usage examples:
-          phala deploy --node-id 1 docker-compose.yml
-          phala deploy --node-id 6 --kms-id t16z-dev --private-key <your-private-key> --rpc-url <rpc-url> docker-compose.yml
+                           Usage examples:
+                           phala deploy --node-id 1 docker-compose.yml
+                       phala deploy --node-id 6 --kms-id t16z-dev --private-key <your-private-key> --rpc-url <rpc-url> docker-compose.yml
 
-        Minimal required parameters:
-          --compose <path>    Path to docker-compose.yml
+                       Minimal required parameters:
+                           --compose <path>    Path to docker-compose.yml
 
-        For on-chain KMS, also provide:
-          --kms-id <id>       KMS ID
-          --private-key <key> Private key for deployment
+                       For on-chain KMS, also provide:
+                               --kms-id <id>       KMS ID
+                           --private-key <key> Private key for deployment
 
-        Run with --interactive for guided setup
-      `),
+                               Run with --interactive for guided setup
+                                   `),
 			);
 		}
 	}
@@ -472,11 +473,7 @@ const deployNewCvm = async (
 			provision_result.error,
 			validatedOptions,
 		);
-		if (validatedOptions.json) {
-			stdout.write(`${JSON.stringify(formattedError, null, 2)}\n`);
-		} else {
-			stderr.write(String(formattedError));
-		}
+		logger.error("Error in provisioning CVM:", formattedError);
 		throw provision_result.error;
 	}
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
@@ -519,8 +516,12 @@ const deployNewCvm = async (
 		});
 
 		if (!deploy_result.success) {
-			logDetailedError(deploy_result, "Deploy App Auth");
-			throw new Error("Contract deployment failed");
+			logger.logDetailedError(deploy_result, "Deploy App Auth");
+			const errorMsg =
+				typeof deploy_result === "object" && deploy_result !== null
+					? JSON.stringify(deploy_result)
+					: String(deploy_result);
+			throw new Error(`Deployment contract failed: ${errorMsg}`);
 		}
 
 		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
@@ -533,6 +534,7 @@ const deployNewCvm = async (
 		});
 
 		if (!resp.success) {
+			logger.logDetailedError(resp.error, "Get App Env Encrypt PubKey");
 			throw new Error(
 				`Failed to get app env encrypt pubkey: ${resp.error.message}`,
 			);
@@ -569,7 +571,7 @@ const deployNewCvm = async (
 	}
 
 	if (!commit_result.success) {
-		logDetailedError(commit_result.error, "Commit CVM Provision");
+		logger.logDetailedError(commit_result.error, "Commit CVM Provision");
 		throw new Error(
 			`Failed to commit CVM provision: ${commit_result.error.message}`,
 		);
@@ -620,11 +622,11 @@ const updateCvm = async (
 		}),
 	]);
 	if (!cvm_result.success) {
-		logDetailedError(cvm_result.error, "Get CVM Info");
+		logger.logDetailedError(cvm_result.error, "Get CVM Info");
 		throw new Error(`Failed to get cvm info: ${cvm_result.error.message}`);
 	}
 	if (!app_compose_result.success) {
-		logDetailedError(app_compose_result.error, "Get CVM Compose File");
+		logger.logDetailedError(app_compose_result.error, "Get CVM Compose File");
 		throw new Error(
 			`Failed to get cvm compose file: ${app_compose_result.error.message}`,
 		);
@@ -640,14 +642,14 @@ const updateCvm = async (
 		app_compose.allowed_envs = envs.map((env) => env.key);
 	}
 
-	stdout.write(`Preparing update for CVM ${validatedOptions.uuid}...\n`);
+	logger.info(`Preparing update for CVM ${validatedOptions.uuid}...`);
 	const provision_result = await safeProvisionCvmComposeFileUpdate(client, {
 		uuid: validatedOptions.uuid,
 		app_compose:
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
 	});
 	if (!provision_result.success) {
-		logDetailedError(
+		logger.logDetailedError(
 			provision_result.error,
 			"Provision CVM Compose File Update",
 		);
@@ -673,7 +675,7 @@ const updateCvm = async (
 			privateKey: validatedOptions.privateKey as `0x${string}`,
 		});
 		if (!receipt_result.success) {
-			logDetailedError(receipt_result, "Add Compose Hash");
+			logger.logDetailedError(receipt_result, "Add Compose Hash");
 			const errorMsg =
 				typeof receipt_result === "object" && receipt_result !== null
 					? JSON.stringify(receipt_result)
@@ -705,24 +707,24 @@ const updateCvm = async (
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);
 
 	if (!commitResult.success) {
-		logDetailedError(commitResult.error, "Commit CVM Compose File Update");
+		logger.logDetailedError(
+			commitResult.error,
+			"Commit CVM Compose File Update",
+		);
 		throw new Error(
 			`Failed to commit CVM compose file update: ${commitResult.error.message}`,
 		);
 	}
 	// Wait for update to complete if --wait flag is set
 	if (validatedOptions.wait) {
-		if (!validatedOptions.json) {
-			stdout.write("\nWaiting for update to complete...\n");
-		}
+		logger.info("Waiting for update to complete...");
 		try {
 			await waitForCvmReady(
 				validatedOptions.uuid as string,
 				300000, // 5 minutes timeout
-				!validatedOptions.json, // show progress if not in JSON mode
 			);
 		} catch (error: unknown) {
-			logDetailedError(error, "Wait for CVM Ready");
+			logger.logDetailedError(error, "Wait for CVM Ready");
 			throw new Error(
 				`Wait failed: ${error instanceof Error ? error.message : String(error)}`,
 			);
@@ -752,6 +754,9 @@ export async function runDeploy(
 	input: DeployCommandInput,
 	context: { stdout: NodeJS.WriteStream; stderr: NodeJS.WriteStream },
 ): Promise<void> {
+	// Enable JSON mode if --json flag is set
+	setJsonMode(input.json || false);
+
 	try {
 		// Use positional argument if provided, otherwise use the --compose option
 		const dockerComposePath = input.compose;

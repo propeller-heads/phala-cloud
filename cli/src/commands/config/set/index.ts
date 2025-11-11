@@ -1,6 +1,7 @@
 import { defineCommand } from "@/src/core/define-command";
 import { setConfigValue } from "@/src/utils/config";
-import { logDetailedError } from "@/src/utils/error-handling";
+import { logger } from "@/src/utils/logger";
+
 import type { CommandContext } from "@/src/core/types";
 import {
 	configSetCommandMeta,
@@ -36,7 +37,7 @@ async function runConfigSet(
 		return 0;
 	} catch (error) {
 		context.stderr.write("Failed to set configuration value\n");
-		logDetailedError(error);
+		logger.logDetailedError(error);
 		return 1;
 	}
 }
