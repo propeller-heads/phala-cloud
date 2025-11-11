@@ -363,6 +363,71 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
+      - name: Verify npm authentication and permissions
+        working-directory: ${{ env.PACKAGE }}
+        run: |
+          set -e
+
+          # Get package name from package.json
+          PKG_NAME=$(node -e "console.log(require('./package.json').name)")
+
+          echo "📦 Package: $PKG_NAME"
+          echo ""
+
+          # Verify authentication
+          echo "🔐 Verifying npm authentication..."
+          if ! NPM_USER=$(npm whoami 2>&1); then
+            echo "❌ ERROR: npm authentication failed"
+            echo ""
+            echo "The NPM_TOKEN secret is either:"
+            echo "  1. Not set in GitHub repository/environment secrets"
+            echo "  2. Invalid or expired"
+            echo "  3. Not properly configured for this workflow"
+            echo ""
+            echo "To fix this:"
+            echo "  1. Go to https://www.npmjs.com/settings/<your-username>/tokens"
+            echo "  2. Create a new 'Automation' token (not 'Publish' or 'Read-only')"
+            echo "  3. Add it as NPM_TOKEN in GitHub Settings → Secrets and variables → Actions"
+            echo "  4. If using environments, ensure the token is in the correct environment secrets"
+            echo ""
+            echo "npm whoami output:"
+            echo "$NPM_USER"
+            exit 1
+          fi
+
+          echo "✅ Authenticated as: $NPM_USER"
+          echo ""
+
+          # Check package publish permissions
+          echo "🔍 Checking publish permissions for $PKG_NAME..."
+
+          # Try to get package info (will fail if package doesn't exist or no access)
+          if npm view "$PKG_NAME" version > /dev/null 2>&1; then
+            echo "📋 Package exists on npm registry"
+
+            # Check if user has publish access
+            if npm access ls-collaborators "$PKG_NAME" 2>&1 | grep -q "$NPM_USER"; then
+              echo "✅ User $NPM_USER has access to publish $PKG_NAME"
+            else
+              echo "❌ ERROR: User $NPM_USER does NOT have permission to publish $PKG_NAME"
+              echo ""
+              echo "To fix this, one of the package maintainers needs to:"
+              echo "  1. Go to https://www.npmjs.com/package/${PKG_NAME}/access"
+              echo "  2. Invite $NPM_USER as a maintainer"
+              echo "  3. Or use a token from an existing maintainer account"
+              echo ""
+              echo "Current collaborators:"
+              npm access ls-collaborators "$PKG_NAME" 2>&1 || true
+              exit 1
+            fi
+          else
+            echo "⚠️  Package $PKG_NAME not found on npm (this might be the first publish)"
+            echo "   If this is the first publish, ensure $NPM_USER has permission to publish to @phala scope"
+          fi
+
+          echo ""
+          echo "✅ All npm checks passed"
+
       - name: Resolve workspace dependencies
         working-directory: ${{ env.PACKAGE }}
         run: |
