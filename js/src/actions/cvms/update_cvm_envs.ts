@@ -11,9 +11,10 @@ import { PhalaCloudError } from "../../utils/errors";
  * 1. Encrypted environment only: Direct update without compose hash verification
  * 2. Allowed environment keys change: Requires compose hash verification (two-phase)
  *
- * When allowed_envs changes and compose_hash is not provided, the API returns
- * HTTP 428 (Precondition Required) with the compose hash to sign. The client
- * should then retry the request with the signed compose_hash.
+ * When allowed_envs changes and compose_hash/transaction_hash are not provided,
+ * the API returns HTTP 428 (Precondition Required) with the compose hash to sign.
+ * The client should then register the compose hash on-chain and retry the request
+ * with both compose_hash and transaction_hash.
  *
  * @example
  * ```typescript
@@ -29,15 +30,19 @@ import { PhalaCloudError } from "../../utils/errors";
  * })
  *
  * if (result.status === 'precondition_required') {
- *   // Sign the compose hash and retry
- *   const signature = await signComposeHash(result.compose_hash)
+ *   // Register compose hash on-chain and get transaction hash
+ *   const txHash = await registerComposeHashOnChain(
+ *     result.compose_hash,
+ *     result.kms_info
+ *   )
  *
- *   // Phase 2: Retry with compose hash
+ *   // Phase 2: Retry with compose hash and transaction hash
  *   const finalResult = await updateCvmEnvs(client, {
  *     id: 'cvm-123',
  *     encrypted_env: 'hex-encoded-encrypted-data',
  *     env_keys: ['API_KEY', 'DATABASE_URL'],
- *     compose_hash: result.compose_hash
+ *     compose_hash: result.compose_hash,
+ *     transaction_hash: txHash
  *   })
  *
  *   if (finalResult.status === 'in_progress') {
@@ -98,7 +103,9 @@ import { PhalaCloudError } from "../../utils/errors";
  *
  * if (result.success) {
  *   if (result.data.status === 'precondition_required') {
- *     console.log(`Compose hash required: ${result.data.compose_hash}`)
+ *     console.log(`Compose hash: ${result.data.compose_hash}`)
+ *     console.log(`App ID: ${result.data.app_id}`)
+ *     // Register on-chain and retry with transaction_hash
  *   } else {
  *     console.log(`Update started: ${result.data.correlation_id}`)
  *   }
@@ -137,7 +144,16 @@ export const UpdateCvmEnvsRequestSchema = z
       .optional(),
     encrypted_env: z.string().describe("Encrypted environment variables (hex string)"),
     env_keys: z.array(z.string()).optional().describe("List of allowed environment variable keys"),
-    compose_hash: z.string().optional().describe("Compose hash for verification (Phase 2)"),
+    compose_hash: z
+      .string()
+      .optional()
+      .describe("Compose hash for verification (Phase 2, required when env_keys changes)"),
+    transaction_hash: z
+      .string()
+      .optional()
+      .describe(
+        "On-chain transaction hash for verification (Phase 2, required when env_keys changes)",
+      ),
   })
   .refine(
     (data) => !!(data.id || data.uuid || data.app_id || data.instance_id),
@@ -150,6 +166,7 @@ export const UpdateCvmEnvsRequestSchema = z
         encrypted_env: data.encrypted_env,
         env_keys: data.env_keys,
         compose_hash: data.compose_hash,
+        transaction_hash: data.transaction_hash,
       },
       _raw: data,
     };
