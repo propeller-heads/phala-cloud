@@ -68,6 +68,12 @@ import {
   type CommitCvmComposeFileUpdateRequest,
   type CommitCvmComposeFileUpdate,
 } from "./actions/cvms/commit_cvm_compose_file_update";
+import {
+  updateCvmEnvs,
+  safeUpdateCvmEnvs,
+  type UpdateCvmEnvsRequest,
+  type UpdateCvmEnvsResult,
+} from "./actions/cvms/update_cvm_envs";
 import { getKmsInfo, safeGetKmsInfo, type GetKmsInfoRequest } from "./actions/kms/get_kms_info";
 import {
   getKmsList,
@@ -214,6 +220,8 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeProvisionCvmComposeFileUpdate: typeof safeProvisionCvmComposeFileUpdate;
     readonly commitCvmComposeFileUpdate: typeof commitCvmComposeFileUpdate;
     readonly safeCommitCvmComposeFileUpdate: typeof safeCommitCvmComposeFileUpdate;
+    readonly updateCvmEnvs: typeof updateCvmEnvs;
+    readonly safeUpdateCvmEnvs: typeof safeUpdateCvmEnvs;
     readonly startCvm: typeof startCvm;
     readonly safeStartCvm: typeof safeStartCvm;
     readonly stopCvm: typeof stopCvm;
@@ -279,6 +287,8 @@ export function createClient(config: ClientConfig = {}): Client {
     safeProvisionCvmComposeFileUpdate,
     commitCvmComposeFileUpdate,
     safeCommitCvmComposeFileUpdate,
+    updateCvmEnvs,
+    safeUpdateCvmEnvs,
     startCvm,
     safeStartCvm,
     stopCvm,
@@ -585,6 +595,23 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeCommitCvmComposeFileUpdate(
     request: CommitCvmComposeFileUpdateRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  updateCvmEnvs(request: UpdateCvmEnvsRequest): Promise<UpdateCvmEnvsResult>;
+  updateCvmEnvs<T extends z.ZodTypeAny>(
+    request: UpdateCvmEnvsRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updateCvmEnvs(request: UpdateCvmEnvsRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeUpdateCvmEnvs(request: UpdateCvmEnvsRequest): Promise<SafeResult<UpdateCvmEnvsResult>>;
+  safeUpdateCvmEnvs<T extends z.ZodTypeAny>(
+    request: UpdateCvmEnvsRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdateCvmEnvs(
+    request: UpdateCvmEnvsRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 

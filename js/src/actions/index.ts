@@ -83,6 +83,17 @@ export {
 } from "./cvms/commit_cvm_compose_file_update";
 
 export {
+  updateCvmEnvs,
+  safeUpdateCvmEnvs,
+  UpdateCvmEnvsRequestSchema,
+  type UpdateCvmEnvsRequest,
+  UpdateCvmEnvsResultSchema,
+  type UpdateCvmEnvsResult,
+  type UpdateCvmEnvsInProgress,
+  type UpdateCvmEnvsPreconditionRequired,
+} from "./cvms/update_cvm_envs";
+
+export {
   getAppEnvEncryptPubKey,
   safeGetAppEnvEncryptPubKey,
   GetAppEnvEncryptPubKeySchema,
