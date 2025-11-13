@@ -14,7 +14,9 @@ import { logger } from "./logger";
 // Extends CvmIdObjectSchema and applies refineCvmId validation
 export const ProjectConfigSchema: z.ZodTypeAny = refineCvmId(
 	CvmIdObjectSchema.extend({
-		api_version: z.enum(SUPPORTED_API_VERSIONS),
+		api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
+		gateway_domain: z.string().optional(),
+		gateway_port: z.number().int().positive().optional(),
 	}),
 );
 
@@ -23,6 +25,8 @@ export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 // Runtime project config - includes extracted cvm_id field
 export type RuntimeProjectConfig = Partial<ProjectConfig> & {
 	cvm_id?: string;
+	gateway_domain?: string;
+	gateway_port?: number;
 };
 
 const CONFIG_FILE_NAME = "phala.toml";
@@ -130,16 +134,20 @@ export function getProjectConfig(): RuntimeProjectConfig {
 
 /**
  * Parse and validate CVM ID from command input
- * Uses CvmIdSchema to validate and extract the single cvmId
- * Returns undefined if input is undefined
+ * Uses SDK's CvmIdSchema with smart auto-detection:
+ * - UUID (with or without dashes) → removes dashes
+ * - 40-char hex string → adds 'app_' prefix
+ * - Other formats → uses as-is (app_xxx, instance_xxx, cvm-xxx)
  *
  * @param input - CVM ID from command argument/option
- * @returns Validated CVM ID string or undefined
+ * @returns Validated and normalized CVM ID string or undefined
  * @throws ZodError if input is invalid
  *
  * @example
  * ```typescript
  * const cvm_id = parse_cvm_id(input.cvm_id) ?? projectConfig.cvm_id;
+ * // Input: "50b0e827cc6c53f4010b57e588a18c5ef9388cc1" → Output: "app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1"
+ * // Input: "91b62ea0-6c64-4985-aa6c-fc3c88a02e64" → Output: "91b62ea06c6449855aa6cfc3c88a02e64"
  * ```
  */
 export function parse_cvm_id(input: string | undefined): string | undefined {
@@ -147,10 +155,9 @@ export function parse_cvm_id(input: string | undefined): string | undefined {
 		return undefined;
 	}
 
+	// CvmIdSchema automatically detects the format when using 'id' field
 	const { cvmId } = (
 		CvmIdSchema as unknown as z.ZodType<{ cvmId: string }>
-	).parse({
-		id: input,
-	});
+	).parse({ id: input });
 	return cvmId;
 }

@@ -67,13 +67,14 @@ describe("getCvmComposeFile", () => {
       expect(result.toString).toBeTypeOf("function");
     });
 
-    it("should call correct endpoint with instance_id (adds prefix)", async () => {
+    it("should call correct endpoint with instance_id (40-char hex detected as app_id)", async () => {
       (mockClient.get as jest.Mock).mockResolvedValue(mockComposeFileResponse);
 
+      // 40-char hex will be auto-detected as app_id regardless of field name
       const instanceId = "b".repeat(40);
       const result = await getCvmComposeFile(mockClient as Client, { instance_id: instanceId });
 
-      expect(mockClient.get).toHaveBeenCalledWith(`/cvms/instance_${instanceId}/compose_file`);
+      expect(mockClient.get).toHaveBeenCalledWith(`/cvms/app_${instanceId}/compose_file`);
       expect(result).toMatchObject(mockComposeFileResponse);
       expect(result.getHash).toBeTypeOf("function");
       expect(result.toString).toBeTypeOf("function");

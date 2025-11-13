@@ -7,8 +7,7 @@ export const sshCommandMeta: CommandMeta = {
 	arguments: [
 		{
 			name: "cvm-id",
-			description:
-				"CVM ID (app_id or UUID). If not provided, reads from phala.toml",
+			description: "CVM ID. If not provided, reads from phala.toml",
 			required: false,
 			target: "cvmId",
 		},
@@ -24,14 +23,16 @@ export const sshCommandMeta: CommandMeta = {
 		{
 			name: "port",
 			shorthand: "p",
-			description: "SSH port (default: 443)",
+			description:
+				"SSH port. Priority: CLI option > phala.toml gateway_port > 443",
 			type: "string",
 			target: "port",
 		},
 		{
 			name: "gateway-domain",
 			shorthand: "g",
-			description: "Gateway domain (default: from API)",
+			description:
+				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
 			type: "string",
 			target: "gatewayDomain",
 		},
@@ -52,31 +53,23 @@ export const sshCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "Connect using app_id from phala.toml",
+			name: "Connect using configuration from phala.toml",
 			value: "phala ssh",
 		},
 		{
-			name: "Connect to a CVM by ID",
+			name: "Connect to a specific CVM (queries API for gateway)",
 			value: "phala ssh app_123",
+		},
+		{
+			name: "Offline mode: connect without API (using phala.toml gateway)",
+			value: "phala ssh app_123 -g dstack-gateway.example.com -p 16185",
 		},
 		{
 			name: "Connect with custom SSH key",
 			value: "phala ssh app_123 -i ~/.ssh/custom_key",
 		},
 		{
-			name: "Connect with custom port",
-			value: "phala ssh app_123 -p 16185",
-		},
-		{
-			name: "Connect with custom gateway domain",
-			value: "phala ssh app_123 -g dstack-dev-v05x.phatfn.xyz -p 16185",
-		},
-		{
-			name: "Connect with custom timeout",
-			value: "phala ssh app_123 -t 60",
-		},
-		{
-			name: "Connect with verbose output",
+			name: "Connect with verbose output for debugging",
 			value: "phala ssh app_123 -v",
 		},
 	],

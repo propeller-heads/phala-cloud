@@ -8,23 +8,56 @@ import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { parse_cvm_id } from "@/src/utils/project-config";
-import {
-	sshCommandMeta,
-	sshCommandSchema,
-	type SshCommandInput,
-} from "./command";
+import { cpCommandMeta, cpCommandSchema, type CpCommandInput } from "./command";
 
-async function runSshCommand(
-	input: SshCommandInput,
+interface PathInfo {
+	isRemote: boolean;
+	cvmId?: string;
+	path: string;
+}
+
+function parsePath(pathStr: string): PathInfo {
+	const remoteMatch = pathStr.match(/^([^:]+):(.+)$/);
+	if (remoteMatch) {
+		return {
+			isRemote: true,
+			cvmId: remoteMatch[1],
+			path: remoteMatch[2],
+		};
+	}
+	return {
+		isRemote: false,
+		path: pathStr,
+	};
+}
+
+async function runCpCommand(
+	input: CpCommandInput,
 	context: CommandContext,
 ): Promise<number> {
 	try {
-		// Resolve CVM ID: command input > project config
-		const cvmId = parse_cvm_id(input.cvmId) ?? context.projectConfig.cvm_id;
+		const source = parsePath(input.source);
+		const destination = parsePath(input.destination);
+
+		// Validate: exactly one side must be remote
+		if (source.isRemote === destination.isRemote) {
+			logger.error(
+				"Either source or destination must be a remote path in format: cvm-id:path",
+			);
+			logger.info("Examples:");
+			logger.info("  phala cp ./local.txt app_123:/root/remote.txt");
+			logger.info("  phala cp app_123:/root/remote.txt ./local.txt");
+			return 1;
+		}
+
+		// Get CVM ID from remote path or fallback to project config
+		const remotePath = source.isRemote ? source : destination;
+		const cvmId =
+			parse_cvm_id(remotePath.cvmId) ?? context.projectConfig.cvm_id;
 
 		if (!cvmId) {
 			logger.error(
-				"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.\n" +
+				"No CVM ID provided. Either use format cvm-id:path or configure it in phala.toml.\n" +
 					"Supported fields: id, uuid, app_id, or instance_id",
 			);
 			return 1;
@@ -97,7 +130,7 @@ async function runSshCommand(
 
 			if (!keyFile) {
 				logger.warn(
-					"No default SSH key found. SSH will use ssh-agent or prompt for password.",
+					"No default SSH key found. SCP will use ssh-agent or prompt for password.",
 				);
 			}
 		} else {
@@ -113,9 +146,10 @@ async function runSshCommand(
 			}
 		}
 
-		// Construct SSH configuration
+		// Construct remote hostname
 		const hostname = `${instanceId}-22.${gatewayDomain}`;
 		const user = "root";
+
 		// Suppress openssl certificate verification output in non-verbose mode
 		const proxyCommand = input.verbose
 			? "openssl s_client -quiet -connect %h:%p"
@@ -125,8 +159,8 @@ async function runSshCommand(
 			logger.info(`Connecting to ${chalk.cyan(hostname)}...`);
 		}
 
-		// Build SSH arguments
-		const sshArgs: string[] = [
+		// Build SCP arguments
+		const scpArgs: string[] = [
 			"-o",
 			`ProxyCommand=${proxyCommand}`,
 			"-o",
@@ -135,68 +169,86 @@ async function runSshCommand(
 			"UserKnownHostsFile=/dev/null",
 			"-o",
 			"LogLevel=ERROR",
-			"-o",
-			`ConnectTimeout=${input.timeout}`,
-			"-p",
+			"-P",
 			port,
 		];
 
 		// Add key file if available
 		if (keyFile) {
-			sshArgs.push("-i", keyFile);
+			scpArgs.push("-i", keyFile);
+		}
+
+		// Add recursive flag if requested
+		if (input.recursive) {
+			scpArgs.push("-r");
 		}
 
 		// Add verbose flag if requested
 		if (input.verbose) {
-			sshArgs.unshift("-v");
+			scpArgs.unshift("-v");
 			// Remove LogLevel restriction in verbose mode
-			const logLevelIndex = sshArgs.indexOf("LogLevel=ERROR");
+			const logLevelIndex = scpArgs.indexOf("LogLevel=ERROR");
 			if (logLevelIndex > 0) {
-				sshArgs.splice(logLevelIndex - 1, 2); // Remove -o and LogLevel=ERROR
+				scpArgs.splice(logLevelIndex - 1, 2); // Remove -o and LogLevel=ERROR
 			}
 		}
 
-		// Add target
-		sshArgs.push(`${user}@${hostname}`);
+		// Construct source and destination with proper format
+		const scpSource = source.isRemote
+			? `${user}@${hostname}:${source.path}`
+			: source.path;
+		const scpDestination = destination.isRemote
+			? `${user}@${hostname}:${destination.path}`
+			: destination.path;
 
-		// Spawn SSH process
-		const ssh = spawn("ssh", sshArgs, { stdio: "inherit" });
+		scpArgs.push(scpSource, scpDestination);
+
+		const direction = source.isRemote ? "download" : "upload";
+		const localPath = source.isRemote ? destination.path : source.path;
+		const remotePath_ = source.isRemote ? source.path : destination.path;
+
+		logger.info(
+			`${direction === "upload" ? "Uploading" : "Downloading"} ${chalk.cyan(localPath)} ${direction === "upload" ? "to" : "from"} ${chalk.cyan(remotePath_)}...`,
+		);
+
+		// Spawn SCP process
+		const scp = spawn("scp", scpArgs, { stdio: "inherit" });
 
 		// Handle process errors
-		ssh.on("error", (error) => {
+		scp.on("error", (error) => {
 			logger.break();
-			logger.error(`SSH connection failed: ${error.message}`);
+			logger.error(`SCP failed: ${error.message}`);
 		});
 
 		// Handle process exit
 		return new Promise<number>((resolve) => {
-			ssh.on("close", (code) => {
+			scp.on("close", (code) => {
 				logger.break();
 				if (code === 0) {
-					logger.success("Connection closed");
+					logger.success(
+						`${direction === "upload" ? "Upload" : "Download"} completed`,
+					);
 					resolve(0);
 				} else {
-					logger.error(`Connection failed with code ${code}`);
+					logger.error(`Transfer failed with code ${code}`);
 					resolve(code ?? 1);
 				}
 			});
 		});
 	} catch (error) {
-		logger.error("Failed to connect via SSH");
+		logger.error("Failed to copy file via SCP");
 		if (error instanceof Error) {
 			logger.error(error.message);
-		} else {
-			logger.error(String(error));
 		}
 		return 1;
 	}
 }
 
-export const sshCommand = defineCommand({
-	path: ["ssh"],
-	meta: sshCommandMeta,
-	schema: sshCommandSchema,
-	handler: runSshCommand,
+export const cpCommand = defineCommand({
+	path: ["cp"],
+	meta: cpCommandMeta,
+	schema: cpCommandSchema,
+	handler: runCpCommand,
 });
 
-export default sshCommand;
+export default cpCommand;

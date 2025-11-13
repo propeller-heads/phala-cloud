@@ -53,33 +53,66 @@ export const CvmIdBaseSchema = refineCvmId(CvmIdObjectSchema);
 
 /**
  * CVM ID Schema - supports multiple identifier formats
- * Automatically transforms to the correct format for API calls
+ * Automatically detects and normalizes any CVM ID format
+ *
+ * Process:
+ * 1. Extract raw value from any field (priority: id > uuid > app_id > instance_id)
+ * 2. Auto-detect format using regex patterns
+ * 3. Apply appropriate normalization:
+ *    - UUID (with or without dashes) → remove dashes
+ *    - 40-char hex string → add 'app_' prefix
+ *    - Already prefixed or custom → use as-is
  *
  * @example
  * ```typescript
- * const result1 = CvmIdSchema.parse({ id: "cvm-123" });
- * const result2 = CvmIdSchema.parse({ uuid: "550e8400-e29b-41d4-a716-446655440000" });
+ * // All these work regardless of which field is used:
+ * CvmIdSchema.parse({ id: "550e8400-e29b-41d4-a716-446655440000" });
+ * CvmIdSchema.parse({ uuid: "550e8400-e29b-41d4-a716-446655440000" });
+ * // → { cvmId: "550e8400e29b41d4a716446655440000" }
+ *
+ * CvmIdSchema.parse({ id: "50b0e827cc6c53f4010b57e588a18c5ef9388cc1" });
+ * CvmIdSchema.parse({ app_id: "50b0e827cc6c53f4010b57e588a18c5ef9388cc1" });
+ * // → { cvmId: "app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1" }
+ *
+ * CvmIdSchema.parse({ id: "app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1" });
+ * // → { cvmId: "app_50b0e827cc6c53f4010b57e588a18c5ef9388cc1" }
  * ```
  */
 export const CvmIdSchema = CvmIdBaseSchema.transform((data) => {
-  // Priority: id > uuid > app_id > instance_id
-  let cvmId: string;
+  // Step 1: Extract raw value from any field (priority: id > uuid > app_id > instance_id)
+  let rawValue: string;
 
   if (data.id) {
-    cvmId = data.id;
+    rawValue = data.id;
   } else if (data.uuid) {
-    // Remove dashes from UUID
-    cvmId = data.uuid.replace(/-/g, "");
+    rawValue = data.uuid;
   } else if (data.app_id) {
-    // Ensure app_id has 'app_' prefix
-    cvmId = data.app_id.startsWith("app_") ? data.app_id : `app_${data.app_id}`;
+    rawValue = data.app_id;
   } else if (data.instance_id) {
-    // Ensure instance_id has 'instance_' prefix
-    cvmId = data.instance_id.startsWith("instance_")
-      ? data.instance_id
-      : `instance_${data.instance_id}`;
+    rawValue = data.instance_id;
   } else {
     throw new Error("No valid identifier provided");
+  }
+
+  // Step 2: Define regex patterns for auto-detection
+  // UUID format (with or without dashes) - RFC 4122 version 4
+  const uuidRegex =
+    /^[0-9a-f]{8}[-]?[0-9a-f]{4}[-]?4[0-9a-f]{3}[-]?[89ab][0-9a-f]{3}[-]?[0-9a-f]{12}$/i;
+  // 40-char hex string (unprefixed app_id)
+  const appIdRegex = /^[0-9a-f]{40}$/i;
+
+  // Step 3: Apply regex-based auto-correction
+  let cvmId: string;
+
+  if (uuidRegex.test(rawValue)) {
+    // Detected as UUID - remove dashes
+    cvmId = rawValue.replace(/-/g, "");
+  } else if (appIdRegex.test(rawValue)) {
+    // Detected as unprefixed app_id - add 'app_' prefix
+    cvmId = `app_${rawValue}`;
+  } else {
+    // Use as-is (already prefixed like app_xxx, instance_xxx, or custom format)
+    cvmId = rawValue;
   }
 
   return { cvmId };
