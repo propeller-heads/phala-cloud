@@ -1,13 +1,20 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { parse_cvm_id } from "@/src/utils/project-config";
+import {
+	CvmNotRunningError,
+	NoGatewayError,
+	buildHostname,
+	buildSshOptions,
+	fetchCvmInfo,
+	getSshKeyFile,
+	parseGatewayDomain,
+	selectPort,
+} from "@/src/utils/ssh-utils";
 import { cpCommandMeta, cpCommandSchema, type CpCommandInput } from "./command";
 
 interface PathInfo {
@@ -63,180 +70,82 @@ async function runCpCommand(
 			return 1;
 		}
 
-		// Resolve gateway domain: CLI option > project config > API
-		let gatewayDomain =
+		// Resolve gateway domain and port from config hierarchy
+		const configGatewayDomain =
 			input.gatewayDomain ?? context.projectConfig.gateway_domain;
-
-		// Resolve port: CLI option > project config > default (443)
-		let port =
+		const requestedPort =
 			input.port !== "443"
 				? input.port
 				: (context.projectConfig.gateway_port?.toString() ?? "443");
 
-		// Parse gateway domain to extract hostname and port if included
-		let gatewayHost = gatewayDomain;
-		let gatewayPort: string | undefined;
-
-		if (gatewayDomain) {
-			// Check if gateway domain includes port (format: hostname:port)
-			const lastColonIndex = gatewayDomain.lastIndexOf(":");
-			if (lastColonIndex > 0) {
-				const potentialPort = gatewayDomain.substring(lastColonIndex + 1);
-				// Verify it's a valid port number
-				if (/^\d+$/.test(potentialPort)) {
-					gatewayHost = gatewayDomain.substring(0, lastColonIndex);
-					gatewayPort = potentialPort;
-					// Use gateway's port if no explicit port was specified via CLI
-					if (input.port === "443") {
-						port = gatewayPort;
-					}
-				}
-			}
-		}
-
+		// Fetch CVM info from API if gateway not provided
 		let instanceId: string;
+		let gatewayDomain: string;
 
-		// Only fetch CVM info if we don't have gateway domain
-		// (which also serves as a status check and validates the CVM exists)
-		if (!gatewayDomain) {
-			const client = await getClient();
-			const cvm = await client.getCvmInfo({ id: cvmId });
-
-			if (!cvm.gateway_domain) {
-				logger.error("CVM is not registered on any gateway.");
-				return 1;
-			}
-
-			// Check if CVM is running
-			if (cvm.status !== "running") {
-				logger.error(
-					`CVM is not running (current status: ${chalk.yellow(cvm.status)})`,
-				);
-				logger.info("Please start the CVM first using: phala cvms start");
-				return 1;
-			}
-
-			gatewayDomain = cvm.gateway_domain;
-			// Use app_id from API response (without app_ prefix)
-			instanceId = cvm.app_id;
-
-			// Re-parse gateway domain after getting it from API
-			gatewayHost = gatewayDomain;
-			if (gatewayDomain) {
-				const lastColonIndex = gatewayDomain.lastIndexOf(":");
-				if (lastColonIndex > 0) {
-					const potentialPort = gatewayDomain.substring(lastColonIndex + 1);
-					if (/^\d+$/.test(potentialPort)) {
-						gatewayHost = gatewayDomain.substring(0, lastColonIndex);
-						gatewayPort = potentialPort;
-						if (input.port === "443") {
-							port = gatewayPort;
-						}
-					}
+		if (!configGatewayDomain) {
+			try {
+				const client = await getClient();
+				const cvmInfo = await fetchCvmInfo(client, cvmId);
+				instanceId = cvmInfo.appId;
+				gatewayDomain = cvmInfo.gatewayDomain;
+			} catch (error) {
+				if (error instanceof NoGatewayError) {
+					logger.error(error.message);
+				} else if (error instanceof CvmNotRunningError) {
+					logger.error(error.message);
+					logger.info("Please start the CVM first using: phala cvms start");
+				} else {
+					logger.error(
+						error instanceof Error ? error.message : "Failed to fetch CVM info",
+					);
 				}
+				return 1;
 			}
 		} else {
-			// When skipping API call, extract raw app_id from cvmId
-			// cvmId could be: "app_xxx" (need to remove prefix) or "xxx" (UUID without dashes)
-			if (cvmId.startsWith("app_")) {
-				instanceId = cvmId.substring(4); // Remove "app_" prefix
-			} else {
-				// For UUID or other formats, use as-is
-				instanceId = cvmId;
-			}
+			gatewayDomain = configGatewayDomain;
+			// Extract instance ID from cvmId (remove "app_" prefix if present)
+			instanceId = cvmId.startsWith("app_") ? cvmId.substring(4) : cvmId;
 		}
 
-		// Handle SSH key file
-		let keyFile = input.identity;
+		// Parse gateway and select port
+		const gateway = parseGatewayDomain(gatewayDomain);
+		const port = selectPort(requestedPort, gateway.port);
+		const hostname = buildHostname(instanceId, gateway.host);
 
+		// Get SSH key file
+		const keyFile = getSshKeyFile(input.identity);
 		if (!keyFile) {
-			// Search for default keys
-			const defaultKeys = [
-				join(homedir(), ".ssh", "id_rsa"),
-				join(homedir(), ".ssh", "id_ed25519"),
-				join(homedir(), ".ssh", "id_ecdsa"),
-				join(homedir(), ".ssh", "id_dsa"),
-			];
-
-			for (const key of defaultKeys) {
-				if (existsSync(key)) {
-					keyFile = key;
-					break;
-				}
-			}
-
-			if (!keyFile) {
-				logger.warn(
-					"No default SSH key found. SCP will use ssh-agent or prompt for password.",
-				);
-			}
-		} else {
-			// Expand ~ to home directory
-			if (keyFile.startsWith("~")) {
-				keyFile = join(homedir(), keyFile.slice(1));
-			}
-
-			// Verify key file exists
-			if (!existsSync(keyFile)) {
-				logger.error(`SSH key file not found: ${keyFile}`);
-				return 1;
-			}
+			logger.warn(
+				"No default SSH key found. SCP will use ssh-agent or prompt for password.",
+			);
 		}
-
-		// Construct remote hostname
-		// Use gatewayHost (without port) to construct hostname
-		const hostname = `${instanceId}-22.${gatewayHost}`;
-		const user = "root";
-
-		// Suppress openssl certificate verification output in non-verbose mode
-		const proxyCommand = input.verbose
-			? "openssl s_client -quiet -connect %h:%p"
-			: "openssl s_client -quiet -connect %h:%p 2>/dev/null";
 
 		if (input.verbose) {
-			logger.info(`Connecting to ${chalk.cyan(hostname)}...`);
+			logger.info(`Connecting to ${chalk.cyan(hostname)}:${port}...`);
 		}
 
-		// Build SCP arguments
-		const scpArgs: string[] = [
-			"-o",
-			`ProxyCommand=${proxyCommand}`,
-			"-o",
-			"StrictHostKeyChecking=no",
-			"-o",
-			"UserKnownHostsFile=/dev/null",
-			"-o",
-			"LogLevel=ERROR",
-			"-P",
-			port,
-		];
+		// Build SCP arguments (SCP uses -P for port, not -p)
+		const sshOptions = buildSshOptions(input.verbose, "30");
+		const scpArgs: string[] = [...sshOptions, "-P", port];
 
-		// Add key file if available
+		if (input.verbose) {
+			scpArgs.unshift("-v");
+		}
+
 		if (keyFile) {
 			scpArgs.push("-i", keyFile);
 		}
 
-		// Add recursive flag if requested
 		if (input.recursive) {
 			scpArgs.push("-r");
 		}
 
-		// Add verbose flag if requested
-		if (input.verbose) {
-			scpArgs.unshift("-v");
-			// Remove LogLevel restriction in verbose mode
-			const logLevelIndex = scpArgs.indexOf("LogLevel=ERROR");
-			if (logLevelIndex > 0) {
-				scpArgs.splice(logLevelIndex - 1, 2); // Remove -o and LogLevel=ERROR
-			}
-		}
-
 		// Construct source and destination with proper format
 		const scpSource = source.isRemote
-			? `${user}@${hostname}:${source.path}`
+			? `root@${hostname}:${source.path}`
 			: source.path;
 		const scpDestination = destination.isRemote
-			? `${user}@${hostname}:${destination.path}`
+			? `root@${hostname}:${destination.path}`
 			: destination.path;
 
 		scpArgs.push(scpSource, scpDestination);

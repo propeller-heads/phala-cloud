@@ -1,0 +1,165 @@
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import type { Client } from "@phala/cloud";
+import chalk from "chalk";
+
+/**
+ * Custom error for CVM not running
+ */
+export class CvmNotRunningError extends Error {
+	constructor(
+		public readonly status: string,
+		public readonly cvmId: string,
+	) {
+		super(`CVM is not running (current status: ${chalk.yellow(status)})`);
+		this.name = "CvmNotRunningError";
+	}
+}
+
+/**
+ * Custom error for missing gateway
+ */
+export class NoGatewayError extends Error {
+	constructor(public readonly cvmId: string) {
+		super("CVM is not registered on any gateway.");
+		this.name = "NoGatewayError";
+	}
+}
+
+/**
+ * Parsed gateway domain (hostname and optional port)
+ */
+export type Gateway = { host: string; port?: string };
+
+/**
+ * Parse gateway domain to extract hostname and port
+ * Examples: "example.com" -> { host: "example.com" }
+ *           "example.com:8443" -> { host: "example.com", port: "8443" }
+ */
+export function parseGatewayDomain(gatewayDomain: string): Gateway {
+	const lastColonIndex = gatewayDomain.lastIndexOf(":");
+	if (lastColonIndex > 0) {
+		const potentialPort = gatewayDomain.substring(lastColonIndex + 1);
+		if (/^\d+$/.test(potentialPort)) {
+			return {
+				host: gatewayDomain.substring(0, lastColonIndex),
+				port: potentialPort,
+			};
+		}
+	}
+	return { host: gatewayDomain };
+}
+
+/**
+ * Find default SSH private key file
+ */
+export function findDefaultSshKey(): string | undefined {
+	const defaultKeys = [
+		join(homedir(), ".ssh", "id_rsa"),
+		join(homedir(), ".ssh", "id_ed25519"),
+		join(homedir(), ".ssh", "id_ecdsa"),
+		join(homedir(), ".ssh", "id_dsa"),
+	];
+
+	for (const key of defaultKeys) {
+		if (existsSync(key)) {
+			return key;
+		}
+	}
+
+	return undefined;
+}
+
+/**
+ * Get SSH key file - either user-specified or default
+ * Throws if specified key doesn't exist
+ */
+export function getSshKeyFile(specifiedKey?: string): string | undefined {
+	if (specifiedKey) {
+		// Expand ~ to home directory
+		const resolvedPath = specifiedKey.startsWith("~")
+			? join(homedir(), specifiedKey.slice(1))
+			: specifiedKey;
+
+		if (!existsSync(resolvedPath)) {
+			throw new Error(`SSH key file not found: ${resolvedPath}`);
+		}
+		return resolvedPath;
+	}
+
+	return findDefaultSshKey();
+}
+
+/**
+ * Fetch CVM info from API and validate it's ready for connection
+ * @throws {NoGatewayError} if CVM has no gateway
+ * @throws {CvmNotRunningError} if CVM is not running
+ */
+export async function fetchCvmInfo(client: Client, cvmId: string) {
+	const cvm = await client.getCvmInfo({ id: cvmId });
+
+	if (!cvm.gateway_domain) {
+		throw new NoGatewayError(cvmId);
+	}
+
+	if (cvm.status !== "running") {
+		throw new CvmNotRunningError(cvm.status, cvmId);
+	}
+
+	return {
+		appId: cvm.app_id,
+		gatewayDomain: cvm.gateway_domain,
+		status: cvm.status,
+	};
+}
+
+/**
+ * Build hostname for SSH/SCP connection
+ * Format: {instanceId}-22.{gatewayHost}
+ */
+export function buildHostname(instanceId: string, gatewayHost: string): string {
+	return `${instanceId}-22.${gatewayHost}`;
+}
+
+/**
+ * Select port with priority: user-specified > gateway port > default
+ */
+export function selectPort(
+	requestedPort: string,
+	gatewayPort: string | undefined,
+): string {
+	// If user explicitly specified a non-default port, use it
+	if (requestedPort !== "443") {
+		return requestedPort;
+	}
+	// Otherwise prefer gateway's port if available
+	return gatewayPort || "443";
+}
+
+/**
+ * Build common SSH options for ssh/scp commands
+ */
+export function buildSshOptions(verbose: boolean, timeout: string): string[] {
+	const proxyCommand = verbose
+		? "openssl s_client -quiet -connect %h:%p"
+		: "openssl s_client -quiet -connect %h:%p 2>/dev/null";
+
+	const options: string[] = [
+		"-o",
+		`ProxyCommand=${proxyCommand}`,
+		"-o",
+		"StrictHostKeyChecking=no",
+		"-o",
+		"UserKnownHostsFile=/dev/null",
+		"-o",
+		`ConnectTimeout=${timeout}`,
+	];
+
+	// Only add LogLevel in non-verbose mode
+	if (!verbose) {
+		options.push("-o", "LogLevel=ERROR");
+	}
+
+	return options;
+}
