@@ -737,20 +737,10 @@ const updateCvm = async (
 	// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 	const app_compose = app_compose_result.data as any;
 
-	// Read SSH public key and add to environment variables
-	const sshPubkey = await readSshPubkey(validatedOptions);
-	const envsWithSshKey = [...(envs || [])];
-	if (sshPubkey) {
-		envsWithSshKey.push({
-			key: "DSTACK_AUTHORIZED_KEYS",
-			value: sshPubkey,
-		});
-	}
-
 	// patched the compose_file
 	app_compose.docker_compose_file = docker_compose_yml;
-	if (envsWithSshKey.length > 0) {
-		app_compose.allowed_envs = envsWithSshKey.map((env) => env.key);
+	if (envs && envs.length > 0) {
+		app_compose.allowed_envs = envs.map((env) => env.key);
 	}
 
 	logger.info(`Preparing update for CVM ${validatedOptions.uuid}...`);
@@ -794,14 +784,14 @@ const updateCvm = async (
 			throw new Error(`Failed to add compose hash: ${errorMsg}`);
 		}
 	} else {
-		if (envsWithSshKey && envsWithSshKey.length > 0) {
+		if (envs && envs.length > 0) {
 			if (!cvm.encrypted_env_pubkey) {
 				throw new Error(
 					"CVM encrypted_env_pubkey is required for centralized KMS",
 				);
 			}
 			const encrypted_env_vars = await encryptEnvVars(
-				envsWithSshKey,
+				envs,
 				cvm.encrypted_env_pubkey,
 			);
 			encrypted_env = encrypted_env_vars;
@@ -812,9 +802,7 @@ const updateCvm = async (
 		id: validatedOptions.uuid,
 		compose_hash: provision.compose_hash,
 		encrypted_env: encrypted_env,
-		env_keys: envsWithSshKey?.length
-			? envsWithSshKey.map((env) => env.key)
-			: undefined,
+		env_keys: envs?.length ? envs.map((env) => env.key) : undefined,
 	};
 	// @ts-ignore
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);
