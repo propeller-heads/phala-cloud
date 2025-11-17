@@ -3,7 +3,12 @@ import open from "open";
 import ora from "ora";
 import prompts from "prompts";
 
-import { createClient, safeGetCurrentUser } from "@phala/cloud";
+import {
+	createClient,
+	safeGetCurrentUser,
+	BusinessError,
+	type PhalaCloudError,
+} from "@phala/cloud";
 
 import type { UserInfoResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
@@ -32,6 +37,32 @@ interface DeviceTokenResponse {
 interface DeviceTokenError {
 	error: string;
 	error_description?: string;
+}
+
+/**
+ * Extract device auth error from PhalaCloudError
+ * Device auth errors have a specific structure in the detail field
+ */
+function extractDeviceAuthError(
+	error: PhalaCloudError,
+): DeviceTokenError | null {
+	const { detail } = error;
+
+	// Device auth errors have detail as an object with 'error' field
+	if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+		const detailObj = detail as Record<string, unknown>;
+		if (detailObj.error && typeof detailObj.error === "string") {
+			return {
+				error: detailObj.error,
+				error_description:
+					typeof detailObj.error_description === "string"
+						? detailObj.error_description
+						: undefined,
+			};
+		}
+	}
+
+	return null;
 }
 
 async function validateAndPersistApiKey(
@@ -150,34 +181,43 @@ async function runDeviceAuthFlow(options: {
 			spinner.succeed("Authorization successful!");
 			return tokenResponse.access_token;
 		} catch (error) {
-			// Handle API errors
-			if (
-				error &&
-				typeof error === "object" &&
-				"data" in error &&
-				error.data &&
-				typeof error.data === "object"
-			) {
-				const errorData = error.data as { detail?: DeviceTokenError };
-				const tokenError = errorData.detail;
+			// Handle device auth errors using proper SDK error types
+			if (error instanceof BusinessError) {
+				const deviceAuthError = extractDeviceAuthError(error);
 
-				if (tokenError?.error === "authorization_pending") {
-					continue;
+				if (deviceAuthError) {
+					// Handle known device auth error types
+					switch (deviceAuthError.error) {
+						case "authorization_pending":
+							// Keep polling - this is expected
+							continue;
+
+						case "expired_token":
+							spinner.fail("Authorization expired");
+							throw new Error(
+								deviceAuthError.error_description ||
+									"Device authorization expired. Please try again.",
+							);
+
+						case "access_denied":
+							spinner.fail("Authorization denied");
+							throw new Error(
+								deviceAuthError.error_description ||
+									"You denied the authorization request.",
+							);
+
+						default:
+							// Unknown device auth error
+							spinner.fail("Authorization failed");
+							throw new Error(
+								`Authorization failed: ${deviceAuthError.error_description || deviceAuthError.error}`,
+							);
+					}
 				}
-				if (tokenError?.error === "expired_token") {
-					spinner.fail("Authorization expired");
-					throw new Error("Device authorization expired. Please try again.");
-				}
-				if (tokenError?.error === "access_denied") {
-					spinner.fail("Authorization denied");
-					throw new Error("You denied the authorization request.");
-				}
-				spinner.fail("Authorization failed");
-				throw new Error(
-					`Authorization failed: ${tokenError?.error || "unknown"}`,
-				);
 			}
 
+			// Not a device auth error or unknown error type
+			spinner.fail("Request failed");
 			throw error;
 		}
 	}
