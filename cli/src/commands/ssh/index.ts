@@ -35,10 +35,31 @@ async function runSshCommand(
 			input.gatewayDomain ?? context.projectConfig.gateway_domain;
 
 		// Resolve port: CLI option > project config > default (443)
-		const port =
+		let port =
 			input.port !== "443"
 				? input.port
 				: (context.projectConfig.gateway_port?.toString() ?? "443");
+
+		// Parse gateway domain to extract hostname and port if included
+		let gatewayHost = gatewayDomain;
+		let gatewayPort: string | undefined;
+
+		if (gatewayDomain) {
+			// Check if gateway domain includes port (format: hostname:port)
+			const lastColonIndex = gatewayDomain.lastIndexOf(":");
+			if (lastColonIndex > 0) {
+				const potentialPort = gatewayDomain.substring(lastColonIndex + 1);
+				// Verify it's a valid port number
+				if (/^\d+$/.test(potentialPort)) {
+					gatewayHost = gatewayDomain.substring(0, lastColonIndex);
+					gatewayPort = potentialPort;
+					// Use gateway's port if no explicit port was specified via CLI
+					if (input.port === "443") {
+						port = gatewayPort;
+					}
+				}
+			}
+		}
 
 		let instanceId: string;
 
@@ -65,6 +86,22 @@ async function runSshCommand(
 			gatewayDomain = cvm.gateway_domain;
 			// Use app_id from API response (without app_ prefix)
 			instanceId = cvm.app_id;
+
+			// Re-parse gateway domain after getting it from API
+			gatewayHost = gatewayDomain;
+			if (gatewayDomain) {
+				const lastColonIndex = gatewayDomain.lastIndexOf(":");
+				if (lastColonIndex > 0) {
+					const potentialPort = gatewayDomain.substring(lastColonIndex + 1);
+					if (/^\d+$/.test(potentialPort)) {
+						gatewayHost = gatewayDomain.substring(0, lastColonIndex);
+						gatewayPort = potentialPort;
+						if (input.port === "443") {
+							port = gatewayPort;
+						}
+					}
+				}
+			}
 		} else {
 			// When skipping API call, extract raw app_id from cvmId
 			// cvmId could be: "app_xxx" (need to remove prefix) or "xxx" (UUID without dashes)
@@ -114,7 +151,8 @@ async function runSshCommand(
 		}
 
 		// Construct SSH configuration
-		const hostname = `${instanceId}-22.${gatewayDomain}`;
+		// Use gatewayHost (without port) to construct hostname
+		const hostname = `${instanceId}-22.${gatewayHost}`;
 		const user = "root";
 		// Suppress openssl certificate verification output in non-verbose mode
 		const proxyCommand = input.verbose
