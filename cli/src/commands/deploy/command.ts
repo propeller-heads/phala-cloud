@@ -146,6 +146,25 @@ export const deployCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "wait",
 		},
+		{
+			name: "ssh-pubkey",
+			description: "Path to SSH public key file (default: ~/.ssh/id_rsa.pub)",
+			type: "string",
+			target: "sshPubkey",
+		},
+		{
+			name: "dev-os",
+			description: "Use development OS image (requires SSH public key)",
+			type: "boolean",
+			target: "devOs",
+		},
+		{
+			name: "non-dev-os",
+			description:
+				"Use non-development OS image (SSH public key only if explicitly specified)",
+			type: "boolean",
+			target: "nonDevOs",
+		},
 	],
 	examples: [
 		{
@@ -202,6 +221,9 @@ export const deployCommandSchema = z.object({
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
 	wait: z.boolean().default(false),
+	sshPubkey: z.string().optional(),
+	devOs: z.boolean().default(false),
+	nonDevOs: z.boolean().default(false),
 });
 
 export type DeployCommandInput = z.infer<typeof deployCommandSchema>;

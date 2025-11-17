@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import {
 	type RuntimeProjectConfig,
 	parse_cvm_id,
@@ -66,6 +67,9 @@ interface Options {
 	debug?: boolean;
 	apiKey?: string;
 	wait?: boolean;
+	sshPubkey?: string;
+	devOs?: boolean;
+	nonDevOs?: boolean;
 	[key: string]: unknown;
 }
 
@@ -352,6 +356,84 @@ const validateEnvFile = async (options: Options) => {
 	return envs;
 };
 
+/**
+ * Read SSH public key from file
+ * - --dev-os: SSH public key is required
+ * - --non-dev-os: SSH public key only if explicitly specified via --ssh-pubkey
+ * - Neither flag: Try to read public key, use if available
+ */
+const readSshPubkey = async (options: Options): Promise<string | undefined> => {
+	let sshPubkeyPath = options.sshPubkey;
+
+	// For --non-dev-os, only use SSH key if explicitly specified
+	if (options.nonDevOs && !options.sshPubkey) {
+		return undefined;
+	}
+
+	// If not specified, search for default public keys (similar to ssh command)
+	if (!sshPubkeyPath) {
+		const homeDir = os.homedir();
+		const defaultPubKeys = [
+			path.join(homeDir, ".ssh", "id_rsa.pub"),
+			path.join(homeDir, ".ssh", "id_ed25519.pub"),
+			path.join(homeDir, ".ssh", "id_ecdsa.pub"),
+			path.join(homeDir, ".ssh", "id_dsa.pub"),
+		];
+
+		for (const key of defaultPubKeys) {
+			if (fs.existsSync(key)) {
+				sshPubkeyPath = key;
+				break;
+			}
+		}
+
+		// If still no key found
+		if (!sshPubkeyPath) {
+			// --dev-os requires SSH public key
+			if (options.devOs) {
+				throw new Error(
+					dedent(`
+						SSH public key is required for dev images but not found.
+
+						Searched for:
+						  - ~/.ssh/id_rsa.pub
+						  - ~/.ssh/id_ed25519.pub
+						  - ~/.ssh/id_ecdsa.pub
+						  - ~/.ssh/id_dsa.pub
+
+						Please either:
+						  1. Create an SSH key pair: ssh-keygen -t rsa
+						  2. Specify a different key file: --ssh-pubkey <path>
+					`),
+				);
+			}
+			// For default case (no flags), just skip if no key found
+			return undefined;
+		}
+	} else {
+		// Expand ~ to home directory
+		if (sshPubkeyPath.startsWith("~")) {
+			sshPubkeyPath = path.join(os.homedir(), sshPubkeyPath.slice(1));
+		}
+
+		// Verify key file exists
+		if (!fs.existsSync(sshPubkeyPath)) {
+			throw new Error(`SSH public key file not found: ${sshPubkeyPath}`);
+		}
+	}
+
+	// Read the public key file
+	try {
+		const pubkey = fs.readFileSync(sshPubkeyPath, "utf8").trim();
+		logger.info(`Using SSH public key from ${sshPubkeyPath}`);
+		return pubkey;
+	} catch (error) {
+		throw new Error(
+			`Failed to read SSH public key from ${sshPubkeyPath}: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+};
+
 const validateCpuMemoryDiskSize = async (options: Options) => {
 	let vcpu = DEFAULT_VCPU;
 	if (options.vcpu) {
@@ -445,6 +527,14 @@ const buildProvisionPayload = (
 		payload.kms_id = options.kmsId;
 	}
 
+	// Add prefer_dev flag based on --dev-os or --non-dev-os
+	if (options.devOs) {
+		payload.prefer_dev = true;
+	} else if (options.nonDevOs) {
+		payload.prefer_dev = false;
+	}
+	// If neither flag is set, don't add prefer_dev (let backend auto-select)
+
 	return payload;
 };
 
@@ -457,11 +547,22 @@ const deployNewCvm = async (
 	stderr: NodeJS.WriteStream,
 ) => {
 	const name = await validateName(validatedOptions);
+
+	// Read SSH public key and add to environment variables
+	const sshPubkey = await readSshPubkey(validatedOptions);
+	const envsWithSshKey = [...(envs || [])];
+	if (sshPubkey) {
+		envsWithSshKey.push({
+			key: "DSTACK_AUTHORIZED_KEYS",
+			value: sshPubkey,
+		});
+	}
+
 	const payload = buildProvisionPayload(
 		validatedOptions,
 		name,
 		docker_compose_yml,
-		envs || [],
+		envsWithSshKey,
 	);
 
 	stdout.write(`Provisioning CVM ${name}...\n`);
@@ -543,7 +644,7 @@ const deployNewCvm = async (
 		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
 		const pubkey_signature = resp.data as any;
 		const encrypted_env_vars = await encryptEnvVars(
-			envs,
+			envsWithSshKey,
 			pubkey_signature.public_key,
 		);
 
@@ -558,8 +659,8 @@ const deployNewCvm = async (
 	} else {
 		// Centralized KMS or provision already has app_id
 		const encrypted_env_vars =
-			envs && envs.length > 0
-				? await encryptEnvVars(envs, app.app_env_encrypt_pubkey)
+			envsWithSshKey && envsWithSshKey.length > 0
+				? await encryptEnvVars(envsWithSshKey, app.app_env_encrypt_pubkey)
 				: undefined;
 
 		commit_result = await safeCommitCvmProvision(client, {
@@ -638,7 +739,7 @@ const updateCvm = async (
 
 	// patched the compose_file
 	app_compose.docker_compose_file = docker_compose_yml;
-	if (envs) {
+	if (envs && envs.length > 0) {
 		app_compose.allowed_envs = envs.map((env) => env.key);
 	}
 
