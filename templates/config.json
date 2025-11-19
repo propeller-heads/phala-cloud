@@ -2,44 +2,22 @@
   {
     "id": "VibeVM",
     "name": "VibeVM",
-    "description": "VibeVM is a secure, lightweight development environment built on top of the AIO (All-in-One) Sandbox, designed specifically for deployment in Phala Cloud Confidential Virtual Machines (CVMs). It provides an authenticated agent sandbox environment that combines Browser, Shell, File, MCP operations, and VSCode Server. This extension of AIO Sandbox sets the entrypoint at the VSCode Server for developers to customize and build their CVM applications within a native TEE environment running dstack.",
+    "description": "Vibe Code in a Tamper-Proof Isolated Sandbox Running in a Confidential VM on Phala Cloud. A place to develop your applications in peace with security, privacy, and verifiability baked in. When your applications are ready, deploy them to a production CVM on Phala Cloud.",
     "repo": "https://github.com/Phala-Network/VibeVM",
     "author": "Phala-Network",
     "icon": "vibevm.png",
     "envs": [
       {
-        "key": "VIBEVM_AUTH_ENABLED",
-        "required": true,
-        "description": "Enable authentication for VibeVM.",
-        "default": "true"
-      },
-      {
-        "key": "VIBEVM_USERNAME",
-        "required": true,
-        "description": "Username for VibeVM.",
-        "default": "admin"
-      },
-      {
-        "key": "VIBEVM_PASSWORD",
+        "key": "PASSWORD",
         "required": true,
         "description": "Password for VibeVM. (default: vibevm4454)",
         "default": "vibevm4454"
       },
       {
-        "key": "GITHUB_REPO",
+        "key": "SUDO_PASSWORD",
         "required": true,
-        "description": "Github repository to clone.",
-        "default": "Phala-Network/erc-8004-tee-agent"
-      },
-      {
-        "key": "GITHUB_COMMIT_HASH",
-        "required": false,
-        "description": "Target github repository commit hash."
-      },
-      {
-        "key": "GITHUB_TOKEN",
-        "required": false,
-        "description": "Github token for cloning the repository. Generate one from https://github.com/settings/tokens"
+        "description": "Sudo password for VibeVM. (default: vibevm4454)",
+        "default": "vibevm4454"
       }
     ],
     "defaultResource": {
@@ -47,7 +25,7 @@
       "memory": 4096,
       "diskSize": 40
     },
-    "tags": ["VibeVM", "TEE", "AI", "Agent", "Browser", "Shell", "File", "MCP", "VSCode"]
+    "tags": ["VibeVM", "TEE", "AI", "VSCode"]
   },
   {
     "id": "anyone-anon-service",
