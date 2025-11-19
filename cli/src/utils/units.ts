@@ -66,8 +66,8 @@ export function parseMemoryInput(input: string): number {
 /**
  * Parse disk size input (default unit: GB)
  * @param input The input string (e.g., '50G', '1T', '100')
- * @returns Disk size in GB (always a multiple of 1GB, max 250GB)
- * @throws If the value is not a multiple of 1GB or exceeds 250GB
+ * @returns Disk size in GB (always a multiple of 1GB)
+ * @throws If the value is not a multiple of 1GB
  */
 export function parseDiskSizeInput(input: string): number {
 	const bytes = parseSizeWithUnit(input, "GB");
@@ -77,15 +77,6 @@ export function parseDiskSizeInput(input: string): number {
 	if (diskSizeGB % 1 !== 0) {
 		throw new Error(
 			`Disk size must be a multiple of 1GB. Got: ${diskSizeGB}GB`,
-		);
-	}
-
-	// Ensure disk size doesn't exceed 250GB
-	// TODO: once the default disk size limitation removed in DStack, we should remove this as well.
-	const MAX_DISK_SIZE_GB = 250;
-	if (diskSizeGB > MAX_DISK_SIZE_GB) {
-		throw new Error(
-			`Maximum disk size is ${MAX_DISK_SIZE_GB}GB. Got: ${diskSizeGB}GB`,
 		);
 	}
 
