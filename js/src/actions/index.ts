@@ -309,3 +309,32 @@ export {
   UpdateOsImageRequestSchema,
   type UpdateOsImageRequest,
 } from "./cvms/update_os_image";
+
+export {
+  updateDockerCompose,
+  safeUpdateDockerCompose,
+  UpdateDockerComposeRequestSchema,
+  type UpdateDockerComposeRequest,
+  UpdateDockerComposeResultSchema,
+  type UpdateDockerComposeResult,
+  type UpdateDockerComposeInProgress,
+  type UpdateDockerComposePreconditionRequired,
+} from "./cvms/update_docker_compose";
+
+export {
+  updatePreLaunchScript,
+  safeUpdatePreLaunchScript,
+  UpdatePreLaunchScriptRequestSchema,
+  type UpdatePreLaunchScriptRequest,
+  UpdatePreLaunchScriptResultSchema,
+  type UpdatePreLaunchScriptResult,
+  type UpdatePreLaunchScriptInProgress,
+  type UpdatePreLaunchScriptPreconditionRequired,
+} from "./cvms/update_prelaunch_script";
+
+export {
+  getCvmPreLaunchScript,
+  safeGetCvmPreLaunchScript,
+  GetCvmPreLaunchScriptRequestSchema,
+  type GetCvmPreLaunchScriptRequest,
+} from "./cvms/get_cvm_prelaunch_script";

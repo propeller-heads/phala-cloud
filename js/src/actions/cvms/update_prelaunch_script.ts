@@ -6,28 +6,33 @@ import { defineAction } from "../../utils/define-action";
 import { PhalaCloudError } from "../../utils/errors";
 
 /**
- * Update CVM environment variables
+ * Update CVM pre-launch script
  *
- * Updates environment variables for a CVM. Supports two scenarios:
- * 1. Encrypted environment only: Direct update without compose hash verification
- * 2. Allowed environment keys change: Requires compose hash verification (two-phase)
+ * Updates the pre-launch script for a CVM. The pre-launch script runs before the main containers start.
+ * Supports two scenarios:
+ * 1. Legacy/offchain KMS: Direct update without compose hash verification
+ * 2. Contract-owned KMS (ETHEREUM/BASE): Requires compose hash verification (two-phase)
  *
- * When allowed_envs changes and compose_hash/transaction_hash are not provided,
+ * When using contract-owned KMS and compose_hash/transaction_hash are not provided,
  * the API returns HTTP 465 with the compose hash to sign.
  * The client should then register the compose hash on-chain and retry the request
  * with both compose_hash and transaction_hash.
  *
  * @example
  * ```typescript
- * import { createClient, updateCvmEnvs } from '@phala/cloud'
+ * import { createClient, updatePreLaunchScript } from '@phala/cloud'
  *
  * const client = createClient({ apiKey: 'your-api-key' })
  *
- * // Phase 1: Initial update (may return precondition_required)
- * const result = await updateCvmEnvs(client, {
+ * const script = `#!/bin/bash
+ * echo "Initializing..."
+ * # Your pre-launch commands here
+ * `
+ *
+ * // Phase 1: Initial update (may return precondition_required for contract-owned KMS)
+ * const result = await updatePreLaunchScript(client, {
  *   id: 'cvm-123',
- *   encrypted_env: 'hex-encoded-encrypted-data',
- *   env_keys: ['API_KEY', 'DATABASE_URL']
+ *   pre_launch_script: script
  * })
  *
  * if (result.status === 'precondition_required') {
@@ -38,10 +43,9 @@ import { PhalaCloudError } from "../../utils/errors";
  *   )
  *
  *   // Phase 2: Retry with compose hash and transaction hash
- *   const finalResult = await updateCvmEnvs(client, {
+ *   const finalResult = await updatePreLaunchScript(client, {
  *     id: 'cvm-123',
- *     encrypted_env: 'hex-encoded-encrypted-data',
- *     env_keys: ['API_KEY', 'DATABASE_URL'],
+ *     pre_launch_script: script,
  *     compose_hash: result.compose_hash,
  *     transaction_hash: txHash
  *   })
@@ -54,7 +58,7 @@ import { PhalaCloudError } from "../../utils/errors";
  *
  * ## Returns
  *
- * `UpdateCvmEnvsResult | unknown`
+ * `UpdatePreLaunchScriptResult | unknown`
  *
  * Returns either:
  * - `{ status: "in_progress", ... }` - Update initiated successfully
@@ -65,41 +69,40 @@ import { PhalaCloudError } from "../../utils/errors";
  * ## Parameters
  *
  * ### request (required)
- * - **Type:** `UpdateCvmEnvsRequest`
+ * - **Type:** `UpdatePreLaunchScriptRequest`
  *
- * Request parameters containing CVM ID, encrypted environment, and optional env_keys/compose_hash.
+ * Request parameters containing CVM ID, pre_launch_script content, and optional compose_hash/transaction_hash.
  *
  * ### parameters (optional)
- * - **Type:** `UpdateCvmEnvsParameters`
+ * - **Type:** `UpdatePreLaunchScriptParameters`
  *
  * Optional behavior parameters for schema validation.
  *
  * ```typescript
  * // Use default schema
- * const result = await updateCvmEnvs(client, {
+ * const result = await updatePreLaunchScript(client, {
  *   id: 'cvm-123',
- *   encrypted_env: 'hex-data'
+ *   pre_launch_script: script
  * })
  *
  * // Return raw data without validation
- * const raw = await updateCvmEnvs(client, request, { schema: false })
+ * const raw = await updatePreLaunchScript(client, request, { schema: false })
  *
  * // Use custom schema
  * const customSchema = z.object({ status: z.string() })
- * const custom = await updateCvmEnvs(client, request, { schema: customSchema })
+ * const custom = await updatePreLaunchScript(client, request, { schema: customSchema })
  * ```
  *
  * ## Safe Version
  *
- * Use `safeUpdateCvmEnvs` for error handling without exceptions:
+ * Use `safeUpdatePreLaunchScript` for error handling without exceptions:
  *
  * ```typescript
- * import { safeUpdateCvmEnvs } from '@phala/cloud'
+ * import { safeUpdatePreLaunchScript } from '@phala/cloud'
  *
- * const result = await safeUpdateCvmEnvs(client, {
+ * const result = await safeUpdatePreLaunchScript(client, {
  *   id: 'cvm-123',
- *   encrypted_env: 'hex-data',
- *   env_keys: ['API_KEY']
+ *   pre_launch_script: script
  * })
  *
  * if (result.success) {
@@ -120,20 +123,17 @@ import { PhalaCloudError } from "../../utils/errors";
  * ```
  */
 
-export const UpdateCvmEnvsRequestSchema = refineCvmId(
+export const UpdatePreLaunchScriptRequestSchema = refineCvmId(
   CvmIdObjectSchema.extend({
-    encrypted_env: z.string().describe("Encrypted environment variables (hex string)"),
-    env_keys: z.array(z.string()).optional().describe("List of allowed environment variable keys"),
+    pre_launch_script: z.string().describe("Pre-launch script content (shell script)"),
     compose_hash: z
       .string()
       .optional()
-      .describe("Compose hash for verification (Phase 2, required when env_keys changes)"),
+      .describe("Compose hash for verification (Phase 2, contract-owned KMS only)"),
     transaction_hash: z
       .string()
       .optional()
-      .describe(
-        "On-chain transaction hash for verification (Phase 2, required when env_keys changes)",
-      ),
+      .describe("On-chain transaction hash for verification (Phase 2, contract-owned KMS only)"),
   }),
 ).transform((data) => {
   // Use CvmIdSchema to normalize the CVM ID
@@ -141,8 +141,7 @@ export const UpdateCvmEnvsRequestSchema = refineCvmId(
   return {
     cvmId,
     request: {
-      encrypted_env: data.encrypted_env,
-      env_keys: data.env_keys,
+      pre_launch_script: data.pre_launch_script,
       compose_hash: data.compose_hash,
       transaction_hash: data.transaction_hash,
     },
@@ -150,16 +149,15 @@ export const UpdateCvmEnvsRequestSchema = refineCvmId(
   };
 });
 
-// Response when update is successfully initiated (200)
-const UpdateCvmEnvsInProgressSchema = z.object({
+// Response when update is successfully initiated (202)
+const UpdatePreLaunchScriptInProgressSchema = z.object({
   status: z.literal("in_progress"),
   message: z.string(),
   correlation_id: z.string(),
-  allowed_envs_changed: z.boolean(),
 });
 
-// Response when compose hash verification is required (428)
-const UpdateCvmEnvsPreconditionRequiredSchema = z.object({
+// Response when compose hash verification is required (465)
+const UpdatePreLaunchScriptPreconditionRequiredSchema = z.object({
   status: z.literal("precondition_required"),
   message: z.string(),
   compose_hash: z.string(),
@@ -169,40 +167,54 @@ const UpdateCvmEnvsPreconditionRequiredSchema = z.object({
 });
 
 // Union type for the result
-export const UpdateCvmEnvsResultSchema = z.union([
-  UpdateCvmEnvsInProgressSchema,
-  UpdateCvmEnvsPreconditionRequiredSchema,
+export const UpdatePreLaunchScriptResultSchema = z.union([
+  UpdatePreLaunchScriptInProgressSchema,
+  UpdatePreLaunchScriptPreconditionRequiredSchema,
 ]);
 
-export type UpdateCvmEnvsRequest = z.input<typeof UpdateCvmEnvsRequestSchema>;
-export type UpdateCvmEnvsResult = z.infer<typeof UpdateCvmEnvsResultSchema>;
-export type UpdateCvmEnvsInProgress = z.infer<typeof UpdateCvmEnvsInProgressSchema>;
-export type UpdateCvmEnvsPreconditionRequired = z.infer<
-  typeof UpdateCvmEnvsPreconditionRequiredSchema
+export type UpdatePreLaunchScriptRequest = z.input<typeof UpdatePreLaunchScriptRequestSchema>;
+export type UpdatePreLaunchScriptResult = z.infer<typeof UpdatePreLaunchScriptResultSchema>;
+export type UpdatePreLaunchScriptInProgress = z.infer<typeof UpdatePreLaunchScriptInProgressSchema>;
+export type UpdatePreLaunchScriptPreconditionRequired = z.infer<
+  typeof UpdatePreLaunchScriptPreconditionRequiredSchema
 >;
 
 /**
- * Update CVM environment variables
+ * Update CVM pre-launch script
  *
  * @param client - The API client
- * @param request - Request parameters containing CVM ID and environment data
+ * @param request - Request parameters containing CVM ID and pre-launch script content
  * @param parameters - Optional behavior parameters
  * @returns Update result (either in_progress or precondition_required)
  */
-const { action: updateCvmEnvs, safeAction: safeUpdateCvmEnvs } = defineAction<
-  UpdateCvmEnvsRequest,
-  typeof UpdateCvmEnvsResultSchema
->(UpdateCvmEnvsResultSchema, async (client, request) => {
-  const validatedRequest = UpdateCvmEnvsRequestSchema.parse(request);
+const { action: updatePreLaunchScript, safeAction: safeUpdatePreLaunchScript } = defineAction<
+  UpdatePreLaunchScriptRequest,
+  typeof UpdatePreLaunchScriptResultSchema
+>(UpdatePreLaunchScriptResultSchema, async (client, request) => {
+  const validatedRequest = UpdatePreLaunchScriptRequestSchema.parse(request);
+
+  // Prepare headers for compose_hash and transaction_hash
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain",
+  };
+
+  if (validatedRequest.request.compose_hash) {
+    headers["X-Compose-Hash"] = validatedRequest.request.compose_hash;
+  }
+
+  if (validatedRequest.request.transaction_hash) {
+    headers["X-Transaction-Hash"] = validatedRequest.request.transaction_hash;
+  }
 
   try {
-    // Make the PATCH request
-    const response = await client.patch<UpdateCvmEnvsInProgress>(
-      `/cvms/${validatedRequest.cvmId}/envs`,
-      validatedRequest.request,
+    // Make the PATCH request with plain text body and headers
+    const response = await client.patch<UpdatePreLaunchScriptInProgress>(
+      `/cvms/${validatedRequest.cvmId}/pre-launch-script`,
+      validatedRequest.request.pre_launch_script,
+      { headers },
     );
 
-    // Success case (200) - return as-is
+    // Success case (202) - return as-is
     return response;
   } catch (error) {
     // Check if it's a 465 (Hash Registration Required) error
@@ -231,4 +243,4 @@ const { action: updateCvmEnvs, safeAction: safeUpdateCvmEnvs } = defineAction<
   }
 });
 
-export { updateCvmEnvs, safeUpdateCvmEnvs };
+export { updatePreLaunchScript, safeUpdatePreLaunchScript };

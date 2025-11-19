@@ -74,6 +74,23 @@ import {
   type UpdateCvmEnvsRequest,
   type UpdateCvmEnvsResult,
 } from "./actions/cvms/update_cvm_envs";
+import {
+  updateDockerCompose,
+  safeUpdateDockerCompose,
+  type UpdateDockerComposeRequest,
+  type UpdateDockerComposeResult,
+} from "./actions/cvms/update_docker_compose";
+import {
+  updatePreLaunchScript,
+  safeUpdatePreLaunchScript,
+  type UpdatePreLaunchScriptRequest,
+  type UpdatePreLaunchScriptResult,
+} from "./actions/cvms/update_prelaunch_script";
+import {
+  getCvmPreLaunchScript,
+  safeGetCvmPreLaunchScript,
+  type GetCvmPreLaunchScriptRequest,
+} from "./actions/cvms/get_cvm_prelaunch_script";
 import { getKmsInfo, safeGetKmsInfo, type GetKmsInfoRequest } from "./actions/kms/get_kms_info";
 import {
   getKmsList,
@@ -222,6 +239,12 @@ export function createClient(config: ClientConfig = {}): Client {
     readonly safeCommitCvmComposeFileUpdate: typeof safeCommitCvmComposeFileUpdate;
     readonly updateCvmEnvs: typeof updateCvmEnvs;
     readonly safeUpdateCvmEnvs: typeof safeUpdateCvmEnvs;
+    readonly updateDockerCompose: typeof updateDockerCompose;
+    readonly safeUpdateDockerCompose: typeof safeUpdateDockerCompose;
+    readonly updatePreLaunchScript: typeof updatePreLaunchScript;
+    readonly safeUpdatePreLaunchScript: typeof safeUpdatePreLaunchScript;
+    readonly getCvmPreLaunchScript: typeof getCvmPreLaunchScript;
+    readonly safeGetCvmPreLaunchScript: typeof safeGetCvmPreLaunchScript;
     readonly startCvm: typeof startCvm;
     readonly safeStartCvm: typeof safeStartCvm;
     readonly stopCvm: typeof stopCvm;
@@ -289,6 +312,12 @@ export function createClient(config: ClientConfig = {}): Client {
     safeCommitCvmComposeFileUpdate,
     updateCvmEnvs,
     safeUpdateCvmEnvs,
+    updateDockerCompose,
+    safeUpdateDockerCompose,
+    updatePreLaunchScript,
+    safeUpdatePreLaunchScript,
+    getCvmPreLaunchScript,
+    safeGetCvmPreLaunchScript,
     startCvm,
     safeStartCvm,
     stopCvm,
@@ -612,6 +641,72 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeUpdateCvmEnvs(
     request: UpdateCvmEnvsRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  updateDockerCompose(request: UpdateDockerComposeRequest): Promise<UpdateDockerComposeResult>;
+  updateDockerCompose<T extends z.ZodTypeAny>(
+    request: UpdateDockerComposeRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updateDockerCompose(
+    request: UpdateDockerComposeRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeUpdateDockerCompose(
+    request: UpdateDockerComposeRequest,
+  ): Promise<SafeResult<UpdateDockerComposeResult>>;
+  safeUpdateDockerCompose<T extends z.ZodTypeAny>(
+    request: UpdateDockerComposeRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdateDockerCompose(
+    request: UpdateDockerComposeRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  updatePreLaunchScript(
+    request: UpdatePreLaunchScriptRequest,
+  ): Promise<UpdatePreLaunchScriptResult>;
+  updatePreLaunchScript<T extends z.ZodTypeAny>(
+    request: UpdatePreLaunchScriptRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  updatePreLaunchScript(
+    request: UpdatePreLaunchScriptRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeUpdatePreLaunchScript(
+    request: UpdatePreLaunchScriptRequest,
+  ): Promise<SafeResult<UpdatePreLaunchScriptResult>>;
+  safeUpdatePreLaunchScript<T extends z.ZodTypeAny>(
+    request: UpdatePreLaunchScriptRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeUpdatePreLaunchScript(
+    request: UpdatePreLaunchScriptRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  getCvmPreLaunchScript(request: GetCvmPreLaunchScriptRequest): Promise<string>;
+  getCvmPreLaunchScript<T extends z.ZodTypeAny>(
+    request: GetCvmPreLaunchScriptRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getCvmPreLaunchScript(
+    request: GetCvmPreLaunchScriptRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetCvmPreLaunchScript(request: GetCvmPreLaunchScriptRequest): Promise<SafeResult<string>>;
+  safeGetCvmPreLaunchScript<T extends z.ZodTypeAny>(
+    request: GetCvmPreLaunchScriptRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetCvmPreLaunchScript(
+    request: GetCvmPreLaunchScriptRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 
