@@ -188,7 +188,14 @@ export const ProvisionCvmRequestSchema = z
     node_id: z.number().optional(), // recommended - optional, system auto-selects if not specified
     teepod_id: z.number().optional(), // deprecated, for compatibility
     region: z.string().optional(), // optional - region filter for auto-selection
-    name: z.string(),
+    name: z
+      .string()
+      .min(1)
+      .max(63)
+      .regex(
+        /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/,
+        "CVM name must be a valid hostname (1-63 chars, alphanumeric and hyphens, cannot start/end with hyphen)",
+      ),
     instance_type: z.string().default("tdx.small"), // defaults to "tdx.small"
     image: z.string().optional(),
     vcpu: z.number().optional(),
