@@ -286,34 +286,99 @@ const validatePrivateKey = async (
 	return privateKey;
 };
 
+/**
+ * Convert a string to hostname-compliant format (RFC 1123)
+ * - Replace invalid characters with hyphens
+ * - Remove leading/trailing hyphens
+ * - Ensure it starts and ends with alphanumeric
+ * - Limit to 63 characters
+ * - If conversion results in empty or invalid string, generate unique fallback
+ */
+const convertToHostname = (input: string): string => {
+	// Convert to lowercase and replace invalid characters with hyphens
+	let hostname = input
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		// Replace multiple consecutive hyphens with single hyphen
+		.replace(/-+/g, "-")
+		// Remove leading hyphens
+		.replace(/^-+/, "")
+		// Remove trailing hyphens
+		.replace(/-+$/, "");
+
+	// Check if conversion resulted in empty or too short string
+	// This happens with non-ASCII names like Chinese characters or emojis
+	if (hostname.length < 3) {
+		// Generate a unique name using timestamp to avoid conflicts
+		// Use base36 for shorter, more readable string
+		const timestamp = Date.now().toString(36);
+		const random = Math.random().toString(36).substring(2, 6);
+		hostname = `cvm-${timestamp}-${random}`;
+	}
+
+	// Ensure it ends with alphanumeric (not hyphen) and limit length
+	hostname = hostname.slice(0, 63).replace(/-+$/, "");
+
+	// Final validation: must match hostname pattern
+	if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(hostname)) {
+		// This should rarely happen, but provide a safe fallback
+		const timestamp = Date.now().toString(36);
+		hostname = `cvm-${timestamp}`;
+	}
+
+	return hostname;
+};
+
+/**
+ * Validate hostname format (RFC 1123)
+ */
+const isValidHostname = (name: string): boolean => {
+	return (
+		/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(name) &&
+		name.length <= 63
+	);
+};
+
 const validateName = async (options: Options): Promise<string | undefined> => {
 	let name = options.name;
-	if (!options.name) {
-		const folderName = path
-			.basename(process.cwd())
-			.toLowerCase()
-			.replace(/[^a-z0-9_-]/g, "-");
 
-		if (!options.interactive) {
-			name = folderName;
-		} else {
-			const result = await inquirer.prompt([
-				{
-					type: "input",
-					name: "name",
-					message: "Enter a name for the CVM:",
-					default: folderName,
-					validate: (input) => {
-						if (!input.trim()) return "CVM name is required";
-						if (!/^[a-zA-Z0-9_-]+$/.test(input))
-							return "CVM name must contain only letters, numbers, underscores, and hyphens";
-						return true;
-					},
-				},
-			]);
-			name = result.name;
+	// If name was explicitly provided via --name flag, validate it strictly
+	if (options.name) {
+		if (!isValidHostname(options.name)) {
+			throw new Error(
+				`Invalid CVM name: "${options.name}". Name must be a valid hostname: 1-63 characters, letters/numbers/hyphens only, cannot start or end with hyphen.`,
+			);
 		}
+		return options.name;
 	}
+
+	// If no name provided, use directory name with auto-conversion
+	const folderName = path.basename(process.cwd());
+	const convertedName = convertToHostname(folderName);
+
+	if (!options.interactive) {
+		// Non-interactive mode: use converted directory name
+		name = convertedName;
+	} else {
+		// Interactive mode: prompt with converted name as default
+		const result = await inquirer.prompt([
+			{
+				type: "input",
+				name: "name",
+				message: "Enter a name for the CVM:",
+				default: convertedName,
+				validate: (input) => {
+					if (!input.trim()) return "CVM name is required";
+					if (!isValidHostname(input.trim())) {
+						return "Name must be a valid hostname: 1-63 characters, letters/numbers/hyphens only, cannot start or end with hyphen";
+					}
+					return true;
+				},
+			},
+		]);
+		name = result.name;
+	}
+
 	return name;
 };
 
