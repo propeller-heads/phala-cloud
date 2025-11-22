@@ -260,6 +260,20 @@ phala status
 phala status --json
 ```
 
+#### Environment Variable Override
+
+You can override the stored API key using the `PHALA_CLOUD_API_KEY` environment variable. This is useful for CI/CD workflows or testing with different accounts.
+
+**Example:**
+```bash
+# Temporarily use a different API key
+PHALA_CLOUD_API_KEY="phak_your_api_key_here" phala cvms list
+
+# In CI/CD pipelines
+export PHALA_CLOUD_API_KEY="phak_your_api_key_here"
+phala deploy --name my-app
+```
+
 ### Docker Management Commands
 
 Commands for managing Docker images for TEE deployments.
