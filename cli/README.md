@@ -274,6 +274,13 @@ export PHALA_CLOUD_API_KEY="phak_your_api_key_here"
 phala deploy --name my-app
 ```
 
+You can also override the API endpoint using the `PHALA_CLOUD_API_PREFIX` environment variable.
+
+**Example:**
+```bash
+PHALA_CLOUD_API_PREFIX="https://cloud-api.phala.ai" phala cvms list
+```
+
 ### Docker Management Commands
 
 Commands for managing Docker images for TEE deployments.
