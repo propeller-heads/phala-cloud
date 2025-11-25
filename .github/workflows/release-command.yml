@@ -364,12 +364,13 @@ jobs:
       - name: Generate changelog
         working-directory: ${{ env.PACKAGE }}
         run: |
-          npm install -g conventional-changelog-cli
-          conventional-changelog -p angular \
+          npm install -g conventional-changelog-cli conventional-changelog-conventionalcommits
+          conventional-changelog -p conventionalcommits \
             --commit-path . \
             -i CHANGELOG.md \
             -s \
-            --pkg-path ./package.json
+            --pkg-path ./package.json \
+            -n ../changelog.config.js
 
       - name: Commit version change
         run: |
