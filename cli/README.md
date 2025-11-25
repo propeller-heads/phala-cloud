@@ -281,6 +281,19 @@ You can also override the API endpoint using the `PHALA_CLOUD_API_PREFIX` enviro
 PHALA_CLOUD_API_PREFIX="https://cloud-api.phala.ai" phala cvms list
 ```
 
+#### JSON Output Mode
+
+All commands support the `--json` flag for machine-readable output, useful for automation and CI/CD pipelines.
+
+**Example:**
+```bash
+# Get CVM list as JSON
+phala cvms list --json
+
+# Parse with jq
+phala status --json | jq '.username'
+```
+
 ### Docker Management Commands
 
 Commands for managing Docker images for TEE deployments.
