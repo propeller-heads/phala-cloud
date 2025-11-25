@@ -289,31 +289,22 @@ const validatePrivateKey = async (
 const validateName = async (options: Options): Promise<string | undefined> => {
 	let name = options.name;
 	if (!options.name) {
-		let folderName = path
+		const folderName = path
 			.basename(process.cwd())
 			.toLowerCase()
 			.replace(/[^a-z0-9_-]/g, "-");
-		// Ensure folder name is at least 3 characters by appending 'cvm' if needed
-		if (folderName.length < 3) {
-			folderName = `${folderName}-cvm`;
-		}
-		const validFolderName = folderName.slice(0, 20); // Ensure max length of 20
 
 		if (!options.interactive) {
-			name = validFolderName;
+			name = folderName;
 		} else {
 			const result = await inquirer.prompt([
 				{
 					type: "input",
 					name: "name",
 					message: "Enter a name for the CVM:",
-					default: validFolderName,
+					default: folderName,
 					validate: (input) => {
 						if (!input.trim()) return "CVM name is required";
-						if (input.trim().length > 20)
-							return "CVM name must be less than 20 characters";
-						if (input.trim().length < 3)
-							return "CVM name must be at least 3 characters";
 						if (!/^[a-zA-Z0-9_-]+$/.test(input))
 							return "CVM name must contain only letters, numbers, underscores, and hyphens";
 						return true;
