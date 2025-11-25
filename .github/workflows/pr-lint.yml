@@ -48,7 +48,6 @@ jobs:
             echo "❌ Some commits do not follow Conventional Commits format"
             echo ""
             echo "Expected format: <type>(<scope>): <subject>"
-            echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
             echo ""
             echo "Examples:"
             echo "  feat: add user authentication"
