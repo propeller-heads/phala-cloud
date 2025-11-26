@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type Client } from "../../client";
 import { defineAction } from "../../utils/define-action";
+import { isValidHostname } from "../../utils/hostname";
 
 /**
  * Provision a CVM
@@ -183,6 +184,8 @@ export const ProvisionCvmSchema = z
 export type ProvisionCvm = z.infer<typeof ProvisionCvmSchema>;
 
 // Request schema (for reference, not used directly in function signature)
+const NAME_VALIDATION_MESSAGE =
+  "Name must be 5-63 characters, start with letter, and contain only letters/numbers/hyphens";
 export const ProvisionCvmRequestSchema = z
   .object({
     node_id: z.number().optional(), // recommended - optional, system auto-selects if not specified
@@ -190,12 +193,9 @@ export const ProvisionCvmRequestSchema = z
     region: z.string().optional(), // optional - region filter for auto-selection
     name: z
       .string()
-      .min(1)
-      .max(63)
-      .regex(
-        /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/,
-        "CVM name must be a valid hostname (1-63 chars, alphanumeric and hyphens, cannot start/end with hyphen)",
-      ),
+      .min(5, NAME_VALIDATION_MESSAGE)
+      .max(63, NAME_VALIDATION_MESSAGE)
+      .refine((val) => isValidHostname(val), NAME_VALIDATION_MESSAGE),
     instance_type: z.string().default("tdx.small"), // defaults to "tdx.small"
     image: z.string().optional(),
     vcpu: z.number().optional(),
