@@ -111,7 +111,9 @@ export async function getCvmEventLogs(
 	try {
 		// Event logs API uses vm_uuid (without dashes)
 		const uuidNoDashes = vmUuid.replace(/-/g, "");
-		const eventUrl = `https://cloud.phala.network/api/cvms/${uuidNoDashes}/events`;
+		const prefix =
+			process.env.PHALA_CLOUD_API_PREFIX || "https://cloud.phala.network/api";
+		const eventUrl = `${prefix}/cvms/${uuidNoDashes}/events`;
 
 		const headers: Record<string, string> = {
 			accept: "*/*",
