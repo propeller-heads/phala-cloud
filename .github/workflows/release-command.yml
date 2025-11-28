@@ -370,7 +370,8 @@ jobs:
             -i CHANGELOG.md \
             -s \
             --pkg-path ./package.json \
-            -n ../changelog.config.js
+            -n ../changelog.config.js \
+            --tag-prefix "${PACKAGE}-v"
 
       - name: Commit version change
         run: |
