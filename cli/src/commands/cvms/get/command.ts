@@ -1,13 +1,13 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 import { jsonOption } from "@/src/commands/status/command";
 
 export const cvmsGetCommandMeta: CommandMeta = {
 	name: "get",
 	description: "Get details of a CVM",
 	arguments: [cvmIdArgument],
-	options: [jsonOption],
+	options: [jsonOption, interactiveOption],
 	examples: [
 		{
 			name: "Show CVM details interactively",
@@ -31,6 +31,7 @@ export const cvmsGetCommandMeta: CommandMeta = {
 export const cvmsGetCommandSchema = z.object({
 	cvmId: z.string().optional(),
 	json: z.boolean().default(false),
+	interactive: z.boolean().default(false),
 });
 
 export type CvmsGetCommandInput = z.infer<typeof cvmsGetCommandSchema>;

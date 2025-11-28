@@ -1,31 +1,6 @@
-import { selectCvm } from "@/src/api/cvms";
-import { createClient, safeGetCvmInfo, type CvmIdInput } from "@phala/cloud";
+import { createClient, safeGetCvmInfo } from "@phala/cloud";
 import { getApiKey } from "./credentials";
 import { logger } from "./logger";
-
-/**
- * Get CVM identifier from user input or interactive selection
- *
- * @param cvmId Optional CVM identifier string (any format)
- * @returns CvmIdInput object or undefined
- */
-export async function getCvmIdInput(
-	cvmId?: string,
-): Promise<CvmIdInput | undefined> {
-	// If no ID provided, prompt user to select
-	if (!cvmId) {
-		const selected = await selectCvm();
-		if (!selected) {
-			return undefined;
-		}
-		// selectCvm returns app_id (without prefix)
-		return { app_id: selected };
-	}
-
-	// For provided ID, pass as generic 'id'
-	// SDK's CvmIdSchema will auto-detect the format
-	return { id: cvmId };
-}
 
 /**
  * Wait for CVM to complete any in-progress operations and reach running state

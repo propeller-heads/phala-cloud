@@ -1,12 +1,13 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsResizeCommandMeta: CommandMeta = {
 	name: "resize",
 	description: "Resize resources for a CVM",
 	arguments: [cvmIdArgument],
 	options: [
+		interactiveOption,
 		{
 			name: "vcpu",
 			shorthand: "v",
@@ -64,6 +65,7 @@ export const cvmsResizeCommandMeta: CommandMeta = {
 
 export const cvmsResizeCommandSchema = z.object({
 	cvmId: z.string().optional(),
+	interactive: z.boolean().default(false),
 	vcpu: z.string().optional(),
 	memory: z.string().optional(),
 	diskSize: z.string().optional(),

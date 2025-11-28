@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsRestartCommandMeta: CommandMeta = {
 	name: "restart",
 	description: "Restart a CVM",
 	arguments: [cvmIdArgument],
+	options: [interactiveOption],
 	examples: [
 		{
 			name: "Restart CVM by app_id",
@@ -24,6 +25,7 @@ export const cvmsRestartCommandMeta: CommandMeta = {
 
 export const cvmsRestartCommandSchema = z.object({
 	cvmId: z.string().optional(),
+	interactive: z.boolean().default(false),
 });
 
 export type CvmsRestartCommandInput = z.infer<typeof cvmsRestartCommandSchema>;

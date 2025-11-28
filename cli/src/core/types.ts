@@ -1,4 +1,5 @@
 import type { z, ZodTypeAny } from "zod";
+import type { CvmIdInput } from "@phala/cloud";
 import type { RuntimeProjectConfig } from "@/src/utils/project-config";
 
 export type CommandPath = readonly string[];
@@ -64,6 +65,16 @@ export interface CommandContext {
 	readonly stderr: NodeJS.WriteStream;
 	readonly stdin: NodeJS.ReadStream;
 	readonly projectConfig: RuntimeProjectConfig;
+
+	/**
+	 * Parsed CVM identifier (optional)
+	 * Automatically parsed from input.cvmId using SDK's CvmIdSchema
+	 * Populated when:
+	 * - input.cvmId is provided: parsed as { id: cvmId }
+	 * - input.cvmId is empty + input.interactive is true: prompts user to select CVM
+	 * - Otherwise: undefined (command should fail with "No CVM ID provided")
+	 */
+	readonly cvmId?: CvmIdInput;
 
 	/**
 	 * Output success result. In JSON mode, outputs {success: true, ...data} to stdout.

@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import chalk from "chalk";
+import type { CvmIdInput } from "@phala/cloud";
 import { buildCommandSchemaInput } from "./input-builder";
 import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
@@ -7,6 +8,7 @@ import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
 import { isInJsonMode } from "./json-mode";
 import { getProjectConfig } from "@/src/utils/project-config";
+import { selectCvm } from "@/src/api/cvms";
 
 export interface DispatchOptions {
 	readonly registry: CommandRegistry;
@@ -123,6 +125,26 @@ export async function dispatchCommand(
 			raw: schemaInput.raw,
 		};
 
+		// Parse CVM ID if present in input
+		let cvmId: CvmIdInput | undefined;
+		if ("cvmId" in mergedInput) {
+			const rawCvmId = mergedInput.cvmId;
+			const isInteractive =
+				"interactive" in mergedInput && mergedInput.interactive === true;
+
+			if (rawCvmId && typeof rawCvmId === "string") {
+				// Has value: parse as { id: cvmId }
+				cvmId = { id: rawCvmId };
+			} else if (!rawCvmId && isInteractive) {
+				// No value + interactive mode: prompt user to select
+				const selected = await selectCvm();
+				if (selected) {
+					cvmId = { app_id: selected };
+				}
+			}
+			// No value + non-interactive: cvmId remains undefined
+		}
+
 		const context: CommandContext = {
 			argv: commandArgv,
 			rawFlags: parsedArguments.flags,
@@ -133,6 +155,7 @@ export async function dispatchCommand(
 			stderr,
 			stdin,
 			projectConfig: getProjectConfig(),
+			cvmId,
 
 			success(data: unknown): void {
 				if (isInJsonMode()) {

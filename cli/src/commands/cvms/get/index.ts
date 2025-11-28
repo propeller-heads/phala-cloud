@@ -5,7 +5,6 @@ import type { CommandContext } from "@/src/core/types";
 import type { CvmInfoResponse } from "@/src/api/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { getCvmIdInput } from "@/src/utils/cvms";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	cvmsGetCommandMeta,
@@ -20,18 +19,18 @@ async function runCvmsGetCommand(
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			context.fail("No CVM ID provided.");
-			return 1;
-		}
-
 		const spinner = logger.startSpinner("Fetching CVM details");
 
 		const client = await getClient();
-		const result = await safeGetCvmInfo(client, cvmIdInput);
+		const result = await safeGetCvmInfo(client, context.cvmId);
 
 		spinner.stop(true);
 

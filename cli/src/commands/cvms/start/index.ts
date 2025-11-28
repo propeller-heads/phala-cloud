@@ -1,6 +1,5 @@
 import { safeStartCvm, type VM } from "@phala/cloud";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { getCvmIdInput } from "@/src/utils/cvms";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
@@ -16,21 +15,21 @@ async function runCvmsStartCommand(
 	input: CvmsStartCommandInput,
 	context: CommandContext,
 ): Promise<number> {
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			context.fail("No CVM ID provided.");
-			return 1;
-		}
-
 		const client = await getClient();
 		const spinner = logger.startSpinner("Starting CVM");
 
-		const result = await retryOnConflict(
-			() => safeStartCvm(client, cvmIdInput),
-			{ spinner },
-		);
+		const cvmId = context.cvmId;
+		const result = await retryOnConflict(() => safeStartCvm(client, cvmId), {
+			spinner,
+		});
 
 		spinner.stop(true);
 

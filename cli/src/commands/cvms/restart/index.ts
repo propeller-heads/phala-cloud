@@ -1,6 +1,6 @@
 import { safeGetCvmInfo, safeRestartCvm, type VM } from "@phala/cloud";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { getCvmIdInput, waitForCvmReady } from "@/src/utils/cvms";
+import { waitForCvmReady } from "@/src/utils/cvms";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
@@ -17,18 +17,18 @@ async function runCvmsRestartCommand(
 	input: CvmsRestartCommandInput,
 	context: CommandContext,
 ): Promise<number> {
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			context.fail("No CVM ID provided.");
-			return 1;
-		}
-
 		const client = await getClient();
 
 		// Check if CVM is ready before restarting (not in_progress)
-		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+		const infoResult = await safeGetCvmInfo(client, context.cvmId);
 
 		if (!infoResult.success) {
 			context.fail(infoResult.error.message);
@@ -49,10 +49,10 @@ async function runCvmsRestartCommand(
 		const spinner = logger.startSpinner("Restarting CVM");
 
 		// Retry on conflict errors (409) with the shared utility
-		const result = await retryOnConflict(
-			() => safeRestartCvm(client, cvmIdInput),
-			{ spinner },
-		);
+		const cvmId = context.cvmId;
+		const result = await retryOnConflict(() => safeRestartCvm(client, cvmId), {
+			spinner,
+		});
 
 		spinner.stop(true);
 

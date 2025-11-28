@@ -1,6 +1,5 @@
 import inquirer from "inquirer";
 import { safeDeleteCvm, safeGetCvmInfo } from "@phala/cloud";
-import { getCvmIdInput } from "@/src/utils/cvms";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
@@ -16,18 +15,18 @@ async function runCvmsDeleteCommand(
 	input: CvmsDeleteCommandInput,
 	context: CommandContext,
 ): Promise<number> {
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			context.fail("No CVM ID provided.");
-			return 1;
-		}
-
 		const client = await getClient();
 
 		// Get CVM details for confirmation message
-		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+		const infoResult = await safeGetCvmInfo(client, context.cvmId);
 
 		if (!infoResult.success) {
 			context.fail(infoResult.error.message);
@@ -60,7 +59,7 @@ async function runCvmsDeleteCommand(
 		}
 
 		const spinner = logger.startSpinner(`Deleting CVM ${cvmIdentifier}`);
-		const result = await safeDeleteCvm(client, cvmIdInput);
+		const result = await safeDeleteCvm(client, context.cvmId);
 		spinner.stop(true);
 
 		if (!result.success) {

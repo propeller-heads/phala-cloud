@@ -7,7 +7,6 @@ import { CLOUD_URL } from "@/src/utils/constants";
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
 import { parseEnv } from "@/src/utils/secrets";
 import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
-import { getCvmIdInput } from "@/src/utils/cvms";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import {
@@ -38,7 +37,7 @@ async function ensureComposePath(
 
 async function runCvmsUpgradeCommand(
 	input: CvmsUpgradeCommandInput,
-	_context: CommandContext,
+	context: CommandContext,
 ): Promise<number> {
 	try {
 		logger.warn(
@@ -48,15 +47,15 @@ async function runCvmsUpgradeCommand(
 			"⚠️  This legacy API will be maintained but may have limited support.\n",
 		);
 
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			logger.error("No CVM ID provided.");
+		if (!context.cvmId) {
+			logger.error(
+				"No CVM ID provided. Use --interactive to select interactively.",
+			);
 			return 1;
 		}
 
 		const client = await getClient();
-		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+		const infoResult = await safeGetCvmInfo(client, context.cvmId);
 
 		if (!infoResult.success) {
 			logger.error(infoResult.error.message);

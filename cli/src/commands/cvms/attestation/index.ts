@@ -4,7 +4,6 @@ import { getCvmAttestation } from "@/src/api/cvms";
 import type { CvmAttestationResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getCvmIdInput } from "@/src/utils/cvms";
 import { getClient } from "@/src/lib/client";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
@@ -20,15 +19,16 @@ async function runCvmsAttestationCommand(
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const cvmIdInput = await getCvmIdInput(input.cvmId);
-
-		if (!cvmIdInput) {
-			return 0;
-		}
-
 		const client = await getClient();
-		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+		const infoResult = await safeGetCvmInfo(client, context.cvmId);
 
 		if (!infoResult.success) {
 			context.fail(infoResult.error.message);

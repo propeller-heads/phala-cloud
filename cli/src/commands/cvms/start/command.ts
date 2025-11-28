@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsStartCommandMeta: CommandMeta = {
 	name: "start",
 	description: "Start a stopped CVM",
 	arguments: [cvmIdArgument],
+	options: [interactiveOption],
 	examples: [
 		{
 			name: "Start CVM by app_id",
@@ -24,6 +25,7 @@ export const cvmsStartCommandMeta: CommandMeta = {
 
 export const cvmsStartCommandSchema = z.object({
 	cvmId: z.string().optional(),
+	interactive: z.boolean().default(false),
 });
 
 export type CvmsStartCommandInput = z.infer<typeof cvmsStartCommandSchema>;
