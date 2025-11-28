@@ -1,18 +1,12 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument } from "@/src/core/common-flags";
 import { jsonOption } from "@/src/commands/status/command";
 
 export const cvmsAttestationCommandMeta: CommandMeta = {
 	name: "attestation",
 	description: "Get attestation information for a CVM",
-	arguments: [
-		{
-			name: "app-id",
-			description: "CVM app ID (prompts if not provided)",
-			required: false,
-			target: "appId",
-		},
-	],
+	arguments: [cvmIdArgument],
 	options: [jsonOption],
 	examples: [
 		{
@@ -27,7 +21,7 @@ export const cvmsAttestationCommandMeta: CommandMeta = {
 };
 
 export const cvmsAttestationCommandSchema = z.object({
-	appId: z.string().optional(),
+	cvmId: z.string().optional(),
 	json: z.boolean().default(false),
 });
 

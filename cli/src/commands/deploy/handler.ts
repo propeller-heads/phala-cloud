@@ -60,6 +60,7 @@ interface Options {
 	envFile?: string | boolean;
 	interactive?: boolean;
 	kmsId?: string;
+	cvmId?: string;
 	uuid?: string;
 	customAppId?: string;
 	preLaunchScript?: string;
@@ -883,8 +884,10 @@ export async function runDeploy(
 
 		const envs = await validateEnvFile(input as Options);
 
-		// Determine UUID: priority is CLI input > phala.toml
-		const uuid = parse_cvm_id(input.uuid) ?? context.projectConfig.cvm_id;
+		// Determine UUID: priority is cvmId > uuid (deprecated) > phala.toml
+		// Support both --cvm-id and --uuid (deprecated) for backward compatibility
+		const uuid =
+			parse_cvm_id(input.cvmId ?? input.uuid) ?? context.projectConfig.cvm_id;
 
 		const isUpdate = !!uuid;
 		if (isUpdate) {

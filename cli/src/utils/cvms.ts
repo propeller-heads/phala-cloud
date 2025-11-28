@@ -1,30 +1,30 @@
-import { checkCvmExists, selectCvm } from "@/src/api/cvms";
-import { createClient, safeGetCvmInfo } from "@phala/cloud";
+import { selectCvm } from "@/src/api/cvms";
+import { createClient, safeGetCvmInfo, type CvmIdInput } from "@phala/cloud";
 import { getApiKey } from "./credentials";
 import { logger } from "./logger";
 
 /**
- * Resolves a CVM App ID either by prompting the user to select one if none is provided,
- * or by validating the provided App ID exists.
+ * Get CVM identifier from user input or interactive selection
  *
- * In JSON mode, success/error messages are suppressed to avoid polluting output.
- *
- * @param appId Optional App ID to resolve
- * @returns The resolved App ID or undefined if none was selected/found
+ * @param cvmId Optional CVM identifier string (any format)
+ * @returns CvmIdInput object or undefined
  */
-export async function resolveCvmAppId(
-	appId?: string,
-): Promise<string | undefined> {
-	if (!appId) {
-		// If no app ID is provided, prompt user to select one
-		const selectedCvm = await selectCvm();
-		if (!selectedCvm) {
-			return undefined; // No CVMs found or user canceled
+export async function getCvmIdInput(
+	cvmId?: string,
+): Promise<CvmIdInput | undefined> {
+	// If no ID provided, prompt user to select
+	if (!cvmId) {
+		const selected = await selectCvm();
+		if (!selected) {
+			return undefined;
 		}
-		return selectedCvm;
+		// selectCvm returns app_id (without prefix)
+		return { app_id: selected };
 	}
-	// Verify the provided App ID exists
-	return await checkCvmExists(appId);
+
+	// For provided ID, pass as generic 'id'
+	// SDK's CvmIdSchema will auto-detect the format
+	return { id: cvmId };
 }
 
 /**

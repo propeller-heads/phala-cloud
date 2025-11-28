@@ -1,13 +1,14 @@
 import fs from "node:fs";
-import { encryptEnvVars, type EnvVar } from "@phala/cloud";
+import { encryptEnvVars, safeGetCvmInfo, type EnvVar } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getCvmByAppId, upgradeCvm } from "@/src/api/cvms";
+import { upgradeCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
 import { parseEnv } from "@/src/utils/secrets";
 import { deleteSimulatorEndpointEnv } from "@/src/utils/simulator";
-import { resolveCvmAppId } from "@/src/utils/cvms";
+import { getCvmIdInput } from "@/src/utils/cvms";
+import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import {
 	cvmsUpgradeCommandMeta,
@@ -47,18 +48,29 @@ async function runCvmsUpgradeCommand(
 			"⚠️  This legacy API will be maintained but may have limited support.\n",
 		);
 
-		const resolvedAppId = await resolveCvmAppId(input.appId);
+		const cvmIdInput = await getCvmIdInput(input.cvmId);
 
-		const spinner = logger.startSpinner(
-			`Fetching current configuration for CVM app_${resolvedAppId}`,
-		);
-		const currentCvm = await getCvmByAppId(resolvedAppId);
-		spinner.stop(true);
-
-		if (!currentCvm) {
-			logger.error(`CVM with App ID app_${resolvedAppId} not found`);
+		if (!cvmIdInput) {
+			logger.error("No CVM ID provided.");
 			return 1;
 		}
+
+		const client = await getClient();
+		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+
+		if (!infoResult.success) {
+			logger.error(infoResult.error.message);
+			return 1;
+		}
+
+		const cvm = infoResult.data;
+		if (!cvm) {
+			logger.error("CVM not found");
+			return 1;
+		}
+
+		const resolvedAppId = cvm.app_id;
+		const currentCvm = cvm;
 
 		const composePath = await ensureComposePath(input);
 		let composeString = "";

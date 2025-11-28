@@ -5,7 +5,11 @@ import {
 	DEFAULT_MEMORY,
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
-import { commonAuthOptions } from "@/src/core/common-flags";
+import {
+	commonAuthOptions,
+	cvmIdOption,
+	uuidOption,
+} from "@/src/core/common-flags";
 
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
@@ -13,6 +17,8 @@ export const deployCommandMeta: CommandMeta = {
 	arguments: [],
 	options: [
 		...commonAuthOptions,
+		cvmIdOption,
+		uuidOption,
 		{
 			name: "json",
 			description: "Output in JSON format",
@@ -108,12 +114,6 @@ export const deployCommandMeta: CommandMeta = {
 			description: "KMS ID to use.",
 			type: "string",
 			target: "kmsId",
-		},
-		{
-			name: "uuid",
-			description: "UUID of the CVM to upgrade",
-			type: "string",
-			target: "uuid",
 		},
 		{
 			name: "custom-app-id",
@@ -215,6 +215,7 @@ export const deployCommandSchema = z.object({
 	envFile: z.string().optional(),
 	interactive: z.boolean().default(false),
 	kmsId: z.string().optional(),
+	cvmId: z.string().optional(),
 	uuid: z.string().optional(),
 	customAppId: z.string().optional(),
 	preLaunchScript: z.string().optional(),

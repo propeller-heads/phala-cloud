@@ -1,18 +1,12 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument } from "@/src/core/common-flags";
 import { jsonOption } from "@/src/commands/status/command";
 
 export const cvmsGetCommandMeta: CommandMeta = {
 	name: "get",
 	description: "Get details of a CVM",
-	arguments: [
-		{
-			name: "app-id",
-			description: "App ID of the CVM (optional)",
-			required: false,
-			target: "appId",
-		},
-	],
+	arguments: [cvmIdArgument],
 	options: [jsonOption],
 	examples: [
 		{
@@ -20,14 +14,22 @@ export const cvmsGetCommandMeta: CommandMeta = {
 			value: "phala cvms get",
 		},
 		{
-			name: "Get CVM info for a specific App ID",
-			value: "phala cvms get app_123",
+			name: "Get CVM by app_id",
+			value: "phala cvms get app_abc123",
+		},
+		{
+			name: "Get CVM by UUID",
+			value: "phala cvms get 550e8400-e29b-41d4-a716-446655440000",
+		},
+		{
+			name: "Get CVM by name",
+			value: "phala cvms get my-app",
 		},
 	],
 };
 
 export const cvmsGetCommandSchema = z.object({
-	appId: z.string().optional(),
+	cvmId: z.string().optional(),
 	json: z.boolean().default(false),
 });
 

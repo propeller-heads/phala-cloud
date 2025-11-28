@@ -1,11 +1,12 @@
-import { getCvmByAppId, restartCvm } from "@/src/api/cvms";
+import { safeGetCvmInfo, safeRestartCvm, type VM } from "@phala/cloud";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId, waitForCvmReady } from "@/src/utils/cvms";
-
+import { getCvmIdInput, waitForCvmReady } from "@/src/utils/cvms";
+import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
+import type { CvmInfoResponse } from "@/src/api/types";
 import {
 	cvmsRestartCommandMeta,
 	cvmsRestartCommandSchema,
@@ -14,13 +15,27 @@ import {
 
 async function runCvmsRestartCommand(
 	input: CvmsRestartCommandInput,
-	_context: CommandContext,
+	context: CommandContext,
 ): Promise<number> {
 	try {
-		const resolvedAppId = await resolveCvmAppId(input.appId);
+		const cvmIdInput = await getCvmIdInput(input.cvmId);
+
+		if (!cvmIdInput) {
+			context.fail("No CVM ID provided.");
+			return 1;
+		}
+
+		const client = await getClient();
 
 		// Check if CVM is ready before restarting (not in_progress)
-		const cvmInfo = await getCvmByAppId(resolvedAppId);
+		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+
+		if (!infoResult.success) {
+			context.fail(infoResult.error.message);
+			return 1;
+		}
+
+		const cvmInfo = infoResult.data as CvmInfoResponse;
 
 		if (cvmInfo.in_progress) {
 			logger.warn(
@@ -31,16 +46,22 @@ async function runCvmsRestartCommand(
 			await waitForCvmReady(cvmInfo.vm_uuid, 300000);
 		}
 
-		const spinner = logger.startSpinner(
-			`Restarting CVM with App ID app_${resolvedAppId}`,
-		);
+		const spinner = logger.startSpinner("Restarting CVM");
 
 		// Retry on conflict errors (409) with the shared utility
-		const response = await retryOnConflict(() => restartCvm(resolvedAppId), {
-			spinner,
-		});
+		const result = await retryOnConflict(
+			() => safeRestartCvm(client, cvmIdInput),
+			{ spinner },
+		);
 
 		spinner.stop(true);
+
+		if (!result.success) {
+			logger.error(`Failed to restart CVM: ${result.error.message}`);
+			return 1;
+		}
+
+		const response = result.data as VM;
 		logger.break();
 
 		logger.keyValueTable(

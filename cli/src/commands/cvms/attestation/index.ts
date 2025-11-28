@@ -1,23 +1,17 @@
 import chalk from "chalk";
-import { checkCvmExists, getCvmAttestation, selectCvm } from "@/src/api/cvms";
+import { safeGetCvmInfo } from "@phala/cloud";
+import { getCvmAttestation } from "@/src/api/cvms";
 import type { CvmAttestationResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
+import { getCvmIdInput } from "@/src/utils/cvms";
+import { getClient } from "@/src/lib/client";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	cvmsAttestationCommandMeta,
 	cvmsAttestationCommandSchema,
 	type CvmsAttestationCommandInput,
 } from "./command";
-
-async function resolveAppId(appId?: string): Promise<string | undefined> {
-	if (!appId) {
-		logger.info("No CVM specified, fetching available CVMs...");
-		const selected = await selectCvm();
-		return selected ?? undefined;
-	}
-	return checkCvmExists(appId);
-}
 
 async function runCvmsAttestationCommand(
 	input: CvmsAttestationCommandInput,
@@ -27,11 +21,27 @@ async function runCvmsAttestationCommand(
 	setJsonMode(input.json);
 
 	try {
-		const resolvedAppId = await resolveAppId(input.appId);
+		const cvmIdInput = await getCvmIdInput(input.cvmId);
 
-		if (!resolvedAppId) {
+		if (!cvmIdInput) {
 			return 0;
 		}
+
+		const client = await getClient();
+		const infoResult = await safeGetCvmInfo(client, cvmIdInput);
+
+		if (!infoResult.success) {
+			context.fail(infoResult.error.message);
+			return 1;
+		}
+
+		const cvm = infoResult.data;
+		if (!cvm) {
+			context.fail("CVM not found");
+			return 1;
+		}
+
+		const resolvedAppId = cvm.app_id;
 
 		const spinner = logger.startSpinner(
 			`Fetching attestation information for CVM app_${resolvedAppId}...`,
