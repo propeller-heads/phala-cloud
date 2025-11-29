@@ -3,6 +3,7 @@ const http = require("node:http");
 const PORT = process.env.PORT || 3000;
 const BUILD_VERSION = process.env.BUILD_VERSION || "1.0.0";
 const TEST_ENV_VAR = process.env.TEST_ENV_VAR || "default";
+const NEW_ENV_VAR = process.env.NEW_ENV_VAR || "";
 
 const server = http.createServer((req, res) => {
 	// CORS headers for testing
@@ -24,6 +25,7 @@ const server = http.createServer((req, res) => {
 			JSON.stringify({
 				version: BUILD_VERSION,
 				env: TEST_ENV_VAR,
+				newEnv: NEW_ENV_VAR,
 				node: process.version,
 			}),
 		);
