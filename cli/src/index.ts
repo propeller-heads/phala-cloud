@@ -23,7 +23,11 @@ const __dirname = dirname(__filename);
 
 const packageJsonPath = join(__dirname, "../package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-const version = `v${packageJson.version}`;
+
+// __GIT_INFO__ is replaced at compile time by tsup/esbuild
+declare const __GIT_INFO__: string;
+const gitInfo = typeof __GIT_INFO__ !== "undefined" ? __GIT_INFO__ : "";
+const version = `v${packageJson.version}${gitInfo}`;
 
 const registry = new CommandRegistry();
 registry.registerCommand(statusCommand);
