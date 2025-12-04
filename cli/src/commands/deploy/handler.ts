@@ -809,6 +809,7 @@ const updateCvm = async (
 		compose_hash: provision.compose_hash,
 		encrypted_env: encrypted_env,
 		env_keys: envs?.length ? envs.map((env) => env.key) : undefined,
+		update_env_vars: envs?.length ? true : undefined,
 	};
 	// @ts-ignore
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);

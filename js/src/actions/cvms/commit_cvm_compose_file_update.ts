@@ -109,7 +109,7 @@ export const CommitCvmComposeFileUpdateRequestSchema = z
     compose_hash: data.compose_hash,
     encrypted_env: data.encrypted_env,
     env_keys: data.env_keys,
-    update_env_vars: !!data.update_env_vars,
+    update_env_vars: data.update_env_vars ?? undefined,
     _raw: data,
   }));
 
@@ -137,6 +137,7 @@ const { action: commitCvmComposeFileUpdate, safeAction: safeCommitCvmComposeFile
         compose_hash: validatedRequest.compose_hash,
         encrypted_env: validatedRequest.encrypted_env,
         env_keys: validatedRequest.env_keys,
+        update_env_vars: validatedRequest.update_env_vars,
       });
     },
   );
