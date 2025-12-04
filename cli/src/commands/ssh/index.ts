@@ -4,7 +4,6 @@ import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
-import { parse_cvm_id } from "@/src/utils/project-config";
 import {
 	CvmNotRunningError,
 	NoGatewayError,
@@ -26,8 +25,12 @@ async function runSshCommand(
 	context: CommandContext,
 ): Promise<number> {
 	try {
-		// Resolve CVM ID: command input > project config
-		const cvmId = parse_cvm_id(input.cvmId) ?? context.projectConfig.cvm_id;
+		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
+		const cvmId =
+			context.cvmId?.id ||
+			context.cvmId?.uuid ||
+			context.cvmId?.app_id ||
+			context.cvmId?.instance_id;
 
 		if (!cvmId) {
 			logger.error(

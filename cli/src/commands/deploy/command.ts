@@ -216,7 +216,6 @@ export const deployCommandSchema = z.object({
 	interactive: z.boolean().default(false),
 	kmsId: z.string().optional(),
 	cvmId: z.string().optional(),
-	uuid: z.string().optional(),
 	customAppId: z.string().optional(),
 	preLaunchScript: z.string().optional(),
 	privateKey: z.string().optional(),
