@@ -1,9 +1,6 @@
 import path from "node:path";
 import os from "node:os";
-import {
-	type RuntimeProjectConfig,
-	parse_cvm_id,
-} from "@/src/utils/project-config";
+import type { CommandContext } from "@/src/core/types";
 import { getApiKey } from "@/src/utils/credentials";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
@@ -180,31 +177,40 @@ async function getApiClient({
 	apiKey,
 	interactive,
 }: Readonly<Pick<Options, "apiKey" | "interactive">>): Promise<Client> {
-	if (!apiKey && !process.env.PHALA_CLOUD_API_KEY) {
-		if (interactive) {
-			const { apiKey } = await inquirer.prompt([
-				{
-					type: "password",
-					name: "apiKey",
-					message: "Enter your API key:",
-					validate: (input: string) =>
-						input.trim() ? true : "API key is required",
-				},
-			]);
-			return createClient({ apiKey: apiKey });
-		}
-		const apiKey = getApiKey();
-		if (!apiKey) {
-			throw new Error(
-				"API key is required. Please provide it via --api-key or PHALA_CLOUD_API_KEY environment variable",
-			);
-		}
-		return createClient({ apiKey: apiKey });
-	}
+	// Priority 1: Command-line provided API key
 	if (apiKey) {
-		return createClient({ apiKey: apiKey });
+		return createClient({ apiKey });
 	}
-	return createClient();
+
+	// Priority 2: Environment variable
+	if (process.env.PHALA_CLOUD_API_KEY) {
+		return createClient({ apiKey: process.env.PHALA_CLOUD_API_KEY });
+	}
+
+	// Priority 3: Saved API key from config file
+	const savedApiKey = getApiKey();
+	if (savedApiKey) {
+		return createClient({ apiKey: savedApiKey });
+	}
+
+	// Priority 4: Interactive prompt (only if no API key found)
+	if (interactive) {
+		const { apiKey: promptedKey } = await inquirer.prompt([
+			{
+				type: "password",
+				name: "apiKey",
+				message: "Enter your API key:",
+				validate: (input: string) =>
+					input.trim() ? true : "API key is required",
+			},
+		]);
+		return createClient({ apiKey: promptedKey });
+	}
+
+	// No API key available
+	throw new Error(
+		"API key is required. Please run 'phala auth login' or set PHALA_CLOUD_API_KEY environment variable",
+	);
 }
 
 async function readDockerComposeFile({
@@ -339,11 +345,27 @@ const validateEnvFile = async (options: Options) => {
 
 	// Handle environment file path resolution
 	if (options.interactive && (!options.envFile || envFilePath === true)) {
-		envFilePath = await promptForFile(
-			"Enter the path to your environment file:",
-			".env",
-			"file",
-		);
+		const { envPath } = await inquirer.prompt([
+			{
+				type: "input",
+				name: "envPath",
+				message: "Enter the path to your environment file (leave empty to skip):",
+				default: "",
+				validate: (input: string) => {
+					// Allow empty input to skip
+					if (!input || input.trim() === "") {
+						return true;
+					}
+					// Validate file exists if provided
+					const filePath = path.resolve(process.cwd(), input);
+					if (!fs.existsSync(filePath)) {
+						return `File not found at ${filePath}`;
+					}
+					return true;
+				},
+			},
+		]);
+		envFilePath = envPath.trim() || undefined;
 	}
 
 	if (envFilePath && envFilePath !== true) {
@@ -722,10 +744,10 @@ const updateCvm = async (
 ) => {
 	const [cvm_result, app_compose_result] = await Promise.all([
 		safeGetCvmInfo(client, {
-			uuid: validatedOptions.uuid,
+			id: validatedOptions.uuid,
 		}),
 		safeGetCvmComposeFile(client, {
-			uuid: validatedOptions.uuid,
+			id: validatedOptions.uuid,
 		}),
 	]);
 	if (!cvm_result.success) {
@@ -751,7 +773,7 @@ const updateCvm = async (
 
 	logger.info(`Preparing update for CVM ${validatedOptions.uuid}...`);
 	const provision_result = await safeProvisionCvmComposeFileUpdate(client, {
-		uuid: validatedOptions.uuid,
+		id: validatedOptions.uuid,
 		app_compose:
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
 	});
@@ -859,11 +881,7 @@ const updateCvm = async (
 
 export async function runDeploy(
 	input: DeployCommandInput,
-	context: {
-		stdout: NodeJS.WriteStream;
-		stderr: NodeJS.WriteStream;
-		projectConfig: RuntimeProjectConfig;
-	},
+	context: CommandContext,
 ): Promise<void> {
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json || false);
@@ -884,10 +902,22 @@ export async function runDeploy(
 
 		const envs = await validateEnvFile(input as Options);
 
-		// Determine UUID: priority is cvmId > uuid (deprecated) > phala.toml
-		// Support both --cvm-id and --uuid (deprecated) for backward compatibility
+		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
+		if (input.debug) {
+			console.log("[DEBUG] context.cvmId:", JSON.stringify(context.cvmId));
+			console.log("[DEBUG] input.cvmId:", input.cvmId);
+		}
+
 		const uuid =
-			parse_cvm_id(input.cvmId ?? input.uuid) ?? context.projectConfig.cvm_id;
+			context.cvmId?.id ||
+			context.cvmId?.uuid ||
+			context.cvmId?.app_id ||
+			context.cvmId?.instance_id;
+
+		if (input.debug) {
+			console.log("[DEBUG] resolved uuid:", uuid);
+			console.log("[DEBUG] isUpdate:", !!uuid);
+		}
 
 		const isUpdate = !!uuid;
 		if (isUpdate) {
