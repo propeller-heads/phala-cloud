@@ -125,24 +125,47 @@ export async function dispatchCommand(
 			raw: schemaInput.raw,
 		};
 
-		// Parse CVM ID if present in input
+		// Parse CVM ID with priority: interactive > --cvm-id > phala.toml
 		let cvmId: CvmIdInput | undefined;
-		if ("cvmId" in mergedInput) {
-			const rawCvmId = mergedInput.cvmId;
-			const isInteractive =
-				"interactive" in mergedInput && mergedInput.interactive === true;
 
-			if (rawCvmId && typeof rawCvmId === "string") {
-				// Has value: parse as { id: cvmId }
-				cvmId = { id: rawCvmId };
-			} else if (!rawCvmId && isInteractive) {
-				// No value + interactive mode: prompt user to select
-				const selected = await selectCvm();
-				if (selected) {
-					cvmId = { app_id: selected };
-				}
+		// Always check for cvmId, even if not explicitly in mergedInput
+		const rawCvmId = "cvmId" in mergedInput ? mergedInput.cvmId : undefined;
+		const isInteractive =
+			"interactive" in mergedInput && mergedInput.interactive === true;
+
+		// DEBUG
+		if (parsedArguments.flags["--debug"]) {
+			console.log("[DISPATCHER DEBUG] 'cvmId' in mergedInput:", "cvmId" in mergedInput);
+			console.log("[DISPATCHER DEBUG] rawCvmId:", rawCvmId);
+			console.log("[DISPATCHER DEBUG] mergedInput keys:", Object.keys(mergedInput));
+		}
+
+		// Priority 1: Interactive mode (if enabled)
+		if (isInteractive) {
+			const selected = await selectCvm();
+			if (selected) {
+				cvmId = { app_id: selected };
 			}
-			// No value + non-interactive: cvmId remains undefined
+		}
+
+		// Priority 2: User-specified --cvm-id (if not in interactive or no selection)
+		if (!cvmId && rawCvmId && typeof rawCvmId === "string") {
+			cvmId = { id: rawCvmId };
+		}
+
+		// Priority 3: phala.toml configuration (if nothing specified above)
+		if (!cvmId) {
+			const projectCvmId = getProjectConfig().cvm_id;
+			if (projectCvmId) {
+				cvmId = { id: projectCvmId };
+			}
+		}
+
+		// DEBUG
+		if (parsedArguments.flags["--debug"]) {
+			console.log("[DISPATCHER DEBUG] final cvmId:", JSON.stringify(cvmId));
+			console.log("[DISPATCHER DEBUG] cvmId type:", typeof cvmId);
+			console.log("[DISPATCHER DEBUG] cvmId is undefined:", cvmId === undefined);
 		}
 
 		const context: CommandContext = {
@@ -203,7 +226,18 @@ export async function dispatchCommand(
 			},
 		};
 
+		// DEBUG: Check context.cvmId right after creation
+		if (parsedArguments.flags["--debug"]) {
+			console.log("[DISPATCHER DEBUG] context.cvmId after creation:", JSON.stringify(context.cvmId));
+		}
+
 		const parsedInput = definition.schema.parse(mergedInput);
+
+		// DEBUG: Check context.cvmId before calling handler
+		if (parsedArguments.flags["--debug"]) {
+			console.log("[DISPATCHER DEBUG] context.cvmId before handler:", JSON.stringify(context.cvmId));
+		}
+
 		const result = await definition.run(parsedInput, context);
 		if (typeof result === "number") {
 			return result;

@@ -57,10 +57,21 @@ async function runCpCommand(
 			return 1;
 		}
 
-		// Get CVM ID from remote path or fallback to project config
+		// Get CVM ID from remote path or fallback to context
 		const remotePath = source.isRemote ? source : destination;
-		const cvmId =
-			parse_cvm_id(remotePath.cvmId) ?? context.projectConfig.cvm_id;
+		let cvmId: string | undefined;
+
+		if (remotePath.cvmId) {
+			// If CVM ID is explicitly provided in path (e.g., app_123:path), parse it
+			cvmId = parse_cvm_id(remotePath.cvmId);
+		} else {
+			// Otherwise use context.cvmId (already resolved with priority: interactive > --cvm-id > phala.toml)
+			cvmId =
+				context.cvmId?.id ||
+				context.cvmId?.uuid ||
+				context.cvmId?.app_id ||
+				context.cvmId?.instance_id;
+		}
 
 		if (!cvmId) {
 			logger.error(

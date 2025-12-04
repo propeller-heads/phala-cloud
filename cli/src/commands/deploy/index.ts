@@ -12,11 +12,7 @@ async function handler(
 	context: CommandContext,
 ): Promise<number> {
 	try {
-		await runDeploy(input, {
-			stdout: context.stdout,
-			stderr: context.stderr,
-			projectConfig: context.projectConfig,
-		});
+		await runDeploy(input, context);
 		return 0;
 	} catch (error) {
 		return 1;
