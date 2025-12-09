@@ -58,6 +58,12 @@ export const cpCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "verbose",
 		},
+		{
+			name: "dry-run",
+			description: "Print the SCP command without executing it",
+			type: "boolean",
+			target: "dryRun",
+		},
 	],
 	examples: [
 		{
@@ -85,6 +91,10 @@ export const cpCommandMeta: CommandMeta = {
 			name: "Copy with custom SSH key",
 			value: "phala cp -i ~/.ssh/custom_key app_123:/root/file.txt ./file.txt",
 		},
+		{
+			name: "Print the SCP command without executing",
+			value: "phala cp ./local.txt app_123:/root/remote.txt --dry-run",
+		},
 	],
 };
 
@@ -96,6 +106,7 @@ export const cpCommandSchema = z.object({
 	gatewayDomain: z.string().optional(),
 	recursive: z.boolean().default(false),
 	verbose: z.boolean().default(false),
+	dryRun: z.boolean().default(false),
 });
 
 export type CpCommandInput = z.infer<typeof cpCommandSchema>;

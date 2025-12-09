@@ -14,6 +14,7 @@ import {
 	getSshKeyFile,
 	parseGatewayDomain,
 	selectPort,
+	shellEscape,
 } from "@/src/utils/ssh-utils";
 import { cpCommandMeta, cpCommandSchema, type CpCommandInput } from "./command";
 
@@ -160,6 +161,13 @@ async function runCpCommand(
 			: destination.path;
 
 		scpArgs.push(scpSource, scpDestination);
+
+		// Dry run: print the command and exit
+		if (input.dryRun) {
+			const escapedArgs = scpArgs.map((arg) => shellEscape(arg));
+			context.stdout.write(`scp ${escapedArgs.join(" ")}\n`);
+			return 0;
+		}
 
 		const direction = source.isRemote ? "download" : "upload";
 		const localPath = source.isRemote ? destination.path : source.path;

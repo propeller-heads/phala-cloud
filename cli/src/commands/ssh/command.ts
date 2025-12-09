@@ -50,6 +50,12 @@ export const sshCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "verbose",
 		},
+		{
+			name: "dry-run",
+			description: "Print the SSH command without executing it",
+			type: "boolean",
+			target: "dryRun",
+		},
 	],
 	examples: [
 		{
@@ -72,6 +78,10 @@ export const sshCommandMeta: CommandMeta = {
 			name: "Connect with verbose output for debugging",
 			value: "phala ssh app_123 -v",
 		},
+		{
+			name: "Print the SSH command without executing",
+			value: "phala ssh app_123 --dry-run",
+		},
 	],
 };
 
@@ -82,6 +92,7 @@ export const sshCommandSchema = z.object({
 	gatewayDomain: z.string().optional(),
 	timeout: z.string().default("30"),
 	verbose: z.boolean().default(false),
+	dryRun: z.boolean().default(false),
 });
 
 export type SshCommandInput = z.infer<typeof sshCommandSchema>;

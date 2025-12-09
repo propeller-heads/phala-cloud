@@ -138,6 +138,20 @@ export function selectPort(
 }
 
 /**
+ * Escape a string for safe use in shell commands.
+ * Uses single quotes and escapes any embedded single quotes.
+ */
+export function shellEscape(arg: string): string {
+	// If the arg contains no special characters, return as-is
+	if (/^[a-zA-Z0-9_./:@=-]+$/.test(arg)) {
+		return arg;
+	}
+	// Escape single quotes by ending the quoted string, adding escaped quote, and resuming
+	// e.g., "it's" becomes 'it'\''s'
+	return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+/**
  * Build common SSH options for ssh/scp commands
  */
 export function buildSshOptions(verbose: boolean, timeout: string): string[] {
