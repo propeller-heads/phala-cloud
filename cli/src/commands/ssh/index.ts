@@ -13,6 +13,7 @@ import {
 	getSshKeyFile,
 	parseGatewayDomain,
 	selectPort,
+	shellEscape,
 } from "@/src/utils/ssh-utils";
 import {
 	sshCommandMeta,
@@ -107,6 +108,13 @@ async function runSshCommand(
 		}
 
 		sshArgs.push(`root@${hostname}`);
+
+		// Dry run: print the command and exit
+		if (input.dryRun) {
+			const escapedArgs = sshArgs.map((arg) => shellEscape(arg));
+			context.stdout.write(`ssh ${escapedArgs.join(" ")}\n`);
+			return 0;
+		}
 
 		// Spawn SSH process
 		const ssh = spawn("ssh", sshArgs, { stdio: "inherit" });
