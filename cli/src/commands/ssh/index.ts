@@ -9,10 +9,12 @@ import {
 	NoGatewayError,
 	buildHostname,
 	buildSshOptions,
+	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
 	getSshKeyFile,
 	isDevImage,
 	parseGatewayDomain,
+	parseLocalForward,
 	selectPort,
 	shellEscape,
 } from "@/src/utils/ssh-utils";
@@ -97,6 +99,9 @@ async function runSshCommand(
 			logger.warn(
 				"No default SSH key found. SSH will use ssh-agent or prompt for password.",
 			);
+		} else {
+			// Check for LibreSSL + ed25519 compatibility issue on macOS
+			checkLibreSSLEd25519Compatibility(keyFile);
 		}
 
 		if (input.verbose) {
@@ -113,6 +118,27 @@ async function runSshCommand(
 
 		if (keyFile) {
 			sshArgs.push("-i", keyFile);
+		}
+
+		// Add local port forwarding options
+		if (input.localForward && input.localForward.length > 0) {
+			try {
+				for (const forward of input.localForward) {
+					const normalizedForward = parseLocalForward(forward);
+					sshArgs.push("-L", normalizedForward);
+
+					if (input.verbose) {
+						logger.info(`Port forwarding: ${chalk.cyan(normalizedForward)}`);
+					}
+				}
+			} catch (error) {
+				logger.error(
+					error instanceof Error
+						? error.message
+						: "Invalid port forwarding specification",
+				);
+				return 1;
+			}
 		}
 
 		sshArgs.push(`root@${hostname}`);

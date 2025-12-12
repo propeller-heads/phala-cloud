@@ -45,6 +45,14 @@ export const sshCommandMeta: CommandMeta = {
 			target: "timeout",
 		},
 		{
+			name: "local-forward",
+			shorthand: "L",
+			description:
+				"Local port forwarding. Format: [bind_address:]port:host:hostport or /path/to/local.sock:host:hostport. Can be specified multiple times",
+			type: "string[]",
+			target: "localForward",
+		},
+		{
 			name: "verbose",
 			shorthand: "v",
 			description: "Show verbose SSH connection details",
@@ -76,6 +84,19 @@ export const sshCommandMeta: CommandMeta = {
 			value: "phala ssh app_123 -i ~/.ssh/custom_key",
 		},
 		{
+			name: "Forward local port 8080 to remote port 80",
+			value: "phala ssh app_123 -L 8080:localhost:80",
+		},
+		{
+			name: "Forward multiple ports with custom bind address",
+			value:
+				"phala ssh app_123 -L 127.0.0.1:8080:localhost:80 -L 3306:localhost:3306",
+		},
+		{
+			name: "Forward local Unix socket to remote port",
+			value: "phala ssh app_123 -L /tmp/app.sock:localhost:8080",
+		},
+		{
 			name: "Connect with verbose output for debugging",
 			value: "phala ssh app_123 -v",
 		},
@@ -92,6 +113,7 @@ export const sshCommandSchema = z.object({
 	port: z.string().default("443"),
 	gatewayDomain: z.string().optional(),
 	timeout: z.string().default("30"),
+	localForward: z.array(z.string()).optional(),
 	verbose: z.boolean().default(false),
 	dryRun: z.boolean().default(false),
 });
