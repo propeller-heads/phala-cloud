@@ -6,6 +6,7 @@ export const cvmsListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
 	description: "List all CVMs",
+	stability: "unstable",
 	options: [jsonOption],
 	examples: [
 		{

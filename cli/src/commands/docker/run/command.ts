@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const dockerRunCommandMeta: CommandMeta = {
 	name: "run",
 	description: "Run a Docker Compose setup",
+	stability: "unstable",
 	options: [
 		{
 			name: "compose",

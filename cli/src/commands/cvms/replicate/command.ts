@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const cvmsReplicateCommandMeta: CommandMeta = {
 	name: "replicate",
 	description: "Create a replica of an existing CVM",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "cvm-id",

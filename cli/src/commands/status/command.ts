@@ -22,6 +22,7 @@ export const debugOption = {
 export const statusCommandMeta: CommandMeta = {
 	name: "status",
 	description: "Check Phala Cloud status and authentication",
+	stability: "stable",
 	options: [...commonAuthOptions, jsonOption, debugOption],
 	examples: [
 		{

@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const cvmsListNodesCommandMeta: CommandMeta = {
 	name: "list-nodes",
 	description: "List all available worker nodes.",
+	stability: "unstable",
 };
 
 export const cvmsListNodesCommandSchema = z.object({});

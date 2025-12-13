@@ -5,6 +5,7 @@ export const configListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
 	description: "List all configuration values",
+	stability: "stable",
 	options: [
 		{
 			name: "json",

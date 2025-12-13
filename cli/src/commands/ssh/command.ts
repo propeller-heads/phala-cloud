@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const sshCommandMeta: CommandMeta = {
 	name: "ssh",
 	description: "Connect to a CVM via SSH",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "cvm-id",

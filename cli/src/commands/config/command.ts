@@ -5,5 +5,6 @@ export const configGroup: CommandGroup = {
 	meta: {
 		name: "config",
 		description: "Manage your local configuration",
+		stability: "stable",
 	},
 };

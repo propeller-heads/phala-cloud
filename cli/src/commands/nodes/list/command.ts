@@ -5,6 +5,7 @@ export const nodesListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
 	description: "List all available worker nodes",
+	stability: "unstable",
 	options: [
 		{
 			name: "json",

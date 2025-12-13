@@ -5,6 +5,7 @@ import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 export const cvmsStopCommandMeta: CommandMeta = {
 	name: "stop",
 	description: "Stop a running CVM",
+	stability: "stable",
 	arguments: [cvmIdArgument],
 	options: [interactiveOption],
 	examples: [

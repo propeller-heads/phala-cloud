@@ -5,6 +5,7 @@ import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 export const cvmsDeleteCommandMeta: CommandMeta = {
 	name: "delete",
 	description: "Delete a CVM",
+	stability: "unstable",
 	arguments: [cvmIdArgument],
 	options: [
 		interactiveOption,

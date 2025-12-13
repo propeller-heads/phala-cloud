@@ -6,6 +6,7 @@ import { jsonOption } from "@/src/commands/status/command";
 export const cvmsGetCommandMeta: CommandMeta = {
 	name: "get",
 	description: "Get details of a CVM",
+	stability: "unstable",
 	arguments: [cvmIdArgument],
 	options: [jsonOption, interactiveOption],
 	examples: [

@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const cpCommandMeta: CommandMeta = {
 	name: "cp",
 	description: "Copy files to/from a CVM via SCP",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "source",

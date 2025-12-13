@@ -8,7 +8,8 @@ import {
 
 export const cvmsCreateCommandMeta: CommandMeta = {
 	name: "create",
-	description: '[DEPRECATED] Create a new CVM (use "phala deploy" instead)',
+	description: 'Create a new CVM (use "phala deploy" instead)',
+	stability: "deprecated",
 	options: [
 		{
 			name: "name",

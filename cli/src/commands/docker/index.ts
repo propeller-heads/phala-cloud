@@ -11,6 +11,7 @@ import { dockerRunCommand } from "./run/index";
 const dockerRootMeta: CommandMeta = {
 	name: "docker",
 	description: "Login to Docker Hub and manage Docker images",
+	stability: "unstable",
 };
 
 const dockerRootSchema = z.object({});

@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const dockerGenerateCommandMeta: CommandMeta = {
 	name: "generate",
 	description: "Generate a Docker Compose file",
+	stability: "unstable",
 	options: [
 		{
 			name: "image",
