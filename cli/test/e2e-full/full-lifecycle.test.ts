@@ -500,6 +500,18 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			expect(versionData.env).toBe(initialNonce);
 			expect(versionData.newEnv).toBe("");  // Not set in initial deployment
 
+			// Test SSH and CP dry-run
+			for (const [cmd, binary] of [
+				[`ssh ${appId} --dry-run`, "ssh"],
+				[`cp ${appId}:/tmp/test.txt ./local.txt --dry-run`, "scp"],
+			] as const) {
+				const { stdout } = await runCliCommand(logger, cmd, `Testing ${binary} dry-run`);
+				expect(stdout).toContain(binary);
+				expect(stdout).toContain("root@");
+				expect(stdout).toContain("ProxyCommand");
+				logger.success(`${binary} dry-run verified`);
+			}
+
 			logger.success("Phase 4 completed: CVM is fully operational");
 		},
 		{ timeout: 600000 }, // 10 minutes

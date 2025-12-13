@@ -11,6 +11,7 @@ import {
 	buildSshOptions,
 	fetchCvmInfo,
 	getSshKeyFile,
+	isDevImage,
 	parseGatewayDomain,
 	selectPort,
 	shellEscape,
@@ -59,6 +60,13 @@ async function runSshCommand(
 				const cvmInfo = await fetchCvmInfo(client, cvmId);
 				instanceId = cvmInfo.appId;
 				gatewayDomain = cvmInfo.gatewayDomain;
+
+				// Warn if not a dev image
+				if (!isDevImage(cvmInfo.baseImage)) {
+					logger.warn(
+						"This CVM is not using a dev image. SSH access may not be available.",
+					);
+				}
 			} catch (error) {
 				if (error instanceof NoGatewayError) {
 					logger.error(error.message);
