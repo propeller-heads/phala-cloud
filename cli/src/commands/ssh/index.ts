@@ -141,14 +141,18 @@ async function runSshCommand(
 		const { options: ptOptions, command: ptCommand } =
 			splitPassThroughArgs(passThroughArgs);
 
-		const finalArgs: string[] = [
+		const finalArgs: string[] = [];
+		if (input.verbose) {
+			finalArgs.push("-v");
+		}
+		finalArgs.push(
 			...sshOptions,
 			"-p",
 			port,
 			...ptOptions,
 			`root@${hostname}`,
 			...ptCommand,
-		];
+		);
 
 		// Dry run: print the command and exit
 		if (input.dryRun) {
