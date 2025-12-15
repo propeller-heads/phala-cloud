@@ -135,9 +135,15 @@ export async function dispatchCommand(
 
 		// DEBUG
 		if (parsedArguments.flags["--debug"]) {
-			console.log("[DISPATCHER DEBUG] 'cvmId' in mergedInput:", "cvmId" in mergedInput);
+			console.log(
+				"[DISPATCHER DEBUG] 'cvmId' in mergedInput:",
+				"cvmId" in mergedInput,
+			);
 			console.log("[DISPATCHER DEBUG] rawCvmId:", rawCvmId);
-			console.log("[DISPATCHER DEBUG] mergedInput keys:", Object.keys(mergedInput));
+			console.log(
+				"[DISPATCHER DEBUG] mergedInput keys:",
+				Object.keys(mergedInput),
+			);
 		}
 
 		// Priority 1: Interactive mode (if enabled)
@@ -165,7 +171,10 @@ export async function dispatchCommand(
 		if (parsedArguments.flags["--debug"]) {
 			console.log("[DISPATCHER DEBUG] final cvmId:", JSON.stringify(cvmId));
 			console.log("[DISPATCHER DEBUG] cvmId type:", typeof cvmId);
-			console.log("[DISPATCHER DEBUG] cvmId is undefined:", cvmId === undefined);
+			console.log(
+				"[DISPATCHER DEBUG] cvmId is undefined:",
+				cvmId === undefined,
+			);
 		}
 
 		const context: CommandContext = {
@@ -228,14 +237,20 @@ export async function dispatchCommand(
 
 		// DEBUG: Check context.cvmId right after creation
 		if (parsedArguments.flags["--debug"]) {
-			console.log("[DISPATCHER DEBUG] context.cvmId after creation:", JSON.stringify(context.cvmId));
+			console.log(
+				"[DISPATCHER DEBUG] context.cvmId after creation:",
+				JSON.stringify(context.cvmId),
+			);
 		}
 
 		const parsedInput = definition.schema.parse(mergedInput);
 
 		// DEBUG: Check context.cvmId before calling handler
 		if (parsedArguments.flags["--debug"]) {
-			console.log("[DISPATCHER DEBUG] context.cvmId before handler:", JSON.stringify(context.cvmId));
+			console.log(
+				"[DISPATCHER DEBUG] context.cvmId before handler:",
+				JSON.stringify(context.cvmId),
+			);
 		}
 
 		const result = await definition.run(parsedInput, context);

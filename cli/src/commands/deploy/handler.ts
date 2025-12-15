@@ -12,6 +12,7 @@ import {
 import { waitForCvmReady } from "@/src/utils/cvms";
 
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
+import { dedupeEnvVars, parseEnvInputs } from "@/src/utils/env-parsing";
 import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
 	type Client,
@@ -54,6 +55,7 @@ interface Options {
 	image?: string;
 	region?: string;
 	nodeId?: string;
+	env?: string[];
 	envFile?: string | boolean;
 	interactive?: boolean;
 	kmsId?: string;
@@ -338,25 +340,68 @@ const validateName = async (options: Options): Promise<string | undefined> => {
 	return name;
 };
 
-const validateEnvFile = async (options: Options) => {
-	// Handle environment variables
-	let envs: EnvVar[] | undefined = undefined;
-	let envFilePath = options.envFile;
+const resolveEnvVars = async (
+	options: Options,
+): Promise<EnvVar[] | undefined> => {
+	const envs: EnvVar[] = [];
 
-	// Handle environment file path resolution
-	if (options.interactive && (!options.envFile || envFilePath === true)) {
+	// 1. Handle deprecated --env-file (backward compatibility)
+	if (options.envFile && typeof options.envFile === "string") {
+		logger.warn(
+			"--env-file is deprecated. Use -e <file> or -e KEY=VALUE instead.",
+		);
+		try {
+			const envContent = fs.readFileSync(options.envFile, { encoding: "utf8" });
+			envs.push(...parseEnvVars(envContent));
+		} catch (error) {
+			throw new Error(
+				`Error reading environment file ${options.envFile}: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+
+	// 2. Handle new -e parameter (supports both files and KEY=VALUE)
+	if (options.env && options.env.length > 0) {
+		const parsed = parseEnvInputs(options.env);
+
+		// Load files first (in order)
+		for (const filePath of parsed.files) {
+			const resolvedPath = path.resolve(process.cwd(), filePath);
+			if (!fs.existsSync(resolvedPath)) {
+				throw new Error(`Environment file not found: ${filePath}`);
+			}
+			try {
+				const envContent = fs.readFileSync(resolvedPath, { encoding: "utf8" });
+				envs.push(...parseEnvVars(envContent));
+			} catch (error) {
+				throw new Error(
+					`Error reading environment file ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+				);
+			}
+		}
+
+		// Add KEY=VALUE pairs (later values override earlier)
+		envs.push(...parsed.keyValues);
+	}
+
+	// 3. Interactive mode: prompt if no env inputs provided
+	if (
+		options.interactive &&
+		envs.length === 0 &&
+		!options.env &&
+		!options.envFile
+	) {
 		const { envPath } = await inquirer.prompt([
 			{
 				type: "input",
 				name: "envPath",
-				message: "Enter the path to your environment file (leave empty to skip):",
+				message:
+					"Enter the path to your environment file (leave empty to skip):",
 				default: "",
 				validate: (input: string) => {
-					// Allow empty input to skip
 					if (!input || input.trim() === "") {
 						return true;
 					}
-					// Validate file exists if provided
 					const filePath = path.resolve(process.cwd(), input);
 					if (!fs.existsSync(filePath)) {
 						return `File not found at ${filePath}`;
@@ -365,23 +410,20 @@ const validateEnvFile = async (options: Options) => {
 				},
 			},
 		]);
-		envFilePath = envPath.trim() || undefined;
-	}
 
-	if (envFilePath && envFilePath !== true) {
-		try {
-			// Read and parse environment variables
-			const envContent = fs.readFileSync(envFilePath as string, {
-				encoding: "utf8",
-			});
-			envs = parseEnvVars(envContent);
-		} catch (error) {
-			throw new Error(
-				`Error reading environment file ${envFilePath}: ${error instanceof Error ? error.message : String(error)}`,
-			);
+		if (envPath.trim()) {
+			const resolvedPath = path.resolve(process.cwd(), envPath.trim());
+			const envContent = fs.readFileSync(resolvedPath, { encoding: "utf8" });
+			envs.push(...parseEnvVars(envContent));
 		}
 	}
-	return envs;
+
+	// 4. Return deduplicated envs (later values override earlier)
+	if (envs.length === 0) {
+		return undefined;
+	}
+
+	return dedupeEnvVars(envs);
 };
 
 /**
@@ -901,7 +943,7 @@ export async function runDeploy(
 			interactive: input.interactive,
 		});
 
-		const envs = await validateEnvFile(input as Options);
+		const envs = await resolveEnvVars(input as Options);
 
 		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
 		if (input.debug) {

@@ -95,12 +95,19 @@ export const deployCommandMeta: CommandMeta = {
 			target: "nodeId",
 		},
 		{
-			name: "env-file",
+			name: "env",
 			shorthand: "e",
 			description:
-				"Prompt for environment variables and save to file (optional)",
+				"Environment variable (KEY=VALUE) or path to env file. Can be specified multiple times.",
+			type: "string[]",
+			target: "env",
+		},
+		{
+			name: "env-file",
+			description: "[DEPRECATED] Use -e instead. Path to environment file.",
 			type: "string",
 			target: "envFile",
+			hidden: true,
 		},
 		{
 			name: "interactive",
@@ -172,6 +179,18 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy",
 		},
 		{
+			name: "Deploy with environment variables",
+			value: "phala deploy -e NODE_ENV=production -e DEBUG=true",
+		},
+		{
+			name: "Deploy with env file",
+			value: "phala deploy -e .env",
+		},
+		{
+			name: "Deploy with env file and overrides",
+			value: "phala deploy -e .env -e NODE_ENV=production",
+		},
+		{
 			name: "Deploy with specific instance type",
 			value: "phala deploy --instance-type tdx.medium",
 		},
@@ -212,6 +231,7 @@ export const deployCommandSchema = z.object({
 	image: z.string().optional(),
 	region: z.string().optional(),
 	nodeId: z.string().optional(),
+	env: z.array(z.string()).optional(),
 	envFile: z.string().optional(),
 	interactive: z.boolean().default(false),
 	kmsId: z.string().optional(),
