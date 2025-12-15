@@ -48,6 +48,11 @@ export interface CommandExample {
 	readonly value: string;
 }
 
+export interface CommandPassThrough {
+	readonly description: string;
+	readonly examples?: readonly string[];
+}
+
 export interface CommandMeta {
 	readonly name: string;
 	readonly description: string;
@@ -55,6 +60,7 @@ export interface CommandMeta {
 	readonly aliases?: readonly string[];
 	readonly arguments?: readonly CommandArgument[];
 	readonly options?: readonly CommandOption[];
+	readonly passThrough?: CommandPassThrough;
 	readonly examples?: readonly CommandExample[];
 }
 

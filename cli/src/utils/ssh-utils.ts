@@ -215,63 +215,9 @@ export function checkLibreSSLEd25519Compatibility(keyPath: string): void {
 		"Detected LibreSSL with ed25519 key on macOS. This combination may cause SSH connection issues.",
 	);
 	logger.info(
-		"If you experience problems, install OpenSSL via Homebrew: " +
-			chalk.cyan("brew install openssl"),
+		`If·you·experience·problems,·install·OpenSSL·via·Homebrew:·${chalk.cyan("brew·install·openssl")}`,
 	);
-	logger.info(
-		"Then ensure Homebrew's OpenSSL is in your PATH before /usr/bin",
-	);
-}
-
-/**
- * Validate and normalize local port forwarding specification
- * Supports formats:
- * - [bind_address:]port:host:hostport
- * - /path/to/local.sock:host:hostport
- * - [bind_address:]port:/path/to/remote.sock
- * - /path/to/local.sock:/path/to/remote.sock
- *
- * Default bind_address is 127.0.0.1 for security
- */
-export function parseLocalForward(spec: string): string {
-	// Unix socket patterns: starts with / or contains :/
-	const hasLocalSocket = spec.startsWith("/");
-	const hasRemoteSocket = spec.includes(":/");
-
-	// Unix domain socket cases
-	if (hasLocalSocket || hasRemoteSocket) {
-		// Validate format: should have exactly 2 colons for socket forwarding
-		const parts = spec.split(":");
-		if (parts.length === 3) {
-			// Format: /local.sock:host:port or bind:port:/remote.sock
-			return spec;
-		}
-		if (parts.length === 2) {
-			// Format: /local.sock:/remote.sock
-			return spec;
-		}
-		throw new Error(
-			`Invalid local forward format: ${spec}. Unix socket format should be /path:host:port, bind:port:/path, or /local:/remote`,
-		);
-	}
-
-	// Regular port forwarding
-	const parts = spec.split(":");
-
-	// Format: [bind_address:]port:host:hostport
-	if (parts.length === 4) {
-		// Has bind address specified
-		return spec;
-	}
-
-	if (parts.length === 3) {
-		// No bind address, add default 127.0.0.1 for security
-		return `127.0.0.1:${spec}`;
-	}
-
-	throw new Error(
-		`Invalid local forward format: ${spec}. Expected [bind_address:]port:host:hostport or socket path`,
-	);
+	logger.info("Then ensure Homebrew's OpenSSL is in your PATH before /usr/bin");
 }
 
 /**
@@ -282,7 +228,7 @@ export function buildSshOptions(verbose: boolean, timeout: string): string[] {
 		? "openssl s_client -quiet -connect %h:%p"
 		: "openssl s_client -quiet -connect %h:%p 2>/dev/null";
 
-	const options: string[] = [
+	return [
 		"-o",
 		`ProxyCommand=${proxyCommand}`,
 		"-o",
@@ -292,11 +238,4 @@ export function buildSshOptions(verbose: boolean, timeout: string): string[] {
 		"-o",
 		`ConnectTimeout=${timeout}`,
 	];
-
-	// Only add LogLevel in non-verbose mode
-	if (!verbose) {
-		options.push("-o", "LogLevel=ERROR");
-	}
-
-	return options;
 }

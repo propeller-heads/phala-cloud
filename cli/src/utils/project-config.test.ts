@@ -57,11 +57,7 @@ describe("loadProjectConfig", () => {
 	});
 
 	test("should load cvm_id from id field", () => {
-		fs.writeFileSync(
-			path.join(tmpDir, "phala.toml"),
-			'id = "test-id"',
-			"utf8",
-		);
+		fs.writeFileSync(path.join(tmpDir, "phala.toml"), 'id = "test-id"', "utf8");
 
 		const config = loadProjectConfig();
 		expect(config.cvm_id).toBe("test-id");
@@ -154,7 +150,11 @@ name = "name-field"
 	});
 
 	test("should throw error on invalid TOML", () => {
-		fs.writeFileSync(path.join(tmpDir, "phala.toml"), "invalid toml [[[", "utf8");
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			"invalid toml [[[",
+			"utf8",
+		);
 
 		expect(() => loadProjectConfig()).toThrow();
 	});

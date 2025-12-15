@@ -11,10 +11,9 @@ import {
 	buildSshOptions,
 	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
-	getSshKeyFile,
+	findDefaultSshKey,
 	isDevImage,
 	parseGatewayDomain,
-	parseLocalForward,
 	selectPort,
 	shellEscape,
 } from "@/src/utils/ssh-utils";
@@ -23,6 +22,28 @@ import {
 	sshCommandSchema,
 	type SshCommandInput,
 } from "./command";
+
+/**
+ * Check if pass-through args contain blocked options
+ * Currently only -o ProxyCommand is blocked as it would break the TLS gateway connection
+ */
+function containsBlockedOption(args: string[]): string | null {
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		// Check -o ProxyCommand=...
+		if (arg === "-o" && i + 1 < args.length) {
+			const nextArg = args[i + 1];
+			if (nextArg.toLowerCase().startsWith("proxycommand")) {
+				return "-o ProxyCommand";
+			}
+		}
+		// Check -oProxyCommand=... (combined form)
+		if (arg.toLowerCase().startsWith("-oproxycommand")) {
+			return "-o ProxyCommand";
+		}
+	}
+	return null;
+}
 
 async function runSshCommand(
 	input: SshCommandInput,
@@ -40,6 +61,16 @@ async function runSshCommand(
 			logger.error(
 				"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.\n" +
 					"Supported fields: id, uuid, app_id, or instance_id",
+			);
+			return 1;
+		}
+
+		// Check for blocked options in pass-through args
+		const passThroughArgs = input["--"] ?? [];
+		const blockedOption = containsBlockedOption(passThroughArgs);
+		if (blockedOption) {
+			logger.error(
+				`${blockedOption} is not allowed as it would break the TLS gateway connection.`,
 			);
 			return 1;
 		}
@@ -93,15 +124,10 @@ async function runSshCommand(
 		const port = selectPort(requestedPort, gateway.port);
 		const hostname = buildHostname(instanceId, gateway.host);
 
-		// Get SSH key file
-		const keyFile = getSshKeyFile(input.identity);
-		if (!keyFile) {
-			logger.warn(
-				"No default SSH key found. SSH will use ssh-agent or prompt for password.",
-			);
-		} else {
-			// Check for LibreSSL + ed25519 compatibility issue on macOS
-			checkLibreSSLEd25519Compatibility(keyFile);
+		// Check for LibreSSL + ed25519 compatibility issue on macOS
+		const defaultKey = findDefaultSshKey();
+		if (defaultKey) {
+			checkLibreSSLEd25519Compatibility(defaultKey);
 		}
 
 		if (input.verbose) {
@@ -109,49 +135,30 @@ async function runSshCommand(
 		}
 
 		// Build SSH arguments
+		// SSH format: ssh [options] destination [command]
+		// We need to split pass-through into options vs command
 		const sshOptions = buildSshOptions(input.verbose, input.timeout);
-		const sshArgs: string[] = [...sshOptions, "-p", port];
+		const { options: ptOptions, command: ptCommand } =
+			splitPassThroughArgs(passThroughArgs);
 
-		if (input.verbose) {
-			sshArgs.unshift("-v");
-		}
-
-		if (keyFile) {
-			sshArgs.push("-i", keyFile);
-		}
-
-		// Add local port forwarding options
-		if (input.localForward && input.localForward.length > 0) {
-			try {
-				for (const forward of input.localForward) {
-					const normalizedForward = parseLocalForward(forward);
-					sshArgs.push("-L", normalizedForward);
-
-					if (input.verbose) {
-						logger.info(`Port forwarding: ${chalk.cyan(normalizedForward)}`);
-					}
-				}
-			} catch (error) {
-				logger.error(
-					error instanceof Error
-						? error.message
-						: "Invalid port forwarding specification",
-				);
-				return 1;
-			}
-		}
-
-		sshArgs.push(`root@${hostname}`);
+		const finalArgs: string[] = [
+			...sshOptions,
+			"-p",
+			port,
+			...ptOptions,
+			`root@${hostname}`,
+			...ptCommand,
+		];
 
 		// Dry run: print the command and exit
 		if (input.dryRun) {
-			const escapedArgs = sshArgs.map((arg) => shellEscape(arg));
+			const escapedArgs = finalArgs.map((arg) => shellEscape(arg));
 			context.stdout.write(`ssh ${escapedArgs.join(" ")}\n`);
 			return 0;
 		}
 
 		// Spawn SSH process
-		const ssh = spawn("ssh", sshArgs, { stdio: "inherit" });
+		const ssh = spawn("ssh", finalArgs, { stdio: "inherit" });
 
 		// Handle process errors
 		ssh.on("error", (error) => {
@@ -181,6 +188,79 @@ async function runSshCommand(
 		}
 		return 1;
 	}
+}
+
+/**
+ * Split pass-through args into SSH options and remote command
+ * SSH options start with - and some take arguments
+ */
+function splitPassThroughArgs(args: string[]): {
+	options: string[];
+	command: string[];
+} {
+	const options: string[] = [];
+	const command: string[] = [];
+
+	// SSH options that take an argument
+	const optionsWithArg = new Set([
+		"-b",
+		"-c",
+		"-D",
+		"-E",
+		"-e",
+		"-F",
+		"-I",
+		"-i",
+		"-J",
+		"-L",
+		"-l",
+		"-m",
+		"-O",
+		"-o",
+		"-P",
+		"-p",
+		"-R",
+		"-S",
+		"-W",
+		"-w",
+	]);
+
+	let i = 0;
+	let inCommand = false;
+
+	while (i < args.length) {
+		const arg = args[i];
+
+		if (inCommand) {
+			command.push(arg);
+			i++;
+			continue;
+		}
+
+		if (arg.startsWith("-")) {
+			options.push(arg);
+			// Check if this option takes an argument
+			// Handle both -o value and -ovalue forms
+			const optFlag = arg.length === 2 ? arg : arg.slice(0, 2);
+			if (
+				optionsWithArg.has(optFlag) &&
+				arg.length === 2 &&
+				i + 1 < args.length
+			) {
+				// Option takes argument and it's separate (e.g., -o ProxyCommand)
+				i++;
+				options.push(args[i]);
+			}
+			i++;
+		} else {
+			// First non-option argument starts the command
+			inCommand = true;
+			command.push(arg);
+			i++;
+		}
+	}
+
+	return { options, command };
 }
 
 export const sshCommand = defineCommand({

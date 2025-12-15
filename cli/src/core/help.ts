@@ -132,6 +132,23 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		}
 	}
 
+	// Pass-through arguments section
+	if (definition.meta.passThrough) {
+		lines.push("");
+		lines.push("Pass-through (after --):");
+		lines.push(`  ${definition.meta.passThrough.description}`);
+		if (
+			definition.meta.passThrough.examples &&
+			definition.meta.passThrough.examples.length > 0
+		) {
+			lines.push("");
+			lines.push("  Examples:");
+			for (const example of definition.meta.passThrough.examples) {
+				lines.push(`    ${example}`);
+			}
+		}
+	}
+
 	if (definition.meta.examples && definition.meta.examples.length > 0) {
 		lines.push("");
 		lines.push("Examples:");
@@ -173,7 +190,8 @@ function buildUsageLine({
 	const hasOptions = (definition.meta.options?.length ?? 0) > 0;
 	const optionsPart = hasOptions ? " [options]" : "";
 	const argsPart = positionalSegment ? ` ${positionalSegment}` : "";
-	return `Usage: ${segments.join(" ")}${optionsPart}${argsPart}`;
+	const passThroughPart = definition.meta.passThrough ? " [--] [...]" : "";
+	return `Usage: ${segments.join(" ")}${optionsPart}${argsPart}${passThroughPart}`;
 }
 
 function formatArgumentUsage(argument: {

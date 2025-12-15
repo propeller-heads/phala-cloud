@@ -349,7 +349,8 @@ const validateEnvFile = async (options: Options) => {
 			{
 				type: "input",
 				name: "envPath",
-				message: "Enter the path to your environment file (leave empty to skip):",
+				message:
+					"Enter the path to your environment file (leave empty to skip):",
 				default: "",
 				validate: (input: string) => {
 					// Allow empty input to skip
