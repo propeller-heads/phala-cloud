@@ -7,8 +7,8 @@ export const sshCommandMeta: CommandMeta = {
 	stability: "unstable",
 	arguments: [
 		{
-			name: "cvm-id",
-			description: "CVM ID. If not provided, reads from phala.toml",
+			name: "cvm-name",
+			description: "CVM name. If not provided, reads from phala.toml",
 			required: false,
 			target: "cvmId",
 		},
@@ -23,7 +23,7 @@ export const sshCommandMeta: CommandMeta = {
 			target: "port",
 		},
 		{
-			name: "gateway-domain",
+			name: "gateway",
 			shorthand: "g",
 			description:
 				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
