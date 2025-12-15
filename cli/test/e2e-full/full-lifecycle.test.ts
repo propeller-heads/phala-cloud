@@ -505,7 +505,11 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				[`ssh ${appId} --dry-run`, "ssh"],
 				[`cp ${appId}:/tmp/test.txt ./local.txt --dry-run`, "scp"],
 			] as const) {
-				const { stdout } = await runCliCommand(logger, cmd, `Testing ${binary} dry-run`);
+				const { stdout } = await runCliCommand(
+					logger,
+					cmd,
+					`Testing ${binary} dry-run`,
+				);
 				expect(stdout).toContain(binary);
 				expect(stdout).toContain("root@");
 				expect(stdout).toContain("ProxyCommand");

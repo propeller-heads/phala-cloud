@@ -1,5 +1,10 @@
 import { globalCommandOptions } from "./common-flags";
-import type { CommandDefinition, CommandOption, CommandPath, CommandStability } from "./types";
+import type {
+	CommandDefinition,
+	CommandOption,
+	CommandPath,
+	CommandStability,
+} from "./types";
 import type { CommandRegistry } from "./registry";
 
 function formatStabilityIndicator(stability: CommandStability): string {
@@ -101,7 +106,11 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 	const { executableName, definition, registry } = options;
 	const usage = buildUsageLine({ executableName, definition });
 	const indicator = formatStabilityIndicator(definition.meta.stability);
-	const lines: string[] = [usage, "", `${definition.meta.description}${indicator}`];
+	const lines: string[] = [
+		usage,
+		"",
+		`${definition.meta.description}${indicator}`,
+	];
 
 	const args = definition.meta.arguments ?? [];
 	if (args.length > 0) {
@@ -166,9 +175,13 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 			const meta = child.command?.meta ?? child.group?.meta;
 			const description = meta?.description ?? "";
 			const stability = meta?.stability;
-			const childIndicator = stability ? formatStabilityIndicator(stability) : "";
+			const childIndicator = stability
+				? formatStabilityIndicator(stability)
+				: "";
 			const name = child.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd());
+			lines.push(
+				`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd(),
+			);
 		}
 	}
 

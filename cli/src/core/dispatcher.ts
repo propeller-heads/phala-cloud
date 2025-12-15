@@ -113,7 +113,11 @@ export async function dispatchCommand(
 		}
 
 		if (definition.meta.stability === "deprecated") {
-			stderr.write(chalk.yellow("Warning: This command is deprecated and may be removed in a future version.\n"));
+			stderr.write(
+				chalk.yellow(
+					"Warning: This command is deprecated and may be removed in a future version.\n",
+				),
+			);
 		}
 
 		const schemaInput = buildCommandSchemaInput(
