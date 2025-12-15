@@ -4,8 +4,8 @@ import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsUpgradeCommandMeta: CommandMeta = {
 	name: "upgrade",
-	description:
-		'[DEPRECATED] Upgrade a CVM to a new version (use "phala deploy" instead)',
+	description: 'Upgrade a CVM to a new version (use "phala deploy" instead)',
+	stability: "deprecated",
 	arguments: [cvmIdArgument],
 	options: [
 		interactiveOption,

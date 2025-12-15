@@ -4,6 +4,8 @@ import type { RuntimeProjectConfig } from "@/src/utils/project-config";
 
 export type CommandPath = readonly string[];
 
+export type CommandStability = "stable" | "unstable" | "deprecated";
+
 export interface CommandArgument {
 	readonly name: string;
 	readonly description?: string;
@@ -49,6 +51,7 @@ export interface CommandExample {
 export interface CommandMeta {
 	readonly name: string;
 	readonly description: string;
+	readonly stability: CommandStability;
 	readonly aliases?: readonly string[];
 	readonly arguments?: readonly CommandArgument[];
 	readonly options?: readonly CommandOption[];

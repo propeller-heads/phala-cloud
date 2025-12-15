@@ -5,5 +5,6 @@ export const authGroup: CommandGroup = {
 	meta: {
 		name: "auth",
 		description: "Authenticate with Phala Cloud",
+		stability: "deprecated",
 	},
 };

@@ -1,6 +1,12 @@
 import { globalCommandOptions } from "./common-flags";
-import type { CommandDefinition, CommandOption, CommandPath } from "./types";
+import type { CommandDefinition, CommandOption, CommandPath, CommandStability } from "./types";
 import type { CommandRegistry } from "./registry";
+
+function formatStabilityIndicator(stability: CommandStability): string {
+	if (stability === "unstable") return " [UNSTABLE]";
+	if (stability === "deprecated") return " [DEPRECATED]";
+	return "";
+}
 
 interface GlobalHelpOptions {
 	readonly registry: CommandRegistry;
@@ -28,10 +34,12 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 	lines.push("Available commands:");
 
 	for (const node of registry.getChildren()) {
-		const description =
-			node.command?.meta.description ?? node.group?.meta.description ?? "";
+		const meta = node.command?.meta ?? node.group?.meta;
+		const description = meta?.description ?? "";
+		const stability = meta?.stability;
+		const indicator = stability ? formatStabilityIndicator(stability) : "";
 		const name = node.name ?? "";
-		lines.push(`  ${name.padEnd(18)}${description}`.trimEnd());
+		lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
 	}
 
 	lines.push("");
@@ -69,10 +77,12 @@ export function formatGroupHelp(options: GroupHelpOptions): string {
 	if (children.length > 0) {
 		lines.push("Available commands:");
 		for (const child of children) {
-			const description =
-				child.command?.meta.description ?? child.group?.meta.description ?? "";
+			const meta = child.command?.meta ?? child.group?.meta;
+			const description = meta?.description ?? "";
+			const stability = meta?.stability;
+			const indicator = stability ? formatStabilityIndicator(stability) : "";
 			const name = child.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}`.trimEnd());
+			lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
 		}
 		lines.push("");
 	}
@@ -90,7 +100,8 @@ export function formatGroupHelp(options: GroupHelpOptions): string {
 export function formatCommandHelp(options: CommandHelpOptions): string {
 	const { executableName, definition, registry } = options;
 	const usage = buildUsageLine({ executableName, definition });
-	const lines: string[] = [usage, "", definition.meta.description];
+	const indicator = formatStabilityIndicator(definition.meta.stability);
+	const lines: string[] = [usage, "", `${definition.meta.description}${indicator}`];
 
 	const args = definition.meta.arguments ?? [];
 	if (args.length > 0) {
@@ -135,10 +146,12 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		lines.push("");
 		lines.push("Subcommands:");
 		for (const child of children) {
-			const description =
-				child.command?.meta.description ?? child.group?.meta.description ?? "";
+			const meta = child.command?.meta ?? child.group?.meta;
+			const description = meta?.description ?? "";
+			const stability = meta?.stability;
+			const childIndicator = stability ? formatStabilityIndicator(stability) : "";
 			const name = child.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}`.trimEnd());
+			lines.push(`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd());
 		}
 	}
 

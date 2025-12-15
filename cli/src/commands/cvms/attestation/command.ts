@@ -6,6 +6,7 @@ import { jsonOption } from "@/src/commands/status/command";
 export const cvmsAttestationCommandMeta: CommandMeta = {
 	name: "attestation",
 	description: "Get attestation information for a CVM",
+	stability: "unstable",
 	arguments: [cvmIdArgument],
 	options: [jsonOption, interactiveOption],
 	examples: [

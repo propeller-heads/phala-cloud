@@ -5,5 +5,6 @@ export const dockerGroup: CommandGroup = {
 	meta: {
 		name: "docker",
 		description: "Login to Docker Hub and manage Docker images",
+		stability: "unstable",
 	},
 };

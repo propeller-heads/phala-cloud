@@ -13,6 +13,7 @@ import { simulatorStopCommand } from "./stop";
 const simulatorRootMeta: CommandMeta = {
 	name: "simulator",
 	description: "TEE simulator commands",
+	stability: "unstable",
 };
 
 const simulatorStatusSchema = z.object({});

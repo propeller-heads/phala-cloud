@@ -14,6 +14,7 @@ import {
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
 	description: "Create a new CVM with on-chain KMS in one step.",
+	stability: "stable",
 	arguments: [],
 	options: [
 		...commonAuthOptions,
