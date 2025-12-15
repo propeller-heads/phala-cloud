@@ -92,6 +92,16 @@ export function getSshKeyFile(specifiedKey?: string): string | undefined {
 }
 
 /**
+ * Check if the base image is a dev image (contains "dev" in the name)
+ */
+export function isDevImage(baseImage: string | null | undefined): boolean {
+	if (!baseImage) {
+		return false;
+	}
+	return baseImage.toLowerCase().includes("dev");
+}
+
+/**
  * Fetch CVM info from API and validate it's ready for connection
  * @throws {NoGatewayError} if CVM has no gateway
  * @throws {CvmNotRunningError} if CVM is not running
@@ -111,6 +121,7 @@ export async function fetchCvmInfo(client: Client, cvmId: string) {
 		appId: cvm.app_id,
 		gatewayDomain: cvm.gateway_domain,
 		status: cvm.status,
+		baseImage: cvm.base_image,
 	};
 }
 
