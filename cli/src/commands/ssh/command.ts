@@ -4,32 +4,26 @@ import type { CommandMeta } from "@/src/core/types";
 export const sshCommandMeta: CommandMeta = {
 	name: "ssh",
 	description: "Connect to a CVM via SSH",
+	stability: "unstable",
 	arguments: [
 		{
-			name: "cvm-id",
-			description: "CVM ID. If not provided, reads from phala.toml",
+			name: "cvm-name",
+			description: "CVM name. If not provided, reads from phala.toml",
 			required: false,
 			target: "cvmId",
 		},
 	],
 	options: [
 		{
-			name: "identity",
-			shorthand: "i",
-			description: "SSH identity file (private key)",
-			type: "string",
-			target: "identity",
-		},
-		{
 			name: "port",
 			shorthand: "p",
 			description:
-				"SSH port. Priority: CLI option > phala.toml gateway_port > 443",
+				"Gateway port. Priority: CLI option > phala.toml gateway_port > 443",
 			type: "string",
 			target: "port",
 		},
 		{
-			name: "gateway-domain",
+			name: "gateway",
 			shorthand: "g",
 			description:
 				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
@@ -46,7 +40,7 @@ export const sshCommandMeta: CommandMeta = {
 		{
 			name: "verbose",
 			shorthand: "v",
-			description: "Show verbose SSH connection details",
+			description: "Show verbose connection details",
 			type: "boolean",
 			target: "verbose",
 		},
@@ -57,6 +51,15 @@ export const sshCommandMeta: CommandMeta = {
 			target: "dryRun",
 		},
 	],
+	passThrough: {
+		description:
+			"All arguments after -- are passed directly to ssh. Common options: -i (identity file), -L (local forward), -R (remote forward), -D (SOCKS proxy), -N (no command), -v (ssh verbose). Any trailing arguments are executed as remote command. Note: -o ProxyCommand is blocked.",
+		examples: [
+			"-- -L 8080:localhost:80",
+			"-- -i ~/.ssh/key -D 1080 -N",
+			"-- ls -la /app",
+		],
+	},
 	examples: [
 		{
 			name: "Connect using configuration from phala.toml",
@@ -72,7 +75,19 @@ export const sshCommandMeta: CommandMeta = {
 		},
 		{
 			name: "Connect with custom SSH key",
-			value: "phala ssh app_123 -i ~/.ssh/custom_key",
+			value: "phala ssh app_123 -- -i ~/.ssh/custom_key",
+		},
+		{
+			name: "Forward local port 8080 to remote port 80",
+			value: "phala ssh app_123 -- -L 8080:localhost:80",
+		},
+		{
+			name: "SOCKS proxy without remote command",
+			value: "phala ssh app_123 -- -D 1080 -N",
+		},
+		{
+			name: "Execute remote command",
+			value: "phala ssh app_123 -- ls -la /app",
 		},
 		{
 			name: "Connect with verbose output for debugging",
@@ -80,19 +95,19 @@ export const sshCommandMeta: CommandMeta = {
 		},
 		{
 			name: "Print the SSH command without executing",
-			value: "phala ssh app_123 --dry-run",
+			value: "phala ssh app_123 --dry-run -- -L 8080:localhost:80",
 		},
 	],
 };
 
 export const sshCommandSchema = z.object({
 	cvmId: z.string().optional(),
-	identity: z.string().optional(),
 	port: z.string().default("443"),
 	gatewayDomain: z.string().optional(),
 	timeout: z.string().default("30"),
 	verbose: z.boolean().default(false),
 	dryRun: z.boolean().default(false),
+	"--": z.array(z.string()).optional(),
 });
 
 export type SshCommandInput = z.infer<typeof sshCommandSchema>;

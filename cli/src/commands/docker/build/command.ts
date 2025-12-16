@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const dockerBuildCommandMeta: CommandMeta = {
 	name: "build",
 	description: "Build a Docker image",
+	stability: "unstable",
 	options: [
 		{
 			name: "image",

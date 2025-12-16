@@ -90,6 +90,7 @@ async function runNodesListCommand(
 const nodesRootCommandMeta: CommandMeta = {
 	name: "nodes",
 	description: "List and manage TEE nodes",
+	stability: "unstable",
 };
 
 export const nodesListCommand = defineCommand({

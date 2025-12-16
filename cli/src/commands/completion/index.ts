@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineCommand } from "@/src/core/define-command";
-import type { CommandContext } from "@/src/core/types";
+import type { CommandContext, CommandMeta } from "@/src/core/types";
 import {
 	getCompletions,
 	generateCompletionScript,
@@ -26,10 +26,10 @@ function getCliVersion(): string {
 }
 
 // Hidden command for shell completion
-const completeCommandMeta = {
+const completeCommandMeta: CommandMeta = {
 	name: "__complete",
 	description: "Internal command for shell completion",
-	hidden: true,
+	stability: "stable",
 	arguments: [
 		{
 			name: "line",
@@ -69,18 +69,19 @@ export const completeCommand = defineCommand({
 });
 
 // User-facing completion setup command
-const completionCommandMeta = {
+const completionCommandMeta: CommandMeta = {
 	name: "completion",
 	description: "Generate shell completion scripts",
+	stability: "stable",
 	options: [
 		{
 			name: "shell",
-			type: "string" as const,
+			type: "string",
 			description: "Shell type (bash, zsh, fish)",
 		},
 		{
 			name: "fig",
-			type: "boolean" as const,
+			type: "boolean",
 			description: "Generate Fig/Amazon Q completion spec",
 		},
 	],

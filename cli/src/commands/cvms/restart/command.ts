@@ -5,6 +5,7 @@ import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 export const cvmsRestartCommandMeta: CommandMeta = {
 	name: "restart",
 	description: "Restart a CVM",
+	stability: "stable",
 	arguments: [cvmIdArgument],
 	options: [interactiveOption],
 	examples: [

@@ -10,8 +10,10 @@ import {
 	NoGatewayError,
 	buildHostname,
 	buildSshOptions,
+	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
 	getSshKeyFile,
+	isDevImage,
 	parseGatewayDomain,
 	selectPort,
 	shellEscape,
@@ -100,6 +102,13 @@ async function runCpCommand(
 				const cvmInfo = await fetchCvmInfo(client, cvmId);
 				instanceId = cvmInfo.appId;
 				gatewayDomain = cvmInfo.gatewayDomain;
+
+				// Warn if not a dev image
+				if (!isDevImage(cvmInfo.baseImage)) {
+					logger.warn(
+						"This CVM is not using a dev image. SCP access may not be available.",
+					);
+				}
 			} catch (error) {
 				if (error instanceof NoGatewayError) {
 					logger.error(error.message);
@@ -130,6 +139,9 @@ async function runCpCommand(
 			logger.warn(
 				"No default SSH key found. SCP will use ssh-agent or prompt for password.",
 			);
+		} else {
+			// Check for LibreSSL + ed25519 compatibility issue on macOS
+			checkLibreSSLEd25519Compatibility(keyFile);
 		}
 
 		if (input.verbose) {

@@ -5,6 +5,7 @@ import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 export const cvmsResizeCommandMeta: CommandMeta = {
 	name: "resize",
 	description: "Resize resources for a CVM",
+	stability: "unstable",
 	arguments: [cvmIdArgument],
 	options: [
 		interactiveOption,

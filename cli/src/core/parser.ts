@@ -12,6 +12,20 @@ export interface ParsedArguments {
 	readonly positionals: readonly string[];
 	readonly flags: Record<string, unknown>;
 	readonly flagConfig: PreparedFlagConfig;
+	/** Arguments after -- separator, for pass-through to subprocesses */
+	readonly passThrough: readonly string[];
+}
+
+/**
+ * Split argv at the -- separator
+ * Returns [beforeDash, afterDash]
+ */
+function splitAtDoubleDash(argv: readonly string[]): [string[], string[]] {
+	const dashIndex = argv.indexOf("--");
+	if (dashIndex === -1) {
+		return [[...argv], []];
+	}
+	return [argv.slice(0, dashIndex), argv.slice(dashIndex + 1)];
 }
 
 export function parseCommandArguments(
@@ -28,8 +42,11 @@ export function parseCommandArguments(
 
 	const { permissive = false, stopAtPositional = false } = options;
 
+	// Split argv at -- to handle pass-through arguments
+	const [mainArgv, passThrough] = splitAtDoubleDash(argv);
+
 	const result = arg(flagConfig.spec, {
-		argv: argv as string[],
+		argv: mainArgv,
 		permissive,
 		stopAtPositional,
 	});
@@ -40,5 +57,6 @@ export function parseCommandArguments(
 		positionals: (_ ?? []) as readonly string[],
 		flags,
 		flagConfig,
+		passThrough,
 	};
 }

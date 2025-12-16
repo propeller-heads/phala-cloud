@@ -1,8 +1,10 @@
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { basename, join } from "node:path";
 import type { Client } from "@phala/cloud";
 import chalk from "chalk";
+import { logger } from "./logger";
 
 /**
  * Custom error for CVM not running
@@ -92,6 +94,16 @@ export function getSshKeyFile(specifiedKey?: string): string | undefined {
 }
 
 /**
+ * Check if the base image is a dev image (contains "dev" in the name)
+ */
+export function isDevImage(baseImage: string | null | undefined): boolean {
+	if (!baseImage) {
+		return false;
+	}
+	return baseImage.toLowerCase().includes("dev");
+}
+
+/**
  * Fetch CVM info from API and validate it's ready for connection
  * @throws {NoGatewayError} if CVM has no gateway
  * @throws {CvmNotRunningError} if CVM is not running
@@ -111,6 +123,7 @@ export async function fetchCvmInfo(client: Client, cvmId: string) {
 		appId: cvm.app_id,
 		gatewayDomain: cvm.gateway_domain,
 		status: cvm.status,
+		baseImage: cvm.base_image,
 	};
 }
 
@@ -152,6 +165,62 @@ export function shellEscape(arg: string): string {
 }
 
 /**
+ * Check if the system openssl is LibreSSL
+ */
+export function isLibreSSL(): boolean {
+	try {
+		const output = execSync("openssl version", { encoding: "utf-8" });
+		return output.toLowerCase().includes("libressl");
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check if a key file is an ed25519 key
+ */
+export function isEd25519Key(keyPath: string): boolean {
+	const keyName = basename(keyPath).toLowerCase();
+	if (keyName.includes("ed25519")) {
+		return true;
+	}
+
+	try {
+		const content = readFileSync(keyPath, "utf-8");
+		// Check for ed25519 in the key content (OpenSSH format)
+		return content.includes("ssh-ed25519") || content.includes("ED25519");
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check for LibreSSL + ed25519 compatibility issue on macOS
+ * and warn the user if detected
+ */
+export function checkLibreSSLEd25519Compatibility(keyPath: string): void {
+	if (platform() !== "darwin") {
+		return;
+	}
+
+	if (!isLibreSSL()) {
+		return;
+	}
+
+	if (!isEd25519Key(keyPath)) {
+		return;
+	}
+
+	logger.warn(
+		"Detected LibreSSL with ed25519 key on macOS. This combination may cause SSH connection issues.",
+	);
+	logger.info(
+		`If·you·experience·problems,·install·OpenSSL·via·Homebrew:·${chalk.cyan("brew·install·openssl")}`,
+	);
+	logger.info("Then ensure Homebrew's OpenSSL is in your PATH before /usr/bin");
+}
+
+/**
  * Build common SSH options for ssh/scp commands
  */
 export function buildSshOptions(verbose: boolean, timeout: string): string[] {
@@ -159,7 +228,7 @@ export function buildSshOptions(verbose: boolean, timeout: string): string[] {
 		? "openssl s_client -quiet -connect %h:%p"
 		: "openssl s_client -quiet -connect %h:%p 2>/dev/null";
 
-	const options: string[] = [
+	return [
 		"-o",
 		`ProxyCommand=${proxyCommand}`,
 		"-o",
@@ -169,11 +238,4 @@ export function buildSshOptions(verbose: boolean, timeout: string): string[] {
 		"-o",
 		`ConnectTimeout=${timeout}`,
 	];
-
-	// Only add LogLevel in non-verbose mode
-	if (!verbose) {
-		options.push("-o", "LogLevel=ERROR");
-	}
-
-	return options;
 }

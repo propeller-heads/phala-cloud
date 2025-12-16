@@ -5,5 +5,6 @@ export const simulatorGroup: CommandGroup = {
 	meta: {
 		name: "simulator",
 		description: "TEE simulator commands",
+		stability: "unstable",
 	},
 };

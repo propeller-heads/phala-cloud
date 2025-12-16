@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const dockerLoginCommandMeta: CommandMeta = {
 	name: "login",
 	description: "Login to Docker Hub",
+	stability: "unstable",
 	options: [
 		{
 			name: "username",

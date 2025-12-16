@@ -5,5 +5,6 @@ export const nodesGroup: CommandGroup = {
 	meta: {
 		name: "nodes",
 		description: "List and manage TEE nodes",
+		stability: "unstable",
 	},
 };

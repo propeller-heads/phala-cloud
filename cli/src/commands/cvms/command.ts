@@ -5,5 +5,6 @@ export const cvmsGroup: CommandGroup = {
 	meta: {
 		name: "cvms",
 		description: "Manage Phala Confidential Virtual Machines (CVMs)",
+		stability: "unstable",
 	},
 };

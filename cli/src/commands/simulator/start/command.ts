@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const simulatorStartCommandMeta: CommandMeta = {
 	name: "start",
 	description: "Start the TEE simulator",
+	stability: "unstable",
 	options: [
 		{
 			name: "port",
