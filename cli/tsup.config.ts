@@ -3,8 +3,14 @@ import { defineConfig } from "tsup";
 
 function getGitInfo(): string {
 	try {
-		const hash = execSync("git rev-parse --short HEAD", { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }).trim();
-		const dirty = execSync("git status --porcelain", { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }).trim();
+		const hash = execSync("git rev-parse --short HEAD", {
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
+		const dirty = execSync("git status --porcelain", {
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
 		return dirty ? `+${hash}-dirty` : `+${hash}`;
 	} catch {
 		return "";

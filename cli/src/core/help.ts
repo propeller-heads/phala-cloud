@@ -1,5 +1,10 @@
 import { globalCommandOptions } from "./common-flags";
-import type { CommandDefinition, CommandOption, CommandPath, CommandStability } from "./types";
+import type {
+	CommandDefinition,
+	CommandOption,
+	CommandPath,
+	CommandStability,
+} from "./types";
 import type { CommandRegistry } from "./registry";
 
 function formatStabilityIndicator(stability: CommandStability): string {
@@ -101,7 +106,11 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 	const { executableName, definition, registry } = options;
 	const usage = buildUsageLine({ executableName, definition });
 	const indicator = formatStabilityIndicator(definition.meta.stability);
-	const lines: string[] = [usage, "", `${definition.meta.description}${indicator}`];
+	const lines: string[] = [
+		usage,
+		"",
+		`${definition.meta.description}${indicator}`,
+	];
 
 	const args = definition.meta.arguments ?? [];
 	if (args.length > 0) {
@@ -132,6 +141,23 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		}
 	}
 
+	// Pass-through arguments section
+	if (definition.meta.passThrough) {
+		lines.push("");
+		lines.push("Pass-through (after --):");
+		lines.push(`  ${definition.meta.passThrough.description}`);
+		if (
+			definition.meta.passThrough.examples &&
+			definition.meta.passThrough.examples.length > 0
+		) {
+			lines.push("");
+			lines.push("  Examples:");
+			for (const example of definition.meta.passThrough.examples) {
+				lines.push(`    ${example}`);
+			}
+		}
+	}
+
 	if (definition.meta.examples && definition.meta.examples.length > 0) {
 		lines.push("");
 		lines.push("Examples:");
@@ -149,9 +175,13 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 			const meta = child.command?.meta ?? child.group?.meta;
 			const description = meta?.description ?? "";
 			const stability = meta?.stability;
-			const childIndicator = stability ? formatStabilityIndicator(stability) : "";
+			const childIndicator = stability
+				? formatStabilityIndicator(stability)
+				: "";
 			const name = child.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd());
+			lines.push(
+				`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd(),
+			);
 		}
 	}
 
@@ -173,7 +203,8 @@ function buildUsageLine({
 	const hasOptions = (definition.meta.options?.length ?? 0) > 0;
 	const optionsPart = hasOptions ? " [options]" : "";
 	const argsPart = positionalSegment ? ` ${positionalSegment}` : "";
-	return `Usage: ${segments.join(" ")}${optionsPart}${argsPart}`;
+	const passThroughPart = definition.meta.passThrough ? " [--] [...]" : "";
+	return `Usage: ${segments.join(" ")}${optionsPart}${argsPart}${passThroughPart}`;
 }
 
 function formatArgumentUsage(argument: {

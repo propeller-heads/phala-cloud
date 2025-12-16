@@ -9,14 +9,14 @@ export const cpCommandMeta: CommandMeta = {
 		{
 			name: "source",
 			description:
-				"Source path. Local file or remote in format 'cvm-id:path'. Use ':path' to read cvm_id from phala.toml",
+				"Source path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
 			required: true,
 			target: "source",
 		},
 		{
 			name: "destination",
 			description:
-				"Destination path. Local file or remote in format 'cvm-id:path'. Use ':path' to read cvm_id from phala.toml",
+				"Destination path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
 			required: true,
 			target: "destination",
 		},
@@ -38,7 +38,7 @@ export const cpCommandMeta: CommandMeta = {
 			target: "port",
 		},
 		{
-			name: "gateway-domain",
+			name: "gateway",
 			shorthand: "g",
 			description:
 				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",

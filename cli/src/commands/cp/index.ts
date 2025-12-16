@@ -10,6 +10,7 @@ import {
 	NoGatewayError,
 	buildHostname,
 	buildSshOptions,
+	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
 	getSshKeyFile,
 	isDevImage,
@@ -138,6 +139,9 @@ async function runCpCommand(
 			logger.warn(
 				"No default SSH key found. SCP will use ssh-agent or prompt for password.",
 			);
+		} else {
+			// Check for LibreSSL + ed25519 compatibility issue on macOS
+			checkLibreSSLEd25519Compatibility(keyFile);
 		}
 
 		if (input.verbose) {

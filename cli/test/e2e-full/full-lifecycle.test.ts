@@ -498,14 +498,18 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			logger.success("Version endpoint accessible", versionData);
 			expect(versionData.version).toBe("1.0.0");
 			expect(versionData.env).toBe(initialNonce);
-			expect(versionData.newEnv).toBe("");  // Not set in initial deployment
+			expect(versionData.newEnv).toBe(""); // Not set in initial deployment
 
 			// Test SSH and CP dry-run
 			for (const [cmd, binary] of [
 				[`ssh ${appId} --dry-run`, "ssh"],
 				[`cp ${appId}:/tmp/test.txt ./local.txt --dry-run`, "scp"],
 			] as const) {
-				const { stdout } = await runCliCommand(logger, cmd, `Testing ${binary} dry-run`);
+				const { stdout } = await runCliCommand(
+					logger,
+					cmd,
+					`Testing ${binary} dry-run`,
+				);
 				expect(stdout).toContain(binary);
 				expect(stdout).toContain("root@");
 				expect(stdout).toContain("ProxyCommand");
@@ -563,7 +567,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				envV2Path,
 				`BUILD_VERSION=2.0.0\nTEST_ENV_VAR=${updateNonce}\nNEW_ENV_VAR=${newEnvNonce}\n`,
 			);
-			logger.info(`Update nonces: TEST_ENV_VAR=${updateNonce}, NEW_ENV_VAR=${newEnvNonce}`);
+			logger.info(
+				`Update nonces: TEST_ENV_VAR=${updateNonce}, NEW_ENV_VAR=${newEnvNonce}`,
+			);
 
 			// Update using CLI with --wait flag
 			const updateCmd = `deploy --uuid ${vmUuid} -c ${composeV2Path} -e ${envV2Path} --wait --json`;
@@ -611,7 +617,8 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			// Poll until version and env vars match expected values
 			const maxAttempts = 60;
 			const delayMs = 5000;
-			let versionData: { version: string; env: string; newEnv: string } | null = null;
+			let versionData: { version: string; env: string; newEnv: string } | null =
+				null;
 
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 				try {
@@ -647,7 +654,9 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			}
 
 			if (!versionData) {
-				throw new Error(`Update not verified after ${(maxAttempts * delayMs) / 1000}s`);
+				throw new Error(
+					`Update not verified after ${(maxAttempts * delayMs) / 1000}s`,
+				);
 			}
 
 			logger.success("Update verified", versionData);
