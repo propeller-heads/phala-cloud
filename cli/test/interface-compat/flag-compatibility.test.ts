@@ -32,6 +32,13 @@ async function testCommandFlags(
 			continue;
 		}
 
+		if (flag.long === "--env-file") {
+			// --env-file is deprecated and hidden, replaced by -e/--env which supports both files and KEY=VALUE
+			// The flag still works but doesn't show in help
+			expect(hasFlag(helpText, "--env") || hasFlag(helpText, "-e")).toBe(true);
+			continue;
+		}
+
 		expect(hasFlag(helpText, flag.long)).toBe(true);
 		if (flag.short) {
 			expect(hasFlag(helpText, flag.short)).toBe(true);
