@@ -1,8 +1,9 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { getCvmByAppId, resizeCvm } from "@/src/api/cvms";
+import { safeGetCvmInfo } from "@phala/cloud";
+import { resizeCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
+import { getClient } from "@/src/lib/client";
 
 import { logger, setJsonMode } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
@@ -74,13 +75,30 @@ async function runCvmsResizeCommand(
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
+		);
+		return 1;
+	}
+
 	try {
-		const resolvedAppId = await resolveCvmAppId(input.appId);
-		const cvm = await getCvmByAppId(resolvedAppId);
-		if (!cvm) {
-			context.fail(`CVM with App ID app_${resolvedAppId} not found`);
+		const client = await getClient();
+		const infoResult = await safeGetCvmInfo(client, context.cvmId);
+
+		if (!infoResult.success) {
+			context.fail(infoResult.error.message);
 			return 1;
 		}
+
+		const cvm = infoResult.data;
+		if (!cvm) {
+			context.fail("CVM not found");
+			return 1;
+		}
+
+		// Store app_id for resize API call
+		const resolvedAppId = cvm.app_id;
 
 		let vcpu: number | undefined;
 		let memory: number | undefined;

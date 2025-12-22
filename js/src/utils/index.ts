@@ -13,6 +13,12 @@ export {
 } from "./get_compose_hash";
 export { asHex } from "./as-hex";
 export { validateActionParameters, safeValidateActionParameters } from "./validate-parameters";
+export {
+  isValidHostname,
+  convertToHostname,
+  generateFallbackHostname,
+  generateDefaultCvmName,
+} from "./hostname";
 
 // Error parsing utilities
 export {

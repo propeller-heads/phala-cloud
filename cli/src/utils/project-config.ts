@@ -6,19 +6,16 @@ import {
 	CvmIdObjectSchema,
 	CvmIdSchema,
 	SUPPORTED_API_VERSIONS,
-	refineCvmId,
 } from "@phala/cloud";
 import { logger } from "./logger";
 
 // Project configuration schema - for validating phala.toml file content
-// Extends CvmIdObjectSchema and applies refineCvmId validation
-export const ProjectConfigSchema: z.ZodTypeAny = refineCvmId(
-	CvmIdObjectSchema.extend({
-		api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
-		gateway_domain: z.string().optional(),
-		gateway_port: z.number().int().positive().optional(),
-	}),
-);
+// Extends CvmIdObjectSchema but does NOT require CVM ID fields (allows gateway-only config)
+export const ProjectConfigSchema: z.ZodTypeAny = CvmIdObjectSchema.extend({
+	api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
+	gateway_domain: z.string().optional(),
+	gateway_port: z.number().int().positive().optional(),
+});
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 
@@ -69,7 +66,8 @@ export function loadProjectConfig(): RuntimeProjectConfig {
 			validated.id ||
 			validated.uuid ||
 			validated.app_id ||
-			validated.instance_id
+			validated.instance_id ||
+			validated.name
 		) {
 			const { cvmId } = (
 				CvmIdSchema as unknown as z.ZodType<{ cvmId: string }>

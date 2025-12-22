@@ -4,18 +4,19 @@ import type { CommandMeta } from "@/src/core/types";
 export const cpCommandMeta: CommandMeta = {
 	name: "cp",
 	description: "Copy files to/from a CVM via SCP",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "source",
 			description:
-				"Source path. Local file or remote in format 'cvm-id:path'. Use ':path' to read cvm_id from phala.toml",
+				"Source path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
 			required: true,
 			target: "source",
 		},
 		{
 			name: "destination",
 			description:
-				"Destination path. Local file or remote in format 'cvm-id:path'. Use ':path' to read cvm_id from phala.toml",
+				"Destination path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
 			required: true,
 			target: "destination",
 		},
@@ -37,7 +38,7 @@ export const cpCommandMeta: CommandMeta = {
 			target: "port",
 		},
 		{
-			name: "gateway-domain",
+			name: "gateway",
 			shorthand: "g",
 			description:
 				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
@@ -57,6 +58,12 @@ export const cpCommandMeta: CommandMeta = {
 			description: "Show verbose SCP details",
 			type: "boolean",
 			target: "verbose",
+		},
+		{
+			name: "dry-run",
+			description: "Print the SCP command without executing it",
+			type: "boolean",
+			target: "dryRun",
 		},
 	],
 	examples: [
@@ -85,6 +92,10 @@ export const cpCommandMeta: CommandMeta = {
 			name: "Copy with custom SSH key",
 			value: "phala cp -i ~/.ssh/custom_key app_123:/root/file.txt ./file.txt",
 		},
+		{
+			name: "Print the SCP command without executing",
+			value: "phala cp ./local.txt app_123:/root/remote.txt --dry-run",
+		},
 	],
 };
 
@@ -96,6 +107,7 @@ export const cpCommandSchema = z.object({
 	gatewayDomain: z.string().optional(),
 	recursive: z.boolean().default(false),
 	verbose: z.boolean().default(false),
+	dryRun: z.boolean().default(false),
 });
 
 export type CpCommandInput = z.infer<typeof cpCommandSchema>;

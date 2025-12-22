@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import chalk from "chalk";
+import type { CvmIdInput } from "@phala/cloud";
 import { buildCommandSchemaInput } from "./input-builder";
 import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
@@ -7,6 +8,7 @@ import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
 import { isInJsonMode } from "./json-mode";
 import { getProjectConfig } from "@/src/utils/project-config";
+import { selectCvm } from "@/src/api/cvms";
 
 export interface DispatchOptions {
 	readonly registry: CommandRegistry;
@@ -110,6 +112,14 @@ export async function dispatchCommand(
 			return 0;
 		}
 
+		if (definition.meta.stability === "deprecated") {
+			stderr.write(
+				chalk.yellow(
+					"Warning: This command is deprecated and may be removed in a future version.\n",
+				),
+			);
+		}
+
 		const schemaInput = buildCommandSchemaInput(
 			definition.meta,
 			parsedArguments,
@@ -123,6 +133,58 @@ export async function dispatchCommand(
 			raw: schemaInput.raw,
 		};
 
+		// Parse CVM ID with priority: interactive > --cvm-id > phala.toml
+		let cvmId: CvmIdInput | undefined;
+
+		// Always check for cvmId, even if not explicitly in mergedInput
+		const rawCvmId = "cvmId" in mergedInput ? mergedInput.cvmId : undefined;
+		const isInteractive =
+			"interactive" in mergedInput && mergedInput.interactive === true;
+
+		// DEBUG
+		if (parsedArguments.flags["--debug"]) {
+			console.log(
+				"[DISPATCHER DEBUG] 'cvmId' in mergedInput:",
+				"cvmId" in mergedInput,
+			);
+			console.log("[DISPATCHER DEBUG] rawCvmId:", rawCvmId);
+			console.log(
+				"[DISPATCHER DEBUG] mergedInput keys:",
+				Object.keys(mergedInput),
+			);
+		}
+
+		// Priority 1: Interactive mode (if enabled)
+		if (isInteractive) {
+			const selected = await selectCvm();
+			if (selected) {
+				cvmId = { app_id: selected };
+			}
+		}
+
+		// Priority 2: User-specified --cvm-id (if not in interactive or no selection)
+		if (!cvmId && rawCvmId && typeof rawCvmId === "string") {
+			cvmId = { id: rawCvmId };
+		}
+
+		// Priority 3: phala.toml configuration (if nothing specified above)
+		if (!cvmId) {
+			const projectCvmId = getProjectConfig().cvm_id;
+			if (projectCvmId) {
+				cvmId = { id: projectCvmId };
+			}
+		}
+
+		// DEBUG
+		if (parsedArguments.flags["--debug"]) {
+			console.log("[DISPATCHER DEBUG] final cvmId:", JSON.stringify(cvmId));
+			console.log("[DISPATCHER DEBUG] cvmId type:", typeof cvmId);
+			console.log(
+				"[DISPATCHER DEBUG] cvmId is undefined:",
+				cvmId === undefined,
+			);
+		}
+
 		const context: CommandContext = {
 			argv: commandArgv,
 			rawFlags: parsedArguments.flags,
@@ -133,6 +195,7 @@ export async function dispatchCommand(
 			stderr,
 			stdin,
 			projectConfig: getProjectConfig(),
+			cvmId,
 
 			success(data: unknown): void {
 				if (isInJsonMode()) {
@@ -180,7 +243,24 @@ export async function dispatchCommand(
 			},
 		};
 
+		// DEBUG: Check context.cvmId right after creation
+		if (parsedArguments.flags["--debug"]) {
+			console.log(
+				"[DISPATCHER DEBUG] context.cvmId after creation:",
+				JSON.stringify(context.cvmId),
+			);
+		}
+
 		const parsedInput = definition.schema.parse(mergedInput);
+
+		// DEBUG: Check context.cvmId before calling handler
+		if (parsedArguments.flags["--debug"]) {
+			console.log(
+				"[DISPATCHER DEBUG] context.cvmId before handler:",
+				JSON.stringify(context.cvmId),
+			);
+		}
+
 		const result = await definition.run(parsedInput, context);
 		if (typeof result === "number") {
 			return result;

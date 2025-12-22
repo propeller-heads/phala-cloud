@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: h4x3rotab/phala-e2e-test:v1.0.0
+    image: h4x3rotab/phala-e2e-test:v1.0.0@sha256:faa2beeba0390108707d70844e18794939537d2a6981a31691826e43bfda65dc
     container_name: e2e-test-app
     restart: unless-stopped
     ports:

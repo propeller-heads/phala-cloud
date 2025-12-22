@@ -4,16 +4,18 @@ import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
-import { parse_cvm_id } from "@/src/utils/project-config";
 import {
 	CvmNotRunningError,
 	NoGatewayError,
 	buildHostname,
 	buildSshOptions,
+	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
-	getSshKeyFile,
+	findDefaultSshKey,
+	isDevImage,
 	parseGatewayDomain,
 	selectPort,
+	shellEscape,
 } from "@/src/utils/ssh-utils";
 import {
 	sshCommandMeta,
@@ -21,18 +23,54 @@ import {
 	type SshCommandInput,
 } from "./command";
 
+/**
+ * Check if pass-through args contain blocked options
+ * Currently only -o ProxyCommand is blocked as it would break the TLS gateway connection
+ */
+function containsBlockedOption(args: string[]): string | null {
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		// Check -o ProxyCommand=...
+		if (arg === "-o" && i + 1 < args.length) {
+			const nextArg = args[i + 1];
+			if (nextArg.toLowerCase().startsWith("proxycommand")) {
+				return "-o ProxyCommand";
+			}
+		}
+		// Check -oProxyCommand=... (combined form)
+		if (arg.toLowerCase().startsWith("-oproxycommand")) {
+			return "-o ProxyCommand";
+		}
+	}
+	return null;
+}
+
 async function runSshCommand(
 	input: SshCommandInput,
 	context: CommandContext,
 ): Promise<number> {
 	try {
-		// Resolve CVM ID: command input > project config
-		const cvmId = parse_cvm_id(input.cvmId) ?? context.projectConfig.cvm_id;
+		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
+		const cvmId =
+			context.cvmId?.id ||
+			context.cvmId?.uuid ||
+			context.cvmId?.app_id ||
+			context.cvmId?.instance_id;
 
 		if (!cvmId) {
 			logger.error(
 				"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.\n" +
 					"Supported fields: id, uuid, app_id, or instance_id",
+			);
+			return 1;
+		}
+
+		// Check for blocked options in pass-through args
+		const passThroughArgs = input["--"] ?? [];
+		const blockedOption = containsBlockedOption(passThroughArgs);
+		if (blockedOption) {
+			logger.error(
+				`${blockedOption} is not allowed as it would break the TLS gateway connection.`,
 			);
 			return 1;
 		}
@@ -55,6 +93,13 @@ async function runSshCommand(
 				const cvmInfo = await fetchCvmInfo(client, cvmId);
 				instanceId = cvmInfo.appId;
 				gatewayDomain = cvmInfo.gatewayDomain;
+
+				// Warn if not a dev image
+				if (!isDevImage(cvmInfo.baseImage)) {
+					logger.warn(
+						"This CVM is not using a dev image. SSH access may not be available.",
+					);
+				}
 			} catch (error) {
 				if (error instanceof NoGatewayError) {
 					logger.error(error.message);
@@ -79,12 +124,10 @@ async function runSshCommand(
 		const port = selectPort(requestedPort, gateway.port);
 		const hostname = buildHostname(instanceId, gateway.host);
 
-		// Get SSH key file
-		const keyFile = getSshKeyFile(input.identity);
-		if (!keyFile) {
-			logger.warn(
-				"No default SSH key found. SSH will use ssh-agent or prompt for password.",
-			);
+		// Check for LibreSSL + ed25519 compatibility issue on macOS
+		const defaultKey = findDefaultSshKey();
+		if (defaultKey) {
+			checkLibreSSLEd25519Compatibility(defaultKey);
 		}
 
 		if (input.verbose) {
@@ -92,21 +135,34 @@ async function runSshCommand(
 		}
 
 		// Build SSH arguments
+		// SSH format: ssh [options] destination [command]
+		// We need to split pass-through into options vs command
 		const sshOptions = buildSshOptions(input.verbose, input.timeout);
-		const sshArgs: string[] = [...sshOptions, "-p", port];
+		const { options: ptOptions, command: ptCommand } =
+			splitPassThroughArgs(passThroughArgs);
 
+		const finalArgs: string[] = [];
 		if (input.verbose) {
-			sshArgs.unshift("-v");
+			finalArgs.push("-v");
 		}
+		finalArgs.push(
+			...sshOptions,
+			"-p",
+			port,
+			...ptOptions,
+			`root@${hostname}`,
+			...ptCommand,
+		);
 
-		if (keyFile) {
-			sshArgs.push("-i", keyFile);
+		// Dry run: print the command and exit
+		if (input.dryRun) {
+			const escapedArgs = finalArgs.map((arg) => shellEscape(arg));
+			context.stdout.write(`ssh ${escapedArgs.join(" ")}\n`);
+			return 0;
 		}
-
-		sshArgs.push(`root@${hostname}`);
 
 		// Spawn SSH process
-		const ssh = spawn("ssh", sshArgs, { stdio: "inherit" });
+		const ssh = spawn("ssh", finalArgs, { stdio: "inherit" });
 
 		// Handle process errors
 		ssh.on("error", (error) => {
@@ -136,6 +192,79 @@ async function runSshCommand(
 		}
 		return 1;
 	}
+}
+
+/**
+ * Split pass-through args into SSH options and remote command
+ * SSH options start with - and some take arguments
+ */
+function splitPassThroughArgs(args: string[]): {
+	options: string[];
+	command: string[];
+} {
+	const options: string[] = [];
+	const command: string[] = [];
+
+	// SSH options that take an argument
+	const optionsWithArg = new Set([
+		"-b",
+		"-c",
+		"-D",
+		"-E",
+		"-e",
+		"-F",
+		"-I",
+		"-i",
+		"-J",
+		"-L",
+		"-l",
+		"-m",
+		"-O",
+		"-o",
+		"-P",
+		"-p",
+		"-R",
+		"-S",
+		"-W",
+		"-w",
+	]);
+
+	let i = 0;
+	let inCommand = false;
+
+	while (i < args.length) {
+		const arg = args[i];
+
+		if (inCommand) {
+			command.push(arg);
+			i++;
+			continue;
+		}
+
+		if (arg.startsWith("-")) {
+			options.push(arg);
+			// Check if this option takes an argument
+			// Handle both -o value and -ovalue forms
+			const optFlag = arg.length === 2 ? arg : arg.slice(0, 2);
+			if (
+				optionsWithArg.has(optFlag) &&
+				arg.length === 2 &&
+				i + 1 < args.length
+			) {
+				// Option takes argument and it's separate (e.g., -o ProxyCommand)
+				i++;
+				options.push(args[i]);
+			}
+			i++;
+		} else {
+			// First non-option argument starts the command
+			inCommand = true;
+			command.push(arg);
+			i++;
+		}
+	}
+
+	return { options, command };
 }
 
 export const sshCommand = defineCommand({

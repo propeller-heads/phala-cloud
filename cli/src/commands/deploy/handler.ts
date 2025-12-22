@@ -1,9 +1,6 @@
 import path from "node:path";
 import os from "node:os";
-import {
-	type RuntimeProjectConfig,
-	parse_cvm_id,
-} from "@/src/utils/project-config";
+import type { CommandContext } from "@/src/core/types";
 import { getApiKey } from "@/src/utils/credentials";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
@@ -15,6 +12,7 @@ import {
 import { waitForCvmReady } from "@/src/utils/cvms";
 
 import { detectFileInCurrentDir, promptForFile } from "@/src/utils/prompts";
+import { dedupeEnvVars, parseEnvInputs } from "@/src/utils/env-parsing";
 import { parseDiskSizeInput, parseMemoryInput } from "@/src/utils/units";
 import {
 	type Client,
@@ -39,6 +37,8 @@ import {
 	safeGetKmsList,
 	safeProvisionCvm,
 	safeProvisionCvmComposeFileUpdate,
+	convertToHostname,
+	isValidHostname,
 } from "@phala/cloud";
 import dedent from "dedent";
 import fs from "fs-extra";
@@ -55,9 +55,11 @@ interface Options {
 	image?: string;
 	region?: string;
 	nodeId?: string;
+	env?: string[];
 	envFile?: string | boolean;
 	interactive?: boolean;
 	kmsId?: string;
+	cvmId?: string;
 	uuid?: string;
 	customAppId?: string;
 	preLaunchScript?: string;
@@ -177,31 +179,40 @@ async function getApiClient({
 	apiKey,
 	interactive,
 }: Readonly<Pick<Options, "apiKey" | "interactive">>): Promise<Client> {
-	if (!apiKey && !process.env.PHALA_CLOUD_API_KEY) {
-		if (interactive) {
-			const { apiKey } = await inquirer.prompt([
-				{
-					type: "password",
-					name: "apiKey",
-					message: "Enter your API key:",
-					validate: (input: string) =>
-						input.trim() ? true : "API key is required",
-				},
-			]);
-			return createClient({ apiKey: apiKey });
-		}
-		const apiKey = getApiKey();
-		if (!apiKey) {
-			throw new Error(
-				"API key is required. Please provide it via --api-key or PHALA_CLOUD_API_KEY environment variable",
-			);
-		}
-		return createClient({ apiKey: apiKey });
-	}
+	// Priority 1: Command-line provided API key
 	if (apiKey) {
-		return createClient({ apiKey: apiKey });
+		return createClient({ apiKey });
 	}
-	return createClient();
+
+	// Priority 2: Environment variable
+	if (process.env.PHALA_CLOUD_API_KEY) {
+		return createClient({ apiKey: process.env.PHALA_CLOUD_API_KEY });
+	}
+
+	// Priority 3: Saved API key from config file
+	const savedApiKey = getApiKey();
+	if (savedApiKey) {
+		return createClient({ apiKey: savedApiKey });
+	}
+
+	// Priority 4: Interactive prompt (only if no API key found)
+	if (interactive) {
+		const { apiKey: promptedKey } = await inquirer.prompt([
+			{
+				type: "password",
+				name: "apiKey",
+				message: "Enter your API key:",
+				validate: (input: string) =>
+					input.trim() ? true : "API key is required",
+			},
+		]);
+		return createClient({ apiKey: promptedKey });
+	}
+
+	// No API key available
+	throw new Error(
+		"API key is required. Please run 'phala auth login' or set PHALA_CLOUD_API_KEY environment variable",
+	);
 }
 
 async function readDockerComposeFile({
@@ -288,63 +299,131 @@ const validatePrivateKey = async (
 
 const validateName = async (options: Options): Promise<string | undefined> => {
 	let name = options.name;
-	if (!options.name) {
-		const folderName = path
-			.basename(process.cwd())
-			.toLowerCase()
-			.replace(/[^a-z0-9_-]/g, "-");
 
-		if (!options.interactive) {
-			name = folderName;
-		} else {
-			const result = await inquirer.prompt([
-				{
-					type: "input",
-					name: "name",
-					message: "Enter a name for the CVM:",
-					default: folderName,
-					validate: (input) => {
-						if (!input.trim()) return "CVM name is required";
-						if (!/^[a-zA-Z0-9_-]+$/.test(input))
-							return "CVM name must contain only letters, numbers, underscores, and hyphens";
-						return true;
-					},
-				},
-			]);
-			name = result.name;
+	// If name was explicitly provided via --name flag, validate it strictly
+	if (options.name) {
+		if (!isValidHostname(options.name)) {
+			throw new Error(
+				`Invalid CVM name: "${options.name}". Name must be 5-63 characters, start with letter, and contain only letters/numbers/hyphens.`,
+			);
 		}
+		return options.name;
 	}
+
+	// If no name provided, use directory name with auto-conversion
+	const folderName = path.basename(process.cwd());
+	const convertedName = convertToHostname(folderName);
+
+	if (!options.interactive) {
+		// Non-interactive mode: use converted directory name
+		name = convertedName;
+	} else {
+		// Interactive mode: prompt with converted name as default
+		const result = await inquirer.prompt([
+			{
+				type: "input",
+				name: "name",
+				message: "Enter a name for the CVM:",
+				default: convertedName,
+				validate: (input) => {
+					if (!input.trim()) return "CVM name is required";
+					if (!isValidHostname(input.trim())) {
+						return "Name must be 5-63 characters, start with letter, and contain only letters/numbers/hyphens";
+					}
+					return true;
+				},
+			},
+		]);
+		name = result.name;
+	}
+
 	return name;
 };
 
-const validateEnvFile = async (options: Options) => {
-	// Handle environment variables
-	let envs: EnvVar[] | undefined = undefined;
-	let envFilePath = options.envFile;
+const resolveEnvVars = async (
+	options: Options,
+): Promise<EnvVar[] | undefined> => {
+	const envs: EnvVar[] = [];
 
-	// Handle environment file path resolution
-	if (options.interactive && (!options.envFile || envFilePath === true)) {
-		envFilePath = await promptForFile(
-			"Enter the path to your environment file:",
-			".env",
-			"file",
+	// 1. Handle deprecated --env-file (backward compatibility)
+	if (options.envFile && typeof options.envFile === "string") {
+		logger.warn(
+			"--env-file is deprecated. Use -e <file> or -e KEY=VALUE instead.",
 		);
-	}
-
-	if (envFilePath && envFilePath !== true) {
 		try {
-			// Read and parse environment variables
-			const envContent = fs.readFileSync(envFilePath as string, {
-				encoding: "utf8",
-			});
-			envs = parseEnvVars(envContent);
+			const envContent = fs.readFileSync(options.envFile, { encoding: "utf8" });
+			envs.push(...parseEnvVars(envContent));
 		} catch (error) {
 			throw new Error(
-				`Error reading environment file ${envFilePath}: ${error instanceof Error ? error.message : String(error)}`,
+				`Error reading environment file ${options.envFile}: ${error instanceof Error ? error.message : String(error)}`,
 			);
 		}
 	}
-	return envs;
+
+	// 2. Handle new -e parameter (supports both files and KEY=VALUE)
+	if (options.env && options.env.length > 0) {
+		const parsed = parseEnvInputs(options.env);
+
+		// Load files first (in order)
+		for (const filePath of parsed.files) {
+			const resolvedPath = path.resolve(process.cwd(), filePath);
+			if (!fs.existsSync(resolvedPath)) {
+				throw new Error(`Environment file not found: ${filePath}`);
+			}
+			try {
+				const envContent = fs.readFileSync(resolvedPath, { encoding: "utf8" });
+				envs.push(...parseEnvVars(envContent));
+			} catch (error) {
+				throw new Error(
+					`Error reading environment file ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+				);
+			}
+		}
+
+		// Add KEY=VALUE pairs (later values override earlier)
+		envs.push(...parsed.keyValues);
+	}
+
+	// 3. Interactive mode: prompt if no env inputs provided
+	if (
+		options.interactive &&
+		envs.length === 0 &&
+		!options.env &&
+		!options.envFile
+	) {
+		const { envPath } = await inquirer.prompt([
+			{
+				type: "input",
+				name: "envPath",
+				message:
+					"Enter the path to your environment file (leave empty to skip):",
+				default: "",
+				validate: (input: string) => {
+					if (!input || input.trim() === "") {
+						return true;
+					}
+					const filePath = path.resolve(process.cwd(), input);
+					if (!fs.existsSync(filePath)) {
+						return `File not found at ${filePath}`;
+					}
+					return true;
+				},
+			},
+		]);
+
+		if (envPath.trim()) {
+			const resolvedPath = path.resolve(process.cwd(), envPath.trim());
+			const envContent = fs.readFileSync(resolvedPath, { encoding: "utf8" });
+			envs.push(...parseEnvVars(envContent));
+		}
+	}
+
+	// 4. Return deduplicated envs (later values override earlier)
+	if (envs.length === 0) {
+		return undefined;
+	}
+
+	return dedupeEnvVars(envs);
 };
 
 /**
@@ -707,10 +786,10 @@ const updateCvm = async (
 ) => {
 	const [cvm_result, app_compose_result] = await Promise.all([
 		safeGetCvmInfo(client, {
-			uuid: validatedOptions.uuid,
+			id: validatedOptions.uuid,
 		}),
 		safeGetCvmComposeFile(client, {
-			uuid: validatedOptions.uuid,
+			id: validatedOptions.uuid,
 		}),
 	]);
 	if (!cvm_result.success) {
@@ -736,7 +815,7 @@ const updateCvm = async (
 
 	logger.info(`Preparing update for CVM ${validatedOptions.uuid}...`);
 	const provision_result = await safeProvisionCvmComposeFileUpdate(client, {
-		uuid: validatedOptions.uuid,
+		id: validatedOptions.uuid,
 		app_compose:
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
 	});
@@ -794,6 +873,7 @@ const updateCvm = async (
 		compose_hash: provision.compose_hash,
 		encrypted_env: encrypted_env,
 		env_keys: envs?.length ? envs.map((env) => env.key) : undefined,
+		update_env_vars: envs?.length ? true : undefined,
 	};
 	// @ts-ignore
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);
@@ -844,11 +924,7 @@ const updateCvm = async (
 
 export async function runDeploy(
 	input: DeployCommandInput,
-	context: {
-		stdout: NodeJS.WriteStream;
-		stderr: NodeJS.WriteStream;
-		projectConfig: RuntimeProjectConfig;
-	},
+	context: CommandContext,
 ): Promise<void> {
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json || false);
@@ -867,10 +943,24 @@ export async function runDeploy(
 			interactive: input.interactive,
 		});
 
-		const envs = await validateEnvFile(input as Options);
+		const envs = await resolveEnvVars(input as Options);
 
-		// Determine UUID: priority is CLI input > phala.toml
-		const uuid = parse_cvm_id(input.uuid) ?? context.projectConfig.cvm_id;
+		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
+		if (input.debug) {
+			console.log("[DEBUG] context.cvmId:", JSON.stringify(context.cvmId));
+			console.log("[DEBUG] input.cvmId:", input.cvmId);
+		}
+
+		const uuid =
+			context.cvmId?.id ||
+			context.cvmId?.uuid ||
+			context.cvmId?.app_id ||
+			context.cvmId?.instance_id;
+
+		if (input.debug) {
+			console.log("[DEBUG] resolved uuid:", uuid);
+			console.log("[DEBUG] isUpdate:", !!uuid);
+		}
 
 		const isUpdate = !!uuid;
 		if (isUpdate) {

@@ -105,7 +105,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 	let logger: TestLogger;
 	let appId: string | undefined;
 	let vmUuid: string | undefined;
-	const testName = `phala-e2e-${Date.now()}`;
+
+	// Test identifiers (timestamp ensures uniqueness across runs)
+	const ts = Date.now();
+	const testName = `phala-e2e-${ts}`;
+	const initialNonce = `nonce-${ts}-initial`;
+	let updateNonce: string;
+	let newEnvNonce: string;
 
 	beforeAll(async () => {
 		logger = createTestLogger("full-lifecycle");
@@ -325,12 +331,13 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				"Using pre-pushed Docker image: h4x3rotab/phala-e2e-test:v1.0.0",
 			);
 
-			// Create temporary .env file
+			// Create temporary .env file with nonce for verifying encrypted env vars
 			const envPath = path.join(__dirname, "fixtures/test-app/.env");
 			fs.writeFileSync(
 				envPath,
-				"BUILD_VERSION=1.0.0\nTEST_ENV_VAR=e2e-testing\n",
+				`BUILD_VERSION=1.0.0\nTEST_ENV_VAR=${initialNonce}\n`,
 			);
+			logger.info(`Using initial nonce: ${initialNonce}`);
 
 			// Deploy using CLI
 			// Note: Using compiled CLI binary from dist/index.js
@@ -482,13 +489,32 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			expect(healthData.status).toBe("healthy");
 
 			// Test version endpoint
-			const versionData = await testJsonEndpoint<{ version: string }>(
-				`${publicUrl}/version`,
-				["version"],
-			);
+			const versionData = await testJsonEndpoint<{
+				version: string;
+				env: string;
+				newEnv: string;
+			}>(`${publicUrl}/version`, ["version", "env", "newEnv"]);
 
 			logger.success("Version endpoint accessible", versionData);
 			expect(versionData.version).toBe("1.0.0");
+			expect(versionData.env).toBe(initialNonce);
+			expect(versionData.newEnv).toBe(""); // Not set in initial deployment
+
+			// Test SSH and CP dry-run
+			for (const [cmd, binary] of [
+				[`ssh ${appId} --dry-run`, "ssh"],
+				[`cp ${appId}:/tmp/test.txt ./local.txt --dry-run`, "scp"],
+			] as const) {
+				const { stdout } = await runCliCommand(
+					logger,
+					cmd,
+					`Testing ${binary} dry-run`,
+				);
+				expect(stdout).toContain(binary);
+				expect(stdout).toContain("root@");
+				expect(stdout).toContain("ProxyCommand");
+				logger.success(`${binary} dry-run verified`);
+			}
 
 			logger.success("Phase 4 completed: CVM is fully operational");
 		},
@@ -511,6 +537,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			);
 
 			// Update docker-compose.yml for v2
+			// Use SHA256-pinned image references to ensure correct version is pulled
 			const composeV2Path = path.join(
 				__dirname,
 				"fixtures/test-app/docker-compose-v2.yml",
@@ -519,17 +546,29 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				path.join(__dirname, "fixtures/test-app/docker-compose.yml"),
 				"utf-8",
 			);
-			const updatedCompose = composeContent.replace(
-				"h4x3rotab/phala-e2e-test:v1.0.0",
-				"h4x3rotab/phala-e2e-test:v2.0.0",
+			// Replace v1.0.0 image with SHA256-pinned v2.0.0 image
+			let updatedCompose = composeContent.replace(
+				/h4x3rotab\/phala-e2e-test:v1\.0\.0(@sha256:[a-f0-9]+)?/,
+				"h4x3rotab/phala-e2e-test:v2.0.0@sha256:0cc30a647b450cddfa0fcfc73ad46d122337c7e2a47f2cbc79b44fbe62784571",
+			);
+			// Add NEW_ENV_VAR to environment section (after TEST_ENV_VAR)
+			updatedCompose = updatedCompose.replace(
+				/- TEST_ENV_VAR=\$\{TEST_ENV_VAR:-production\}/,
+				"- TEST_ENV_VAR=${TEST_ENV_VAR:-production}\n      - NEW_ENV_VAR=${NEW_ENV_VAR:-}",
 			);
 			fs.writeFileSync(composeV2Path, updatedCompose);
 
-			// Create .env for v2
+			// Create .env for v2 with updated TEST_ENV_VAR and new NEW_ENV_VAR
+			const updateTs = Date.now();
+			updateNonce = `nonce-${updateTs}-update`;
+			newEnvNonce = `new-env-${updateTs}`;
 			const envV2Path = path.join(__dirname, "fixtures/test-app/.env.v2");
 			fs.writeFileSync(
 				envV2Path,
-				"BUILD_VERSION=2.0.0\nTEST_ENV_VAR=e2e-testing-v2\n",
+				`BUILD_VERSION=2.0.0\nTEST_ENV_VAR=${updateNonce}\nNEW_ENV_VAR=${newEnvNonce}\n`,
+			);
+			logger.info(
+				`Update nonces: TEST_ENV_VAR=${updateNonce}, NEW_ENV_VAR=${newEnvNonce}`,
 			);
 
 			// Update using CLI with --wait flag
@@ -575,36 +614,38 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 			const cvm = cvmDetails as { gateway_domain?: string };
 			const publicUrl = buildPublicUrl(appId, 3000, cvm.gateway_domain);
 
-			// Poll until version matches 2.0.0
-			const maxAttempts = 60; // Up to 5 minutes (60 * 5s)
+			// Poll until version and env vars match expected values
+			const maxAttempts = 60;
 			const delayMs = 5000;
-			let versionData: { version: string } | null = null;
+			let versionData: { version: string; env: string; newEnv: string } | null =
+				null;
 
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 				try {
-					const data = await testJsonEndpoint<{ version: string }>(
-						`${publicUrl}/version`,
-						["version"],
-						{ maxAttempts: 1, delayMs: 0 }, // Single attempt, no retry
-					);
+					const data = await testJsonEndpoint<{
+						version: string;
+						env: string;
+						newEnv: string;
+					}>(`${publicUrl}/version`, ["version", "env", "newEnv"], {
+						maxAttempts: 1,
+						delayMs: 0,
+					});
+
+					const ready =
+						data.version === "2.0.0" &&
+						data.env === updateNonce &&
+						data.newEnv === newEnvNonce;
 
 					logger.info(
-						`[Attempt ${attempt}/${maxAttempts}] Got version: ${data.version}`,
+						`[${attempt}/${maxAttempts}] version=${data.version} env=${data.env} newEnv=${data.newEnv}${ready ? " ✓" : ""}`,
 					);
 
-					if (data.version === "2.0.0") {
+					if (ready) {
 						versionData = data;
 						break;
 					}
-
-					// Version doesn't match yet, keep retrying
-					logger.info(
-						"Version still at old value, waiting for container restart...",
-					);
-				} catch (error) {
-					logger.info(
-						`[Attempt ${attempt}/${maxAttempts}] Endpoint not ready yet...`,
-					);
+				} catch {
+					logger.info(`[${attempt}/${maxAttempts}] endpoint not ready`);
 				}
 
 				if (attempt < maxAttempts) {
@@ -612,14 +653,16 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 				}
 			}
 
-			if (!versionData || versionData.version !== "2.0.0") {
+			if (!versionData) {
 				throw new Error(
-					`Version did not update to 2.0.0 after ${(maxAttempts * delayMs) / 1000}s (current: ${versionData?.version || "unknown"})`,
+					`Update not verified after ${(maxAttempts * delayMs) / 1000}s`,
 				);
 			}
 
-			logger.success("New version verified", versionData);
+			logger.success("Update verified", versionData);
 			expect(versionData.version).toBe("2.0.0");
+			expect(versionData.env).toBe(updateNonce);
+			expect(versionData.newEnv).toBe(newEnvNonce);
 
 			// Cleanup temp files
 			fs.unlinkSync(composeV2Path);

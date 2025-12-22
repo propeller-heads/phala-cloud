@@ -30,6 +30,11 @@ export function buildCommandSchemaInput(
 		}
 	}
 
+	// Add pass-through arguments if present
+	if (parsed.passThrough.length > 0) {
+		options["--"] = parsed.passThrough;
+	}
+
 	const positionals: Record<string, unknown> = {};
 	const declaredArgs = meta.arguments ?? [];
 	const values = [...parsed.positionals];

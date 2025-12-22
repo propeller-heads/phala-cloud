@@ -5,7 +5,6 @@ import type { CommandContext } from "@/src/core/types";
 import type { CvmInfoResponse } from "@/src/api/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	cvmsGetCommandMeta,
@@ -20,21 +19,18 @@ async function runCvmsGetCommand(
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
-	try {
-		const resolvedAppId = await resolveCvmAppId(input.appId);
-		const cleanAppId = resolvedAppId?.replace(/^app_/, "") ?? "";
-
-		if (!cleanAppId) {
-			context.fail("No CVM App ID provided.");
-			return 1;
-		}
-
-		const spinner = logger.startSpinner(
-			`Fetching CVM with App ID app_${cleanAppId}`,
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
 		);
+		return 1;
+	}
+
+	try {
+		const spinner = logger.startSpinner("Fetching CVM details");
 
 		const client = await getClient();
-		const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
+		const result = await safeGetCvmInfo(client, context.cvmId);
 
 		spinner.stop(true);
 
@@ -46,7 +42,7 @@ async function runCvmsGetCommand(
 		const cvm = result.data as CvmInfoResponse | undefined;
 
 		if (!cvm) {
-			context.fail(`CVM with App ID app_${resolvedAppId} not found`);
+			context.fail("CVM not found");
 			return 1;
 		}
 

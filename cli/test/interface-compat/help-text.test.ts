@@ -32,7 +32,7 @@ describe("CLI Interface Compatibility - Help Text (v1.0.40 baseline)", () => {
 				flags: [
 					"--name",
 					"--compose",
-					"--env-file",
+					"--env", // --env-file still works but is hidden; --env/-e is the new preferred flag
 					"--vcpu",
 					"--memory",
 					"--disk-size",

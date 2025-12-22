@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const configSetCommandMeta: CommandMeta = {
 	name: "set",
 	description: "Set a configuration value",
+	stability: "stable",
 	arguments: [
 		{
 			name: "key",

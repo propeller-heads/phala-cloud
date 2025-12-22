@@ -1,18 +1,14 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsDeleteCommandMeta: CommandMeta = {
 	name: "delete",
 	description: "Delete a CVM",
-	arguments: [
-		{
-			name: "app-id",
-			description: "App ID of the CVM (leave empty for interactive selection)",
-			required: false,
-			target: "appId",
-		},
-	],
+	stability: "unstable",
+	arguments: [cvmIdArgument],
 	options: [
+		interactiveOption,
 		{
 			name: "force",
 			shorthand: "f",
@@ -34,14 +30,23 @@ export const cvmsDeleteCommandMeta: CommandMeta = {
 			value: "phala cvms delete",
 		},
 		{
-			name: "Delete a CVM without confirmation",
+			name: "Delete CVM by app_id",
 			value: "phala cvms delete app_123 --force",
+		},
+		{
+			name: "Delete CVM by UUID",
+			value: "phala cvms delete 550e8400-e29b-41d4-a716-446655440000 -f",
+		},
+		{
+			name: "Delete CVM by name",
+			value: "phala cvms delete my-app --yes",
 		},
 	],
 };
 
 export const cvmsDeleteCommandSchema = z.object({
-	appId: z.string().optional(),
+	cvmId: z.string().optional(),
+	interactive: z.boolean().default(false),
 	force: z.boolean().default(false),
 	yes: z.boolean().default(false),
 });

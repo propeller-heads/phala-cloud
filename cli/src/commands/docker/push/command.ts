@@ -4,6 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const dockerPushCommandMeta: CommandMeta = {
 	name: "push",
 	description: "Push a Docker image to Docker Hub",
+	stability: "unstable",
 	options: [
 		{
 			name: "image",

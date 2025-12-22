@@ -1,7 +1,6 @@
-import { startCvm } from "@/src/api/cvms";
+import { safeStartCvm, type VM } from "@phala/cloud";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { resolveCvmAppId } from "@/src/utils/cvms";
-
+import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
@@ -14,20 +13,32 @@ import {
 
 async function runCvmsStartCommand(
 	input: CvmsStartCommandInput,
-	_context: CommandContext,
+	context: CommandContext,
 ): Promise<number> {
-	try {
-		const resolvedAppId = await resolveCvmAppId(input.appId);
-
-		const spinner = logger.startSpinner(
-			`Starting CVM with App ID app_${resolvedAppId}`,
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Use --interactive to select interactively.",
 		);
+		return 1;
+	}
 
-		const response = await retryOnConflict(() => startCvm(resolvedAppId), {
+	try {
+		const client = await getClient();
+		const spinner = logger.startSpinner("Starting CVM");
+
+		const cvmId = context.cvmId;
+		const result = await retryOnConflict(() => safeStartCvm(client, cvmId), {
 			spinner,
 		});
 
 		spinner.stop(true);
+
+		if (!result.success) {
+			logger.error(`Failed to start CVM: ${result.error.message}`);
+			return 1;
+		}
+
+		const response = result.data as VM;
 		logger.break();
 
 		logger.keyValueTable(

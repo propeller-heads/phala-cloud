@@ -39,3 +39,36 @@ export const globalCommandOptions: readonly CommandOption[] = [
 ];
 
 export const commonAuthOptions: readonly CommandOption[] = [apiTokenOption];
+
+/**
+ * CVM ID argument (positional)
+ * Supports all identifier formats: UUID, app_id, instance_id, name
+ */
+export const cvmIdArgument = {
+	name: "cvm_id",
+	description: "CVM identifier (UUID, app_id, instance_id, or name)",
+	required: false,
+	target: "cvmId",
+};
+
+/**
+ * CVM ID option (--cvm-id)
+ * Primary option for CVM identifier
+ */
+export const cvmIdOption: CommandOption = {
+	name: "cvm-id",
+	description: "CVM identifier (UUID, app_id, instance_id, or name)",
+	type: "string",
+	target: "cvmId",
+};
+
+/**
+ * UUID option (--uuid) - DEPRECATED
+ * Kept for backward compatibility, maps to cvmId
+ */
+export const uuidOption: CommandOption = {
+	name: "uuid",
+	description: "[DEPRECATED] Use --cvm-id instead. CVM UUID.",
+	type: "string",
+	target: "cvmId",
+};

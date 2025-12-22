@@ -1,19 +1,14 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsUpgradeCommandMeta: CommandMeta = {
 	name: "upgrade",
-	description:
-		'[DEPRECATED] Upgrade a CVM to a new version (use "phala deploy" instead)',
-	arguments: [
-		{
-			name: "app-id",
-			description: "CVM app ID to upgrade (optional)",
-			required: false,
-			target: "appId",
-		},
-	],
+	description: 'Upgrade a CVM to a new version (use "phala deploy" instead)',
+	stability: "deprecated",
+	arguments: [cvmIdArgument],
 	options: [
+		interactiveOption,
 		{
 			name: "compose",
 			shorthand: "c",
@@ -48,7 +43,8 @@ export const cvmsUpgradeCommandMeta: CommandMeta = {
 };
 
 export const cvmsUpgradeCommandSchema = z.object({
-	appId: z.string().optional(),
+	cvmId: z.string().optional(),
+	interactive: z.boolean().default(false),
 	compose: z.string().optional(),
 	envFile: z.string().optional(),
 	debug: z.boolean().default(false),

@@ -10,10 +10,13 @@ import {
 	NoGatewayError,
 	buildHostname,
 	buildSshOptions,
+	checkLibreSSLEd25519Compatibility,
 	fetchCvmInfo,
 	getSshKeyFile,
+	isDevImage,
 	parseGatewayDomain,
 	selectPort,
+	shellEscape,
 } from "@/src/utils/ssh-utils";
 import { cpCommandMeta, cpCommandSchema, type CpCommandInput } from "./command";
 
@@ -57,10 +60,21 @@ async function runCpCommand(
 			return 1;
 		}
 
-		// Get CVM ID from remote path or fallback to project config
+		// Get CVM ID from remote path or fallback to context
 		const remotePath = source.isRemote ? source : destination;
-		const cvmId =
-			parse_cvm_id(remotePath.cvmId) ?? context.projectConfig.cvm_id;
+		let cvmId: string | undefined;
+
+		if (remotePath.cvmId) {
+			// If CVM ID is explicitly provided in path (e.g., app_123:path), parse it
+			cvmId = parse_cvm_id(remotePath.cvmId);
+		} else {
+			// Otherwise use context.cvmId (already resolved with priority: interactive > --cvm-id > phala.toml)
+			cvmId =
+				context.cvmId?.id ||
+				context.cvmId?.uuid ||
+				context.cvmId?.app_id ||
+				context.cvmId?.instance_id;
+		}
 
 		if (!cvmId) {
 			logger.error(
@@ -88,6 +102,13 @@ async function runCpCommand(
 				const cvmInfo = await fetchCvmInfo(client, cvmId);
 				instanceId = cvmInfo.appId;
 				gatewayDomain = cvmInfo.gatewayDomain;
+
+				// Warn if not a dev image
+				if (!isDevImage(cvmInfo.baseImage)) {
+					logger.warn(
+						"This CVM is not using a dev image. SCP access may not be available.",
+					);
+				}
 			} catch (error) {
 				if (error instanceof NoGatewayError) {
 					logger.error(error.message);
@@ -118,6 +139,9 @@ async function runCpCommand(
 			logger.warn(
 				"No default SSH key found. SCP will use ssh-agent or prompt for password.",
 			);
+		} else {
+			// Check for LibreSSL + ed25519 compatibility issue on macOS
+			checkLibreSSLEd25519Compatibility(keyFile);
 		}
 
 		if (input.verbose) {
@@ -149,6 +173,13 @@ async function runCpCommand(
 			: destination.path;
 
 		scpArgs.push(scpSource, scpDestination);
+
+		// Dry run: print the command and exit
+		if (input.dryRun) {
+			const escapedArgs = scpArgs.map((arg) => shellEscape(arg));
+			context.stdout.write(`scp ${escapedArgs.join(" ")}\n`);
+			return 0;
+		}
 
 		const direction = source.isRemote ? "download" : "upload";
 		const localPath = source.isRemote ? destination.path : source.path;
