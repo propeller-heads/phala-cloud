@@ -364,3 +364,155 @@ export async function getTeepods(v03x_only = false): Promise<TeepodResponse> {
 	const response = await client.get(url);
 	return response as TeepodResponse;
 }
+
+// ============================================
+// Logs Functions
+// ============================================
+
+export interface SerialLogsOptions {
+	tail?: number;
+	timestamps?: boolean;
+}
+
+export interface ContainerLogsOptions extends SerialLogsOptions {
+	container?: string;
+}
+
+interface ContainerInfo {
+	id: string;
+	names: string[];
+	log_endpoint: string | null;
+}
+
+interface CvmCompositionResponse {
+	containers: ContainerInfo[] | null;
+}
+
+/** Build log URL with query parameters */
+function buildLogUrl(
+	baseUrl: string,
+	options: { tail?: number; timestamps?: boolean; follow?: boolean },
+): string {
+	const sep = baseUrl.includes("?") ? "&" : "?";
+	let url = baseUrl;
+	if (options.follow) url += `${url.includes("?") ? "&" : sep}follow`;
+	if (options.tail) url += `${url.includes("?") ? "&" : sep}lines=${options.tail}`;
+	if (options.timestamps) url += `${url.includes("?") ? "&" : sep}timestamps`;
+	url += `${url.includes("?") ? "&" : sep}ansi`;
+	return url;
+}
+
+/** Stream response body to callback */
+async function streamResponse(
+	response: Response,
+	onData: (data: string) => void,
+): Promise<void> {
+	const reader = response.body?.getReader();
+	if (!reader) throw new Error("No response body available for streaming");
+
+	const decoder = new TextDecoder();
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		onData(decoder.decode(value, { stream: true }));
+	}
+}
+
+/** Get serial log endpoint URL */
+async function getSerialLogEndpoint(appId: string): Promise<string> {
+	const cvmInfo = await getCvmByAppId(appId);
+	if (!cvmInfo.syslog_endpoint) {
+		throw new Error("No syslog endpoint available for this CVM");
+	}
+	return `${cvmInfo.syslog_endpoint}&ch=serial`;
+}
+
+/** Get container log endpoint URL */
+async function getContainerLogEndpoint(
+	appId: string,
+	containerName?: string,
+): Promise<string> {
+	const client = await getClient();
+	const cleanAppId = appId.replace(/^app_/, "");
+	const composition = await client.get<CvmCompositionResponse>(
+		`cvms/app_${cleanAppId}/composition`,
+	);
+
+	if (!composition.containers?.length) {
+		throw new Error("No containers found for this CVM");
+	}
+
+	let containers = composition.containers;
+	if (containerName) {
+		containers = containers.filter(
+			(c) => c.names.some((n) => n.includes(containerName)) || c.id.startsWith(containerName),
+		);
+		if (!containers.length) throw new Error(`Container '${containerName}' not found`);
+	}
+
+	const container = containers.find((c) => c.log_endpoint);
+	if (!container?.log_endpoint) {
+		throw new Error("No log endpoints available for containers");
+	}
+	return container.log_endpoint;
+}
+
+/** Fetch serial logs from a CVM */
+export async function fetchSerialLogs(
+	appId: string,
+	options: SerialLogsOptions = {},
+): Promise<string> {
+	const baseUrl = await getSerialLogEndpoint(appId);
+	const url = buildLogUrl(baseUrl, options);
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch serial logs: ${response.status} ${response.statusText}`);
+	}
+	return response.text();
+}
+
+/** Fetch container logs from a CVM */
+export async function fetchContainerLogs(
+	appId: string,
+	options: ContainerLogsOptions = {},
+): Promise<string> {
+	const baseUrl = await getContainerLogEndpoint(appId, options.container);
+	const url = buildLogUrl(baseUrl, options);
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch container logs: ${response.status} ${response.statusText}`);
+	}
+	return response.text();
+}
+
+/** Stream serial logs from a CVM */
+export async function streamSerialLogs(
+	appId: string,
+	onData: (data: string) => void,
+	options: SerialLogsOptions = {},
+	signal?: AbortSignal,
+): Promise<void> {
+	const baseUrl = await getSerialLogEndpoint(appId);
+	const url = buildLogUrl(baseUrl, { ...options, follow: true });
+	const response = await fetch(url, { signal });
+	if (!response.ok) {
+		throw new Error(`Failed to stream serial logs: ${response.status} ${response.statusText}`);
+	}
+	await streamResponse(response, onData);
+}
+
+/** Stream container logs from a CVM */
+export async function streamContainerLogs(
+	appId: string,
+	onData: (data: string) => void,
+	options: ContainerLogsOptions = {},
+	signal?: AbortSignal,
+): Promise<void> {
+	const baseUrl = await getContainerLogEndpoint(appId, options.container);
+	const url = buildLogUrl(baseUrl, { ...options, follow: true });
+	const response = await fetch(url, { signal });
+	if (!response.ok) {
+		throw new Error(`Failed to stream container logs: ${response.status} ${response.statusText}`);
+	}
+	await streamResponse(response, onData);
+}
