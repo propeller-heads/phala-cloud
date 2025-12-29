@@ -338,3 +338,14 @@ export {
   GetCvmPreLaunchScriptRequestSchema,
   type GetCvmPreLaunchScriptRequest,
 } from "./cvms/get_cvm_prelaunch_script";
+
+export {
+  getCvmStatusBatch,
+  safeGetCvmStatusBatch,
+  CvmStatusSchema,
+  GetCvmStatusBatchResponseSchema,
+  GetCvmStatusBatchRequestSchema,
+  type CvmStatus,
+  type GetCvmStatusBatchResponse,
+  type GetCvmStatusBatchRequest,
+} from "./cvms/get_cvm_status_batch";
