@@ -5,7 +5,7 @@ import { defineAction } from "../../utils/define-action";
  * CVM status schema for batch status API
  *
  * This is different from CvmStateSchema which is used for /cvms/{id}/state endpoint.
- * CvmStatusSchema is used for /cvms/status/batch endpoint which returns status
+ * CvmStatusSchema is used for /status/batch endpoint which returns status
  * information optimized for polling.
  */
 export const CvmStatusSchema = z.object({
@@ -74,7 +74,7 @@ const { action: getCvmStatusBatch, safeAction: safeGetCvmStatusBatch } = defineA
   typeof GetCvmStatusBatchResponseSchema
 >(GetCvmStatusBatchResponseSchema, async (client, request) => {
   const { vmUuids } = GetCvmStatusBatchRequestSchema.parse(request);
-  return await client.post("/cvms/status/batch", { vm_uuids: vmUuids });
+  return await client.post("/status/batch", { vm_uuids: vmUuids });
 });
 
 export { getCvmStatusBatch, safeGetCvmStatusBatch };
