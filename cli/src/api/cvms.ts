@@ -393,13 +393,14 @@ function buildLogUrl(
 	baseUrl: string,
 	options: { tail?: number; timestamps?: boolean; follow?: boolean },
 ): string {
+	const params: string[] = [];
+	if (options.follow) params.push("follow");
+	if (options.tail) params.push(`lines=${options.tail}`);
+	if (options.timestamps) params.push("timestamps");
+	params.push("ansi");
+
 	const sep = baseUrl.includes("?") ? "&" : "?";
-	let url = baseUrl;
-	if (options.follow) url += `${url.includes("?") ? "&" : sep}follow`;
-	if (options.tail) url += `${url.includes("?") ? "&" : sep}lines=${options.tail}`;
-	if (options.timestamps) url += `${url.includes("?") ? "&" : sep}timestamps`;
-	url += `${url.includes("?") ? "&" : sep}ansi`;
-	return url;
+	return baseUrl + sep + params.join("&");
 }
 
 /** Stream response body to callback */
@@ -444,8 +445,11 @@ async function getContainerLogEndpoint(
 
 	let containers = composition.containers;
 	if (containerName) {
+		// Match by exact name (with or without leading slash) or container ID prefix
 		containers = containers.filter(
-			(c) => c.names.some((n) => n.includes(containerName)) || c.id.startsWith(containerName),
+			(c) =>
+				c.names.some((n) => n === containerName || n === `/${containerName}`) ||
+				c.id.startsWith(containerName),
 		);
 		if (!containers.length) throw new Error(`Container '${containerName}' not found`);
 	}
