@@ -77,6 +77,7 @@ export const CvmLegacyDetailSchema = z.object({
   listed: z.boolean().optional().default(false),
   project_id: z.string().optional().nullable(),
   project_type: z.string().optional().nullable(),
+  instance_type: z.string().optional().nullable(),
   public_sysinfo: z.boolean().optional().default(false),
   public_logs: z.boolean().optional().default(false),
   dapp_dashboard_url: z.string().optional().nullable(),

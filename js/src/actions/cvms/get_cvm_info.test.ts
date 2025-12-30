@@ -157,7 +157,7 @@ describe("getCvmInfo", () => {
   describe("request validation", () => {
     it("should validate identifier requirements", async () => {
       // No identifier provided
-      await expect(getCvmInfo(client, {})).rejects.toThrow("One of id, uuid, app_id, or instance_id must be provided");
+      await expect(getCvmInfo(client, {})).rejects.toThrow("One of id, uuid, app_id, instance_id, or name must be provided");
 
       // Invalid UUID format
       await expect(getCvmInfo(client, { uuid: "invalid-uuid" })).rejects.toThrow();
