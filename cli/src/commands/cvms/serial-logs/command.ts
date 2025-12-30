@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 import { jsonOption } from "@/src/commands/status/command";
 
 export const cvmsSerialLogsCommandMeta: CommandMeta = {
@@ -31,6 +31,7 @@ export const cvmsSerialLogsCommandMeta: CommandMeta = {
 			target: "timestamps",
 		},
 		jsonOption,
+		interactiveOption,
 	],
 	examples: [
 		{
@@ -58,6 +59,7 @@ export const cvmsSerialLogsCommandSchema = z.object({
 	follow: z.boolean().default(false),
 	timestamps: z.boolean().default(false),
 	json: z.boolean().default(false),
+	interactive: z.boolean().default(false),
 });
 
 export type CvmsSerialLogsCommandInput = z.infer<
