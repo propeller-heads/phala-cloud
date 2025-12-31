@@ -1,3 +1,4 @@
+import { CvmIdSchema } from "@phala/cloud";
 import type { CommandContext } from "@/src/core/types";
 import { logger, setJsonMode } from "@/src/utils/logger";
 
@@ -20,17 +21,17 @@ export interface BaseLogsInput {
 }
 
 /**
- * Extract CVM ID from context
+ * Extract and normalize CVM ID from context using SDK's CvmIdSchema
+ * This ensures proper ID format (e.g., adding app_ prefix to 40-char hex)
  */
 export function extractCvmId(context: CommandContext): string | null {
 	if (!context.cvmId) return null;
-	return (
-		context.cvmId.id ||
-		context.cvmId.app_id ||
-		context.cvmId.uuid ||
-		context.cvmId.name ||
-		null
-	);
+	try {
+		const { cvmId } = CvmIdSchema.parse(context.cvmId);
+		return cvmId;
+	} catch {
+		return null;
+	}
 }
 
 /**
