@@ -72,11 +72,11 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 				logger.break();
 
 				const abortController = new AbortController();
+				let interrupted = false;
+
 				const cleanup = () => {
+					interrupted = true;
 					abortController.abort();
-					logger.break();
-					logger.info("Stopped streaming logs");
-					process.exit(0);
 				};
 
 				process.on("SIGINT", cleanup);
@@ -91,12 +91,18 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 					);
 				} catch (error) {
 					if ((error as Error).name === "AbortError") {
-						return 0;
+						// Expected when user interrupts
+					} else {
+						throw error;
 					}
-					throw error;
 				} finally {
 					process.removeListener("SIGINT", cleanup);
 					process.removeListener("SIGTERM", cleanup);
+				}
+
+				if (interrupted) {
+					logger.break();
+					logger.info("Stopped streaming logs");
 				}
 
 				return 0;

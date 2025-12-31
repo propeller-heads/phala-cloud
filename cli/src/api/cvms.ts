@@ -423,7 +423,7 @@ async function streamResponse(
 async function getSerialLogEndpoint(appId: string): Promise<string> {
 	const cvmInfo = await getCvmByAppId(appId);
 	if (!cvmInfo.syslog_endpoint) {
-		throw new Error("No syslog endpoint available for this CVM");
+		throw new Error(`No syslog endpoint available for CVM '${appId}'`);
 	}
 	return `${cvmInfo.syslog_endpoint}&ch=serial`;
 }
@@ -434,13 +434,13 @@ async function getContainerLogEndpoint(
 	containerName?: string,
 ): Promise<string> {
 	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
+	// appId is already normalized by CvmIdSchema (e.g., "app_xxx" or "my-cvm-name")
 	const composition = await client.get<CvmCompositionResponse>(
-		`cvms/app_${cleanAppId}/composition`,
+		`cvms/${appId}/composition`,
 	);
 
 	if (!composition.containers?.length) {
-		throw new Error("No containers found for this CVM");
+		throw new Error(`No containers found for CVM '${appId}'`);
 	}
 
 	let containers = composition.containers;
@@ -451,12 +451,14 @@ async function getContainerLogEndpoint(
 				c.names.some((n) => n === containerName || n === `/${containerName}`) ||
 				c.id.startsWith(containerName),
 		);
-		if (!containers.length) throw new Error(`Container '${containerName}' not found`);
+		if (!containers.length) {
+			throw new Error(`Container '${containerName}' not found in CVM '${appId}'`);
+		}
 	}
 
 	const container = containers.find((c) => c.log_endpoint);
 	if (!container?.log_endpoint) {
-		throw new Error("No log endpoints available for containers");
+		throw new Error(`No log endpoints available for CVM '${appId}'`);
 	}
 	return container.log_endpoint;
 }

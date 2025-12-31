@@ -34,7 +34,7 @@ export const cvmsLogsCommandMeta: CommandMeta = {
 			name: "container",
 			shorthand: "c",
 			description:
-				"Container name to fetch logs from (defaults to all containers)",
+				"Container name or ID to fetch logs from (defaults to first container)",
 			type: "string",
 			target: "container",
 		},
