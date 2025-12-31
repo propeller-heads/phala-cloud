@@ -101,10 +101,8 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 				return 0;
 			}
 
-			// Non-streaming mode
-			const spinner = logger.startSpinner(`Fetching ${logTypeName} logs`);
+			// Non-streaming mode - no spinner to support piping (e.g., phala cvms logs xx | grep foo)
 			const logs = await config.fetchLogs(appId, options);
-			spinner.stop(true);
 
 			if (input.json) {
 				context.success({ logs, cvm_id: appId });
