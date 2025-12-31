@@ -475,7 +475,11 @@ export async function fetchSerialLogs(
 	return response.text();
 }
 
-/** Fetch container logs from a CVM */
+/**
+ * Fetch container logs from a CVM
+ * Note: Fetches from a single container. Use --container to specify which one,
+ * otherwise fetches from the first container with a log endpoint.
+ */
 export async function fetchContainerLogs(
 	appId: string,
 	options: ContainerLogsOptions = {},
@@ -505,7 +509,11 @@ export async function streamSerialLogs(
 	await streamResponse(response, onData);
 }
 
-/** Stream container logs from a CVM */
+/**
+ * Stream container logs from a CVM
+ * Note: Streams from a single container. Use --container to specify which one,
+ * otherwise streams from the first container with a log endpoint.
+ */
 export async function streamContainerLogs(
 	appId: string,
 	onData: (data: string) => void,
