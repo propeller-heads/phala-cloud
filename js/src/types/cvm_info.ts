@@ -103,16 +103,17 @@ export const VMSchema = z.object({
   app_id: z.string(),
   vm_uuid: z.string().nullable(),
   instance_id: z.string().nullable(),
-  app_url: z.string().optional().nullable(),
+  // Deprecated fields - will be removed in next API version
+  app_url: z.string().optional().nullable().default(null),
   base_image: z.string().nullable(),
   vcpu: z.number(),
   memory: z.number(),
   disk_size: z.number(),
-  manifest_version: z.number().optional().nullable(),
-  version: z.string().optional().nullable(),
-  runner: z.string().optional().nullable(),
+  manifest_version: z.number().optional().nullable().default(2),
+  version: z.string().optional().nullable().default("1.0.0"),
+  runner: z.string().optional().nullable().default("docker-compose"),
   docker_compose_file: z.string().optional().nullable(),
-  features: z.array(z.string()).optional().nullable(),
+  features: z.array(z.string()).optional().nullable().default(["kms", "tproxy-net"]),
   created_at: z.string(), // datetime serialized as ISO string
   encrypted_env_pubkey: z.string().nullable(),
 });
