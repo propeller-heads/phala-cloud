@@ -1,3 +1,30 @@
+## [1.1.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.0...cli-v1.1.1) (2026-01-06)
+
+### doc
+
+* **cli:** document --json flag for machine-readable output ([19a5b9b](https://github.com/Phala-Network/phala-cloud/commit/19a5b9bd307bef2821ca4163306ed8900b007bb9)), closes [#87](https://github.com/Phala-Network/phala-cloud/issues/87)
+* **cli:** document PHALA_CLOUD_API_KEYa ([700f260](https://github.com/Phala-Network/phala-cloud/commit/700f260ada808c088cb8c2c55c4074ed820a7367))
+* **cli:** document PHALA_CLOUD_API_PREFIX environment variable ([c7a4816](https://github.com/Phala-Network/phala-cloud/commit/c7a481698a9d0dc4a1784ff495b69bb4d4610a40))
+
+### docs
+
+* **cli:** clarify single-container behavior in logs functions ([d5cc675](https://github.com/Phala-Network/phala-cloud/commit/d5cc675718f6defea3c737d143d1ea022c04905c))
+
+### feat
+
+* **cli:** add --interactive flag to logs commands ([4d7e7f4](https://github.com/Phala-Network/phala-cloud/commit/4d7e7f4889125fe8e6007447ff006ac3a830f53e))
+* **cli:** add logs and serial-logs commands for CVMs ([793de6b](https://github.com/Phala-Network/phala-cloud/commit/793de6b6c5e1545e270109228fbfc127c0692cf3))
+
+### fix
+
+* **cli:** remove spinner from logs command for pipeline compatibility ([89b44d4](https://github.com/Phala-Network/phala-cloud/commit/89b44d4b750807a1a797980ae3536977dfd91d2e))
+* **cli:** use SDK CvmIdSchema for proper CVM ID resolution in logs ([aa58744](https://github.com/Phala-Network/phala-cloud/commit/aa587444fab8a36e74d100dfa8b927bc45e190e6))
+
+### refactor
+
+* **cli:** improve logs command robustness and error messages ([f0f1b9e](https://github.com/Phala-Network/phala-cloud/commit/f0f1b9ed1eb253dc5858f363276479e9986ffdee))
+* **cli:** improve logs commands based on review ([ee891ec](https://github.com/Phala-Network/phala-cloud/commit/ee891ec215036071b352ac4a5821ad3ed5b31186))
+* **cli:** inline extractCvmId function in logs handler ([6dfaa06](https://github.com/Phala-Network/phala-cloud/commit/6dfaa06488b8f875fff3fd2a0d207bb65284e233))
 ## 1.1.0 (2025-12-22)
 
 ### docs
