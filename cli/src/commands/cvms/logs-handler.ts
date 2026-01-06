@@ -21,20 +21,6 @@ export interface BaseLogsInput {
 }
 
 /**
- * Extract and normalize CVM ID from context using SDK's CvmIdSchema
- * This ensures proper ID format (e.g., adding app_ prefix to 40-char hex)
- */
-export function extractCvmId(context: CommandContext): string | null {
-	if (!context.cvmId) return null;
-	try {
-		const { cvmId } = CvmIdSchema.parse(context.cvmId);
-		return cvmId;
-	} catch {
-		return null;
-	}
-}
-
-/**
  * Create a logs command handler with shared logic
  */
 export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
@@ -52,11 +38,8 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 			return 1;
 		}
 
-		const appId = extractCvmId(context);
-		if (!appId) {
-			context.fail("Could not determine CVM identifier");
-			return 1;
-		}
+		// Normalize CVM ID using SDK schema (adds app_ prefix to 40-char hex, etc.)
+		const { cvmId: appId } = CvmIdSchema.parse(context.cvmId);
 
 		const options = buildOptions(input);
 		const logTypeName = config.logType === "serial" ? "serial" : "container";
