@@ -208,8 +208,17 @@ async function main() {
       console.log(`✓ Using version: ${newVersion}`);
     } else {
       // Cannot auto-increment stable releases
-      console.error('❌ Error: Cannot auto-increment stable release versions.');
-      console.error('   Please manually increment the version in package.json or use a prerelease tag.');
+      console.error('❌ Error: Version conflict detected.');
+      console.error(`   Version ${newVersion} already exists on npm for ${npmPackageName}.`);
+      console.error('');
+      console.error('   This can happen when:');
+      console.error('   - A release was made from another branch with the same version');
+      console.error('   - The local package.json version is out of sync with npm');
+      console.error('');
+      console.error('   Possible solutions:');
+      console.error('   1. Use a higher release type (e.g., minor instead of patch)');
+      console.error('   2. Use a prerelease tag (e.g., !release cli patch beta)');
+      console.error('   3. Manually update the version in package.json before releasing');
       process.exit(1);
     }
   } else {

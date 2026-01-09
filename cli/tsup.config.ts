@@ -7,6 +7,13 @@ function getGitInfo(): string {
 			encoding: "utf-8",
 			stdio: ["pipe", "pipe", "pipe"],
 		}).trim();
+
+		// In CI, workspace dependency resolution modifies package.json after commit,
+		// making the repo appear "dirty" even though it's a clean release build
+		if (process.env.CI) {
+			return `+${hash}`;
+		}
+
 		const dirty = execSync("git status --porcelain", {
 			encoding: "utf-8",
 			stdio: ["pipe", "pipe", "pipe"],

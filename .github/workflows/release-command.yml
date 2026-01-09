@@ -496,9 +496,39 @@ jobs:
         run: git tag "$TAG_NAME"
 
       - name: Push changes
+        id: push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git push origin HEAD:${SOURCE_REF}
-          git push origin "$TAG_NAME"
+          if [ "$SOURCE_REF" = "main" ]; then
+            # Main branch has protection rules - create a release branch and PR
+            RELEASE_BRANCH="release/${PACKAGE}-v${NEW_VERSION}"
+            git checkout -b "$RELEASE_BRANCH"
+            git push origin "$RELEASE_BRANCH"
+            git push origin "$TAG_NAME"
+
+            # Create PR to merge release branch back to main
+            PR_URL=$(gh pr create \
+              --base main \
+              --head "$RELEASE_BRANCH" \
+              --title "chore(${PACKAGE}): release v${NEW_VERSION}" \
+              --body "Automated release PR for ${PACKAGE} v${NEW_VERSION}
+
+This PR was created by the release workflow to update:
+- \`${PACKAGE}/package.json\` version to ${NEW_VERSION}
+- \`${PACKAGE}/CHANGELOG.md\` with release notes
+
+The package has already been published to npm.")
+
+            echo "release_pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+            echo "used_release_branch=true" >> "$GITHUB_OUTPUT"
+            echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            # Feature branch - push directly
+            git push origin HEAD:${SOURCE_REF}
+            git push origin "$TAG_NAME"
+            echo "used_release_branch=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create GitHub release
         id: release
@@ -526,6 +556,8 @@ jobs:
             const fileList = `${{ steps.pack_info.outputs.file_list }}`.split('\n').slice(0, 15).join('\n');
             const totalFiles = Number('${{ steps.pack_info.outputs.total_files }}');
             const hasMore = totalFiles > 15;
+            const usedReleaseBranch = '${{ steps.push.outputs.used_release_branch }}' === 'true';
+            const releasePrUrl = '${{ steps.push.outputs.release_pr_url }}';
 
             const body = [
               `🎉 Release completed: \`${process.env.PACKAGE}\` v${process.env.NEW_VERSION}`,
@@ -534,6 +566,14 @@ jobs:
               `- npm: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})`,
               `- GitHub Release: [link](${{ steps.release.outputs.html_url }})`,
               `- Workflow logs: ${runUrl}`,
+            ];
+
+            if (usedReleaseBranch && releasePrUrl) {
+              body.push('');
+              body.push(`> ⚠️ **Action Required**: Please merge the [release PR](${releasePrUrl}) to update \`main\` branch with version changes.`);
+            }
+
+            body.push(
               '',
               '### 📦 Package Info',
               `- Package size: **${{ steps.pack_info.outputs.package_size }}**`,
@@ -548,13 +588,13 @@ jobs:
               hasMore ? `... and ${totalFiles - 15} more files` : '',
               '```',
               '</details>'
-            ].join('\n');
+            );
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: Number(process.env.ISSUE_NUMBER),
-              body
+              body: body.join('\n')
             });
 
       - name: Comment failure
