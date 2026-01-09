@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.1...cli-v1.1.2) (2026-01-09)
+
+### fix
+
+* **cli:** Update environment variables when using onchain KMS ([3acbb61](https://github.com/Phala-Network/phala-cloud/commit/3acbb618ccc2b6e95fd134ceb7a8286fd27e7569))
+
 ## [1.1.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.0...cli-v1.1.1) (2026-01-06)
 
 ### doc
