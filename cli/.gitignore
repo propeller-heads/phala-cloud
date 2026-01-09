@@ -3,6 +3,7 @@
 # Logs
 
 logs
+!src/commands/cvms/logs/
 _.log
 npm-debug.log_
 yarn-debug.log*

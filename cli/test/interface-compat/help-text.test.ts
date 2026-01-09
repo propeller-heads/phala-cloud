@@ -94,6 +94,8 @@ describe("CLI Interface Compatibility - Help Text (v1.0.40 baseline)", () => {
 					"upgrade",
 					"replicate",
 					"attestation",
+					"logs",
+					"serial-logs",
 				],
 			},
 			{ group: "auth", subcommands: ["login", "logout", "status"] },
