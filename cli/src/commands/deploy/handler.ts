@@ -853,6 +853,30 @@ const updateCvm = async (
 					: String(receipt_result);
 			throw new Error(`Failed to add compose hash: ${errorMsg}`);
 		}
+
+		// Encrypt environment variables for decentralized KMS
+		if (envs && envs.length > 0) {
+			const kmsSlug = cvm.kms_info?.slug || cvm.kms_info?.id;
+			if (!kmsSlug) {
+				throw new Error("KMS slug or id is required for decentralized KMS");
+			}
+
+			const resp = await safeGetAppEnvEncryptPubKey(client, {
+				app_id: cvm.app_id,
+				kms: kmsSlug,
+			});
+
+			if (!resp.success) {
+				logger.logDetailedError(resp.error, "Get App Env Encrypt PubKey");
+				throw new Error(
+					`Failed to get app env encrypt pubkey: ${resp.error.message}`,
+				);
+			}
+
+			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
+			const pubkey_signature = resp.data as any;
+			encrypted_env = await encryptEnvVars(envs, pubkey_signature.public_key);
+		}
 	} else {
 		if (envs && envs.length > 0) {
 			if (!cvm.encrypted_env_pubkey) {
