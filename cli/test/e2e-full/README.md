@@ -39,7 +39,7 @@ bunx phala --version
 
 ### 2. Get API Key
 
-1. Log in to [Phala Cloud Dashboard](https://cloud.phala.network)
+1. Log in to [Phala Cloud Dashboard](https://cloud.phala.com)
 2. Navigate to Settings → API Tokens
 3. Create a new token
 4. Copy the token

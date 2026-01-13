@@ -52,7 +52,7 @@ To submit a new template, please follow these steps:
 4. (Optional) Add an icon in the `templates/icons` directory:
 5. (Optional) Add a "Deploy to Phala Cloud" button to your template's `README.md`:
    ```markdown
-   [![](https://cloud.phala.network/deploy-button.svg)](https://cloud.phala.network/templates/{template_id})
+   [![](https://cloud.phala.com/deploy-button.svg)](https://cloud.phala.com/templates/{template_id})
    ```
    Replace `{template_id}` with your actual template ID
 

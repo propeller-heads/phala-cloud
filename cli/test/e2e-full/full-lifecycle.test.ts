@@ -153,7 +153,7 @@ describe.skipIf(skipTests)("Phala Cloud CLI - Full Lifecycle E2E Test", () => {
 						}
 						logger.error("\nPlease check your API key:");
 						logger.error(
-							"1. Get your key from: https://cloud.phala.network/profile",
+							"1. Get your key from: https://cloud.phala.com/profile",
 						);
 						logger.error(
 							"2. Update the .env file: PHALA_CLOUD_API_KEY=your-key",

@@ -13,7 +13,7 @@ type Config = Record<string, ConfigValue>;
 // Default configuration
 const DEFAULT_CONFIG: Config = {
 	apiUrl: "https://cloud-api.phala.network",
-	cloudUrl: "https://cloud.phala.network",
+	cloudUrl: "https://cloud.phala.com",
 	defaultTeepodId: 3,
 	defaultImage: "dstack-dev-0.3.5",
 	defaultVcpu: 1,

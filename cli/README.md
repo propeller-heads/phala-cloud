@@ -63,7 +63,7 @@ ___
    
    To deploy applications to Phala Cloud, you'll need an API key:
 
-   - Visit [Phala Cloud](https://cloud.phala.network/login) to log into your Phala Cloud account. If you do not have an account, registe [here](https://cloud.phala.network/register?invite=beta).
+   - Visit [Phala Cloud](https://cloud.phala.com/login) to log into your Phala Cloud account. If you do not have an account, registe [here](https://cloud.phala.com/register?invite=beta).
    - After logging in, navigate to the "API Keys" section in your profile
    - Create a new API key with an appropriate name (e.g., "CLI Access")
    - Copy the generated API key - you'll need it for authentication
@@ -104,7 +104,7 @@ ___
    #   ℹ Name: webshell
    #   ℹ Status: creating
    #   ℹ App ID: e15c1a29a9dfb522da528464a8d5ce40ac28039f
-   #   ℹ App URL: <https://cloud.phala.network/dashboard/cvms/app_e15c1a29a9dfb522da528464a8d5ce40ac28039f>
+   #   ℹ App URL: <https://cloud.phala.com/dashboard/cvms/app_e15c1a29a9dfb522da528464a8d5ce40ac28039f>
    #    ℹ
    #    ℹ Your CVM is being created. You can check its status with:
    #    ℹ phala cvms status e15c1a29a9dfb522da528464a8d5ce40ac28039f
@@ -552,7 +552,7 @@ Suggestions:
   - Reduce the number of CPUs requested
   - Remove the --node-id flag to search all available nodes
 
-Need help? Contact support: https://cloud.phala.network/contact
+Need help? Contact support: https://cloud.phala.com/contact
 Reference error code: ERR-1003
 ```
 

@@ -431,7 +431,7 @@
       { 
         "key": "PHALA_API_KEY", 
         "required": true, 
-        "description": "Phala API key from https://cloud.phala.network/dashboard/tokens" 
+        "description": "Phala API key from https://cloud.phala.com/dashboard/tokens" 
       }
     ],
     "tags": ["Agent", "NEAR", "Oracle", "TEE"]

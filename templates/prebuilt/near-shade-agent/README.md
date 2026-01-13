@@ -2,7 +2,7 @@
 
 Deploy verifiable blockchain agents and oracles on NEAR Protocol using Phala Cloud's TEE infrastructure. This template includes an ETH price oracle example and provides a framework for custom agent development with hardware-backed security.
 
-[![Deploy on Phala Cloud](https://cloud.phala.network/deploy-button.svg)](https://cloud.phala.network/templates/near-shade-agent)
+[![Deploy on Phala Cloud](https://cloud.phala.com/deploy-button.svg)](https://cloud.phala.com/templates/near-shade-agent)
 
 ## Features
 
@@ -42,7 +42,7 @@ Configure the following environment variables:
   - Default: `af0c4432864489eb8c6650a6dc61f03ef831240a4199e602cd4d6bd8f4d7163f`
 - `DOCKER_TAG`: Docker image tag in format `docker_username/image_name`
   - Default: `pivortex/my-app`
-- `PHALA_API_KEY`: API key from [Phala Cloud Dashboard](https://cloud.phala.network/dashboard/tokens)
+- `PHALA_API_KEY`: API key from [Phala Cloud Dashboard](https://cloud.phala.com/dashboard/tokens)
 
 ### 3. Deployment Options
 
@@ -296,7 +296,7 @@ ls -la /var/run/tappd.sock
 - [NEAR Shade Agent Template Repository](https://github.com/HashWarlock/shade-agent-template/tree/phala-cloud)
 - [NEAR Protocol Documentation](https://docs.near.org/)
 - [Phala Cloud TEE Documentation](https://docs.phala.network/developers/dstack)
-- [Phala Cloud Dashboard](https://cloud.phala.network/dashboard/)
+- [Phala Cloud Dashboard](https://cloud.phala.com/dashboard/)
 
 ## Contributing
 

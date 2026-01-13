@@ -13,7 +13,7 @@ https://cloud-api.phala.network/v1
 
 ### Getting Your API Key
 
-1. **Sign up for Phala Cloud**: Go to [https://cloud.phala.network](https://cloud.phala.network)
+1. **Sign up for Phala Cloud**: Go to [https://cloud.phala.com](https://cloud.phala.com)
 2. **Complete verification**: Verify your email and finish onboarding
 3. **Generate API key**: 
    - Go to "Settings" → "API Keys" in your dashboard
@@ -271,7 +271,7 @@ curl -X GET "https://cloud-api.phala.network/v1/cvms/789" \
 
 Once status is `"running"`, your application will be available at:
 ```
-https://<vm_uuid>.cloud.phala.network
+https://<vm_uuid>.cloud.phala.com
 ```
 
 **🎉 Done!** You've deployed your first CVM.
