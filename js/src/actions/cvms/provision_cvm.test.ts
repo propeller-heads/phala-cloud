@@ -78,4 +78,85 @@ describe("ProvisionCvmRequestSchema", () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe("smart default for instance_type", () => {
+    const baseInput = {
+      name: "test-app",
+      compose_file: {
+        docker_compose_file: "version: '3'\nservices:\n  app:\n    image: nginx",
+      },
+    };
+
+    it("should default to tdx.small when no resource params specified", () => {
+      const result = ProvisionCvmRequestSchema.safeParse(baseInput);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBe("tdx.small");
+        expect(result.data.vcpu).toBeUndefined();
+        expect(result.data.memory).toBeUndefined();
+      }
+    });
+
+    it("should NOT set default instance_type when vcpu is specified", () => {
+      const input = { ...baseInput, vcpu: 4 };
+
+      const result = ProvisionCvmRequestSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBeUndefined();
+        expect(result.data.vcpu).toBe(4);
+      }
+    });
+
+    it("should NOT set default instance_type when memory is specified", () => {
+      const input = { ...baseInput, memory: 8192 };
+
+      const result = ProvisionCvmRequestSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBeUndefined();
+        expect(result.data.memory).toBe(8192);
+      }
+    });
+
+    it("should NOT set default instance_type when both vcpu and memory are specified", () => {
+      const input = { ...baseInput, vcpu: 4, memory: 8192 };
+
+      const result = ProvisionCvmRequestSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBeUndefined();
+        expect(result.data.vcpu).toBe(4);
+        expect(result.data.memory).toBe(8192);
+      }
+    });
+
+    it("should use explicit instance_type when specified", () => {
+      const input = { ...baseInput, instance_type: "tdx.large" };
+
+      const result = ProvisionCvmRequestSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBe("tdx.large");
+      }
+    });
+
+    it("should use explicit instance_type even when vcpu/memory are also specified", () => {
+      const input = { ...baseInput, instance_type: "tdx.medium", vcpu: 4, memory: 8192 };
+
+      const result = ProvisionCvmRequestSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.instance_type).toBe("tdx.medium");
+        expect(result.data.vcpu).toBe(4);
+        expect(result.data.memory).toBe(8192);
+      }
+    });
+  });
 });

@@ -196,10 +196,10 @@ export const ProvisionCvmRequestSchema = z
       .min(5, NAME_VALIDATION_MESSAGE)
       .max(63, NAME_VALIDATION_MESSAGE)
       .refine((val) => isValidHostname(val), NAME_VALIDATION_MESSAGE),
-    instance_type: z.string().default("tdx.small"), // defaults to "tdx.small"
+    instance_type: z.string().optional(), // optional, defaults to "tdx.small" when no resource params specified
     image: z.string().optional(),
-    vcpu: z.number().optional(),
-    memory: z.number().optional(),
+    vcpu: z.number().optional(), // deprecated, use instance_type instead
+    memory: z.number().optional(), // deprecated, use instance_type instead
     disk_size: z.number().optional(),
     compose_file: z.object({
       allowed_envs: z.array(z.string()).optional(),
@@ -221,7 +221,15 @@ export const ProvisionCvmRequestSchema = z
     nonce: z.number().optional(), // User-specified nonce for deterministic app_id generation
     app_id: z.string().optional(), // Expected app_id (must match calculated app_id from nonce)
   })
-  .passthrough();
+  .passthrough()
+  .transform((data) => {
+    // Smart default: only set instance_type to "tdx.small" when no resource params are specified
+    // This allows vcpu/memory (deprecated) to work correctly with backend matching
+    if (!data.instance_type && !data.vcpu && !data.memory) {
+      return { ...data, instance_type: "tdx.small" };
+    }
+    return data;
+  });
 
 export type ProvisionCvmRequest = z.input<typeof ProvisionCvmRequestSchema> & {
   node_id?: number; // recommended

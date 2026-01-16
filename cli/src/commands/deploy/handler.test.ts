@@ -186,4 +186,99 @@ describe("buildProvisionPayload", () => {
 			).toEqual([]);
 		});
 	});
+
+	describe("vcpu/memory without instance_type (deprecated params)", () => {
+		test("should include vcpu/memory but NOT instance_type when only vcpu/memory specified", () => {
+			const options = {
+				vcpu: "4",
+				memory: "8G",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+
+			// vcpu/memory should be included
+			expect(payload.vcpu).toBe(4);
+			expect(payload.memory).toBe(8192); // 8G = 8192MB
+
+			// instance_type should NOT be included (let backend match based on vcpu/memory)
+			expect("instance_type" in payload).toBe(false);
+		});
+
+		test("should include only vcpu when memory not specified", () => {
+			const options = {
+				vcpu: "4",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+
+			expect(payload.vcpu).toBe(4);
+			expect("memory" in payload).toBe(false);
+			expect("instance_type" in payload).toBe(false);
+		});
+
+		test("should include only memory when vcpu not specified", () => {
+			const options = {
+				memory: "8G",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+
+			expect(payload.memory).toBe(8192);
+			expect("vcpu" in payload).toBe(false);
+			expect("instance_type" in payload).toBe(false);
+		});
+
+		test("should parse memory with different units correctly", () => {
+			// Test MB unit
+			let payload = buildProvisionPayload(
+				{ memory: "2048MB" },
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+			expect(payload.memory).toBe(2048);
+
+			// Test GB unit
+			payload = buildProvisionPayload(
+				{ memory: "4GB" },
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+			expect(payload.memory).toBe(4096);
+
+			// Test G shorthand
+			payload = buildProvisionPayload(
+				{ memory: "2G" },
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+			expect(payload.memory).toBe(2048);
+
+			// Test numeric only (defaults to MB)
+			payload = buildProvisionPayload(
+				{ memory: "1024" },
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+			);
+			expect(payload.memory).toBe(1024);
+		});
+	});
 });
