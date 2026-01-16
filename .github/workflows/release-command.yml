@@ -512,13 +512,7 @@ jobs:
               --base main \
               --head "$RELEASE_BRANCH" \
               --title "chore(${PACKAGE}): release v${NEW_VERSION}" \
-              --body "Automated release PR for ${PACKAGE} v${NEW_VERSION}
-
-This PR was created by the release workflow to update:
-- \`${PACKAGE}/package.json\` version to ${NEW_VERSION}
-- \`${PACKAGE}/CHANGELOG.md\` with release notes
-
-The package has already been published to npm.")
+              --body "Automated release PR for ${PACKAGE} v${NEW_VERSION}. Updates package.json and CHANGELOG.md. The package has already been published to npm.")
 
             echo "release_pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
             echo "used_release_branch=true" >> "$GITHUB_OUTPUT"
