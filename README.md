@@ -1,16 +1,16 @@
 # Phala Cloud
 
-[![](https://cloud.phala.network/deploy-button.svg)](https://cloud.phala.network/templates)
+[![](https://cloud.phala.com/deploy-button.svg)](https://cloud.phala.com/templates)
 
 Welcome to the Phala Cloud Open Source!
 
-This space is designed for developers like you to explore, collaborate, and participate in the evolution of [Phala Cloud](https://cloud.phala.network/register?invite=PHALAWIKI). Whether you're here to submit feature requests, report bugs, share your innovative projects and tools built on [Phala Cloud](https://cloud.phala.network/register?invite=PHALAWIKI), or contribute to our documentation, you've come to the right place. This repository also hosts open source tools and SDKs for Phala Cloud.
+This space is designed for developers like you to explore, collaborate, and participate in the evolution of [Phala Cloud](https://cloud.phala.com/register?invite=PHALAWIKI). Whether you're here to submit feature requests, report bugs, share your innovative projects and tools built on [Phala Cloud](https://cloud.phala.com/register?invite=PHALAWIKI), or contribute to our documentation, you've come to the right place. This repository also hosts open source tools and SDKs for Phala Cloud.
 
 A curated list of awesome Phala Cloud resources, tools, and templates.
 
 ## About Phala Cloud
 
-[Phala Cloud](https://cloud.phala.network/register?invite=PHALAWIKI) is a Confidential Computing native cloud platform that offers secure and scalable computing. By leveraging Trusted Execution Environments (TEEs), Phala ensures that your applications run in a trustless environment, providing both security and privacy.
+[Phala Cloud](https://cloud.phala.com/register?invite=PHALAWIKI) is a Confidential Computing native cloud platform that offers secure and scalable computing. By leveraging Trusted Execution Environments (TEEs), Phala ensures that your applications run in a trustless environment, providing both security and privacy.
 
 ## What's in This Repository
 
@@ -117,7 +117,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Stay Connected
 
 Keep up with the latest developments:
-- [Phala Cloud](https://cloud.phala.network)
+- [Phala Cloud](https://cloud.phala.com)
 - [Documentation](https://docs.phala.com)
 - Telegram Community: [🌍 Global](https://t.me/+nbhjx1ADG9EyYmI9), [🇨🇳 中文](https://t.me/+4PcAE9qTZ1kzM2M9)
 - [Phala Network Website](https://phala.network)

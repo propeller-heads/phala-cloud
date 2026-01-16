@@ -28,6 +28,15 @@ export const CvmNodeSchema = z.object({
   region_identifier: z.string().nullable().optional(),
 });
 
+export const MachineInfoSchema = z.object({
+  vcpu: z.number(),
+  memory: z.number(), // MB
+  disk_size: z.number(), // GB
+  gpu_count: z.number().default(0),
+});
+
+export type MachineInfo = z.infer<typeof MachineInfoSchema>;
+
 export const CvmNetworkUrlsSchema = z.object({
   app: z.string(),
   instance: z.string(),
@@ -54,6 +63,8 @@ export const CvmInfoSchema = z.object({
   disk_size: z.number().nullable(),
   gateway_domain: z.string().nullable(),
   public_urls: z.array(CvmNetworkUrlsSchema),
+  machine_info: MachineInfoSchema.nullable().optional(),
+  updated_at: z.string().nullable().optional(), // datetime serialized as ISO string
 });
 
 export type CvmInfo = z.infer<typeof CvmInfoSchema>;
@@ -88,6 +99,8 @@ export const CvmLegacyDetailSchema = z.object({
   scheduled_delete_at: z.string().optional().nullable(),
   public_urls: z.array(CvmNetworkUrlsSchema).optional().default([]),
   gateway_domain: z.string().optional().nullable(),
+  machine_info: MachineInfoSchema.optional().nullable(),
+  updated_at: z.string().optional().nullable(), // datetime serialized as ISO string
 });
 
 export type CvmLegacyDetail = z.infer<typeof CvmLegacyDetailSchema> & { kms_info: KmsInfo };

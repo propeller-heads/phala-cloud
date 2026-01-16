@@ -160,7 +160,7 @@ If the app won't start:
 
 - [Maybe Finance GitHub](https://github.com/maybe-finance/maybe)
 - [Maybe Documentation](https://github.com/maybe-finance/maybe/wiki)
-- [Phala Cloud Dashboard](https://cloud.phala.network/dashboard/)
+- [Phala Cloud Dashboard](https://cloud.phala.com/dashboard/)
 
 ## License
 

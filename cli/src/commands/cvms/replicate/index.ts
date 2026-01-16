@@ -74,7 +74,7 @@ async function runCvmsReplicateCommand(
 				"Disk Size": `${replica.disk_size} GB`,
 				"App URL":
 					replica.app_url ||
-					`${process.env.CLOUD_URL || "https://cloud.phala.network"}/dashboard/cvms/${replica.vm_uuid.replace(/-/g, "")}`,
+					`${process.env.CLOUD_URL || "https://cloud.phala.com"}/dashboard/cvms/${replica.vm_uuid.replace(/-/g, "")}`,
 			},
 			{ borderStyle: "rounded" },
 		);

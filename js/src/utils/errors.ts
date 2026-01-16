@@ -737,8 +737,8 @@ function parseStructuredError(detail: unknown): StructuredErrorResponse | null {
  * //   - Alternatively, specify CPU and memory requirements manually
  * //
  * // Learn more:
- * //   - View available instance types: https://cloud.phala.network/instances
- * //   - Contact support: https://cloud.phala.network/support
+ * //   - View available instance types: https://cloud.phala.com/instances
+ * //   - Contact support: https://cloud.phala.com/support
  * ```
  */
 export function formatStructuredError(
