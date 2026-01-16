@@ -58,13 +58,13 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "vcpu",
-			description: `Number of vCPUs (optional, auto-matched if not specified), default is ${DEFAULT_VCPU}`,
+			description: `[DEPRECATED] Use --instance-type instead. Number of vCPUs, default is ${DEFAULT_VCPU}`,
 			type: "string",
 			target: "vcpu",
 		},
 		{
 			name: "memory",
-			description: `Memory with optional unit (optional, auto-matched if not specified), e.g., 2G, 1024MB, default is ${DEFAULT_MEMORY}MB`,
+			description: `[DEPRECATED] Use --instance-type instead. Memory with optional unit, e.g., 2G, 1024MB, default is ${DEFAULT_MEMORY}MB`,
 			type: "string",
 			target: "memory",
 		},
@@ -204,7 +204,7 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy --instance-type tdx.small --region eu-central",
 		},
 		{
-			name: "Deploy with manual resource specs",
+			name: "Deploy with manual resource specs (deprecated, use --instance-type)",
 			value: "phala deploy --vcpu 4 --memory 8G --disk-size 100G",
 		},
 		{

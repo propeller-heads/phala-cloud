@@ -549,7 +549,7 @@ const validateCpuMemoryDiskSize = async (options: Options) => {
  * Build provision payload from options
  * All parameters are optional - backend will auto-match resources
  */
-const buildProvisionPayload = (
+export const buildProvisionPayload = (
 	options: Options,
 	name: string,
 	dockerComposeYml: string,
