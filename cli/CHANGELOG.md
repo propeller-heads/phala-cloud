@@ -1,3 +1,4 @@
+## [1.1.3](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.3-beta.1...cli-v1.1.3) (2026-01-16)
 ## [1.1.3-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.2...cli-v1.1.3-beta.1) (2026-01-16)
 
 ### feat
