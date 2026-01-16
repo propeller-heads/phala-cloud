@@ -34,7 +34,9 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 		setJsonMode(input.json);
 
 		if (!context.cvmId) {
-			context.fail("No CVM ID provided. Use --interactive to select interactively.");
+			context.fail(
+				"No CVM ID provided. Use --interactive to select interactively.",
+			);
 			return 1;
 		}
 

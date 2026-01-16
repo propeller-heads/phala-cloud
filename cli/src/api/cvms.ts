@@ -452,7 +452,9 @@ async function getContainerLogEndpoint(
 				c.id.startsWith(containerName),
 		);
 		if (!containers.length) {
-			throw new Error(`Container '${containerName}' not found in CVM '${appId}'`);
+			throw new Error(
+				`Container '${containerName}' not found in CVM '${appId}'`,
+			);
 		}
 	}
 
@@ -472,7 +474,9 @@ export async function fetchSerialLogs(
 	const url = buildLogUrl(baseUrl, options);
 	const response = await fetch(url);
 	if (!response.ok) {
-		throw new Error(`Failed to fetch serial logs: ${response.status} ${response.statusText}`);
+		throw new Error(
+			`Failed to fetch serial logs: ${response.status} ${response.statusText}`,
+		);
 	}
 	return response.text();
 }
@@ -490,7 +494,9 @@ export async function fetchContainerLogs(
 	const url = buildLogUrl(baseUrl, options);
 	const response = await fetch(url);
 	if (!response.ok) {
-		throw new Error(`Failed to fetch container logs: ${response.status} ${response.statusText}`);
+		throw new Error(
+			`Failed to fetch container logs: ${response.status} ${response.statusText}`,
+		);
 	}
 	return response.text();
 }
@@ -506,7 +512,9 @@ export async function streamSerialLogs(
 	const url = buildLogUrl(baseUrl, { ...options, follow: true });
 	const response = await fetch(url, { signal });
 	if (!response.ok) {
-		throw new Error(`Failed to stream serial logs: ${response.status} ${response.statusText}`);
+		throw new Error(
+			`Failed to stream serial logs: ${response.status} ${response.statusText}`,
+		);
 	}
 	await streamResponse(response, onData);
 }
@@ -526,7 +534,9 @@ export async function streamContainerLogs(
 	const url = buildLogUrl(baseUrl, { ...options, follow: true });
 	const response = await fetch(url, { signal });
 	if (!response.ok) {
-		throw new Error(`Failed to stream container logs: ${response.status} ${response.statusText}`);
+		throw new Error(
+			`Failed to stream container logs: ${response.status} ${response.statusText}`,
+		);
 	}
 	await streamResponse(response, onData);
 }
