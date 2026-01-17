@@ -15,6 +15,9 @@ export const ProjectConfigSchema: z.ZodTypeAny = CvmIdObjectSchema.extend({
 	api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
 	gateway_domain: z.string().optional(),
 	gateway_port: z.number().int().positive().optional(),
+	// Deploy configuration
+	compose_file: z.string().optional(),
+	env_file: z.string().optional(),
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
@@ -24,6 +27,8 @@ export type RuntimeProjectConfig = Partial<ProjectConfig> & {
 	cvm_id?: string;
 	gateway_domain?: string;
 	gateway_port?: number;
+	compose_file?: string;
+	env_file?: string;
 };
 
 const CONFIG_FILE_NAME = "phala.toml";

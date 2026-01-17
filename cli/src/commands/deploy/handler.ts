@@ -955,7 +955,9 @@ export async function runDeploy(
 
 	try {
 		// Use positional argument if provided, otherwise use the --compose option
-		const dockerComposePath = input.compose;
+		// Fallback to phala.toml compose_file if not specified
+		const dockerComposePath =
+			input.compose || context.projectConfig.compose_file;
 
 		const client = await getApiClient({
 			apiKey: input.apiKey,
@@ -967,7 +969,19 @@ export async function runDeploy(
 			interactive: input.interactive,
 		});
 
-		const envs = await resolveEnvVars(input as Options);
+		// Build options with env_file from phala.toml as fallback
+		const optionsWithEnvFile: Options = {
+			...input,
+			// If no env specified and phala.toml has env_file, use it
+			env:
+				input.env && input.env.length > 0
+					? input.env
+					: context.projectConfig.env_file
+						? [context.projectConfig.env_file]
+						: undefined,
+		};
+
+		const envs = await resolveEnvVars(optionsWithEnvFile);
 
 		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
 		if (input.debug) {
