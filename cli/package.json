@@ -44,6 +44,7 @@
 	},
 	"dependencies": {
 		"@iarna/toml": "^2.2.5",
+		"@michaelhomer/jqjs": "^1.5.0",
 		"@noble/curves": "^1.8.1",
 		"@phala/cloud": "workspace:*",
 		"arg": "^5.0.2",

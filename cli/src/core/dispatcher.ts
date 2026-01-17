@@ -94,12 +94,13 @@ export async function dispatchCommand(
 	const { definition, consumed } = resolved;
 	const commandArgv = argv.slice(consumed.length);
 
-	try {
-		const parsedArguments = parseCommandArguments(
-			commandArgv,
-			definition.meta.options,
-		);
+	// Parse arguments outside try block so it's accessible in catch
+	const parsedArguments = parseCommandArguments(
+		commandArgv,
+		definition.meta.options,
+	);
 
+	try {
 		if (parsedArguments.flags["--version"]) {
 			stdout.write(`${version}\n`);
 			return 0;
@@ -268,6 +269,22 @@ export async function dispatchCommand(
 		return 0;
 	} catch (error) {
 		if (error instanceof ZodError) {
+			// Check if the error is due to missing required positional argument
+			const hasMissingRequired = error.issues.some(
+				(issue) =>
+					issue.code === "invalid_type" &&
+					issue.received === "undefined" &&
+					issue.message === "Required",
+			);
+
+			// If missing required argument and no positionals were provided, show help
+			if (hasMissingRequired && parsedArguments.positionals.length === 0) {
+				stdout.write(
+					`${formatCommandHelp({ executableName, definition, registry })}\n`,
+				);
+				return 0;
+			}
+
 			stderr.write(formatValidationError(error));
 			return 1;
 		}

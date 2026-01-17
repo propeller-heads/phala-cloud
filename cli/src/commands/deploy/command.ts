@@ -209,7 +209,8 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "Update CVM with new compose file and env",
-			value: "phala deploy --cvm-id my-app --compose ./new-docker-compose.yml -e .env",
+			value:
+				"phala deploy --cvm-id my-app --compose ./new-docker-compose.yml -e .env",
 		},
 		{
 			name: "Update CVM and wait for completion",
