@@ -1,3 +1,12 @@
+## [1.1.4-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.3...cli-v1.1.4-beta.1) (2026-01-17)
+
+### docs
+
+* **cli:** clarify that deploy command supports both create and update ([ed53f48](https://github.com/Phala-Network/phala-cloud/commit/ed53f4863d5a93b01dbf28310d4910f768e338cc))
+
+### feat
+
+* **cli:** add api command for raw HTTP requests ([eaaecec](https://github.com/Phala-Network/phala-cloud/commit/eaaecec8a38421b29f62b6e9eb908215b837f987))
 ## [1.1.3](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.3-beta.1...cli-v1.1.3) (2026-01-16)
 ## [1.1.3-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.2...cli-v1.1.3-beta.1) (2026-01-16)
 
