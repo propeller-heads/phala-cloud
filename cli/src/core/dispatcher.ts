@@ -94,13 +94,12 @@ export async function dispatchCommand(
 	const { definition, consumed } = resolved;
 	const commandArgv = argv.slice(consumed.length);
 
-	// Parse arguments outside try block so it's accessible in catch
-	const parsedArguments = parseCommandArguments(
-		commandArgv,
-		definition.meta.options,
-	);
-
 	try {
+		const parsedArguments = parseCommandArguments(
+			commandArgv,
+			definition.meta.options,
+		);
+
 		if (parsedArguments.flags["--version"]) {
 			stdout.write(`${version}\n`);
 			return 0;
@@ -278,7 +277,9 @@ export async function dispatchCommand(
 			);
 
 			// If missing required argument and no positionals were provided, show help
-			if (hasMissingRequired && parsedArguments.positionals.length === 0) {
+			// Check commandArgv for non-flag arguments (positionals)
+			const hasPositionals = commandArgv.some((arg) => !arg.startsWith("-"));
+			if (hasMissingRequired && !hasPositionals) {
 				stdout.write(
 					`${formatCommandHelp({ executableName, definition, registry })}\n`,
 				);
