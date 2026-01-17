@@ -21,6 +21,39 @@ describe("CLI Interface Compatibility - Error Handling (v1.0.40 baseline)", () =
 		});
 	});
 
+	describe("Unknown options handled gracefully", () => {
+		test("unknown option shows error, not crash", async () => {
+			const result = await runCommand("api /cvms --unknown-flag", {
+				expectError: true,
+			});
+
+			expect(result.exitCode).toBeGreaterThan(0);
+			// Should have a helpful error message, not a stack trace
+			const output = result.stdout + result.stderr;
+			expect(output).not.toContain("ReferenceError");
+			expect(output).not.toContain("TypeError");
+		});
+
+		test("unknown option in other commands also handled", async () => {
+			const result = await runCommand("cvms list --nonexistent", {
+				expectError: true,
+			});
+
+			expect(result.exitCode).toBeGreaterThan(0);
+			const output = result.stdout + result.stderr;
+			expect(output).not.toContain("ReferenceError");
+		});
+	});
+
+	describe("Missing required args show help", () => {
+		test("api without endpoint shows help", async () => {
+			const result = await runCommand("api");
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stdout).toContain("Make an authenticated HTTP request");
+		});
+	});
+
 	describe("Commands fail with helpful errors", () => {
 		const errorTests = [
 			// Missing required args
