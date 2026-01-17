@@ -13,7 +13,8 @@ import {
 
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
-	description: "Create a new CVM with on-chain KMS in one step.",
+	description:
+		"Deploy a new CVM or update an existing one. Creates a new CVM by default; updates when --cvm-id is provided or found in phala.toml.",
 	stability: "stable",
 	arguments: [],
 	options: [
@@ -175,8 +176,9 @@ export const deployCommandMeta: CommandMeta = {
 		},
 	],
 	examples: [
+		// --- New Deployment Examples ---
 		{
-			name: "Deploy with auto-selection (simplest)",
+			name: "Deploy new CVM with auto-selection (simplest)",
 			value: "phala deploy",
 		},
 		{
@@ -188,10 +190,6 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy -e .env",
 		},
 		{
-			name: "Deploy with env file and overrides",
-			value: "phala deploy -e .env -e NODE_ENV=production",
-		},
-		{
 			name: "Deploy with specific instance type",
 			value: "phala deploy --instance-type tdx.medium",
 		},
@@ -200,21 +198,26 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy --region us-west",
 		},
 		{
-			name: "Deploy with instance type and region",
-			value: "phala deploy --instance-type tdx.small --region eu-central",
-		},
-		{
-			name: "Deploy with manual resource specs (deprecated, use --instance-type)",
-			value: "phala deploy --vcpu 4 --memory 8G --disk-size 100G",
-		},
-		{
 			name: "Deploy with on-chain KMS",
 			value:
 				"phala deploy --kms-id ethereum --private-key <key> --rpc-url <url>",
 		},
+		// --- Update Existing CVM Examples ---
 		{
-			name: "Deploy to specific node (advanced)",
-			value: "phala deploy --node-id 6",
+			name: "Update existing CVM by ID",
+			value: "phala deploy --cvm-id app_abc123",
+		},
+		{
+			name: "Update CVM with new compose file and env",
+			value: "phala deploy --cvm-id my-app --compose ./new-docker-compose.yml -e .env",
+		},
+		{
+			name: "Update CVM and wait for completion",
+			value: "phala deploy --cvm-id app_abc123 --wait",
+		},
+		{
+			name: "Update CVM configured in phala.toml (auto-detected)",
+			value: "phala deploy",
 		},
 	],
 };

@@ -486,7 +486,7 @@ phala cvms get app_123456
 phala deploy [options]
 ```
 
-Create a new CVM with automatic resource matching. This is the recommended command for most users as it simplifies deployment by automatically selecting optimal resources based on availability.
+Deploy a new CVM or update an existing one. Creates a new CVM by default. If `--cvm-id` is provided or a CVM ID is configured in `phala.toml`, updates the existing CVM instead.
 
 **Key Features:**
 - **Auto Resource Matching**: Backend automatically finds the best available node based on your requirements
@@ -517,23 +517,36 @@ Create a new CVM with automatic resource matching. This is the recommended comma
 **Examples:**
 
 ```bash
+# --- New Deployment ---
+
 # Simplest - auto-select everything
 phala deploy
 
 # Specify instance type and region
 phala deploy --instance-type tdx.medium --region us-west
 
-# Manual resource specification
-phala deploy --vcpu 4 --memory 8G --disk-size 100G
+# With environment file
+phala deploy -e .env
 
 # With on-chain KMS
 phala deploy --kms-id ethereum --private-key <key> --rpc-url <url>
 
-# Deploy to specific node (advanced)
-phala deploy --node-id 6
-
 # Interactive mode for guided setup
 phala deploy --interactive
+
+# --- Update Existing CVM ---
+
+# Update by CVM ID (app_id, UUID, or name)
+phala deploy --cvm-id app_abc123
+
+# Update with new compose file and environment variables
+phala deploy --cvm-id my-app --compose ./new-docker-compose.yml -e .env
+
+# Update and wait for completion
+phala deploy --cvm-id app_abc123 --wait
+
+# If phala.toml has cvm_id configured, just run deploy to update
+phala deploy
 ```
 
 **Error Handling:**
