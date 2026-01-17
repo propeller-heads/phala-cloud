@@ -173,6 +173,9 @@ export async function runApiCommand(
 	const body = buildRequestBody(input);
 	const customHeaders = parseHeaders(input.header);
 
+	// Auto-switch to POST if body is present and method is still default GET
+	const method = body !== undefined && input.method === "GET" ? "POST" : input.method;
+
 	// Normalize endpoint (ensure it starts with /)
 	const endpoint = input.endpoint.startsWith("/")
 		? input.endpoint
@@ -181,8 +184,8 @@ export async function runApiCommand(
 	try {
 		// Execute request with full response
 		const response = await client.requestFull(endpoint, {
-			method: input.method,
-			body: methodHasBody(input.method) ? body : undefined,
+			method,
+			body: methodHasBody(method) ? body : undefined,
 			headers: customHeaders,
 		});
 
