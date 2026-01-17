@@ -40,7 +40,7 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 
 	for (const node of registry.getChildren()) {
 		const meta = node.command?.meta ?? node.group?.meta;
-		const description = meta?.description ?? "";
+		const description = (meta?.description ?? "").split("\n")[0];
 		const stability = meta?.stability;
 		const indicator = stability ? formatStabilityIndicator(stability) : "";
 		const name = node.name ?? "";
@@ -83,7 +83,7 @@ export function formatGroupHelp(options: GroupHelpOptions): string {
 		lines.push("Available commands:");
 		for (const child of children) {
 			const meta = child.command?.meta ?? child.group?.meta;
-			const description = meta?.description ?? "";
+			const description = (meta?.description ?? "").split("\n")[0];
 			const stability = meta?.stability;
 			const indicator = stability ? formatStabilityIndicator(stability) : "";
 			const name = child.name ?? "";
@@ -173,7 +173,7 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		lines.push("Subcommands:");
 		for (const child of children) {
 			const meta = child.command?.meta ?? child.group?.meta;
-			const description = meta?.description ?? "";
+			const description = (meta?.description ?? "").split("\n")[0];
 			const stability = meta?.stability;
 			const childIndicator = stability
 				? formatStabilityIndicator(stability)
