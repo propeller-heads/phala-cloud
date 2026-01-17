@@ -1,10 +1,15 @@
 import { ofetch, type FetchOptions, type FetchRequest, FetchError } from "ofetch";
 import debug from "debug";
 import mitt, { type Emitter, type Handler } from "mitt";
-import { type SafeResult, type ClientConfig } from "./types/client";
+import {
+  type SafeResult,
+  type ClientConfig,
+  type FullResponse,
+  type RequestOptions,
+} from "./types/client";
 import type { Prettify } from "./types/common";
 import { parseApiError, PhalaCloudError, RequestError } from "./utils/errors";
-export type { SafeResult } from "./types/client";
+export type { SafeResult, FullResponse, RequestOptions } from "./types/client";
 
 export const SUPPORTED_API_VERSIONS = ["2025-05-31", "2025-10-28"] as const;
 const logger = debug("phala::api-client");
@@ -366,6 +371,72 @@ export class Client {
     }
   }
 
+  // ===== Generic request method =====
+
+  /**
+   * Perform a generic HTTP request with any method
+   * Returns only the response body (throws PhalaCloudError on error)
+   *
+   * @example
+   * ```typescript
+   * // Simple request
+   * const data = await client.request('/endpoint', { method: 'GET' });
+   *
+   * // With body
+   * const result = await client.request('/endpoint', {
+   *   method: 'POST',
+   *   body: { key: 'value' }
+   * });
+   * ```
+   */
+  async request<T = unknown>(url: FetchRequest, options?: RequestOptions): Promise<T> {
+    const { body, ...fetchOptions } = options || {};
+    try {
+      return await this.fetchInstance<T>(url, {
+        ...fetchOptions,
+        body,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
+  }
+
+  /**
+   * Perform a generic HTTP request and return full response with status and headers
+   * Does NOT throw on HTTP errors (4xx, 5xx) - check response.ok instead
+   *
+   * @example
+   * ```typescript
+   * const response = await client.requestFull('/endpoint', { method: 'GET' });
+   * console.log(response.status);      // 200
+   * console.log(response.headers);     // Headers object
+   * console.log(response.data);        // Response body
+   * console.log(response.ok);          // true if 2xx
+   * ```
+   */
+  async requestFull<T = unknown>(
+    url: FetchRequest,
+    options?: RequestOptions,
+  ): Promise<FullResponse<T>> {
+    const { body, ...fetchOptions } = options || {};
+    // Use ofetch.raw to get full response, and ignoreResponseError to not throw on 4xx/5xx
+    const response = await this.fetchInstance.raw<T>(url, {
+      ...fetchOptions,
+      body,
+      ignoreResponseError: true,
+    } as Parameters<typeof this.fetchInstance.raw<T>>[1]);
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response._data as T,
+      ok: response.ok,
+    };
+  }
+
   // ===== Safe methods (return SafeResult) =====
 
   /**
@@ -470,6 +541,26 @@ export class Client {
     options?: Omit<FetchOptions, "method">,
   ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.delete<T>(request, options));
+  }
+
+  /**
+   * Safe generic request (returns SafeResult)
+   */
+  async safeRequestMethod<T = unknown>(
+    url: FetchRequest,
+    options?: RequestOptions,
+  ): Promise<SafeResult<T, PhalaCloudError>> {
+    return this.safeRequest(() => this.request<T>(url, options));
+  }
+
+  /**
+   * Safe generic request with full response (returns SafeResult)
+   */
+  async safeRequestFull<T = unknown>(
+    url: FetchRequest,
+    options?: RequestOptions,
+  ): Promise<SafeResult<FullResponse<T>, PhalaCloudError>> {
+    return this.safeRequest(() => this.requestFull<T>(url, options));
   }
 
   /**
