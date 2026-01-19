@@ -368,6 +368,26 @@ export function createClient(config: ClientConfig = {}): Client {
  * including their overload signatures for schema parameters.
  */
 export interface Client extends BaseClient {
+  // Generic request methods (inherited from BaseClient, re-declared for visibility)
+  request<T = unknown>(url: string, options?: import("./types/client").RequestOptions): Promise<T>;
+
+  requestFull<T = unknown>(
+    url: string,
+    options?: import("./types/client").RequestOptions,
+  ): Promise<import("./types/client").FullResponse<T>>;
+
+  safeRequestMethod<T = unknown>(
+    url: string,
+    options?: import("./types/client").RequestOptions,
+  ): Promise<SafeResult<T, import("./utils/errors").PhalaCloudError>>;
+
+  safeRequestFull<T = unknown>(
+    url: string,
+    options?: import("./types/client").RequestOptions,
+  ): Promise<
+    SafeResult<import("./types/client").FullResponse<T>, import("./utils/errors").PhalaCloudError>
+  >;
+
   // Simple actions (no request parameters, optional schema parameter)
   getCurrentUser(): Promise<CurrentUser>;
   getCurrentUser<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<z.infer<T>>;

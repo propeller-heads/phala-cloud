@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dispatchCommand } from "./core/dispatcher";
 import { CommandRegistry } from "./core/registry";
+import { apiCommand } from "./commands/api";
 import { authCommands } from "./commands/auth";
 import { configCommands } from "./commands/config";
 import { cvmsCommands } from "./commands/cvms";
@@ -31,6 +32,7 @@ const gitInfo = typeof __GIT_INFO__ !== "undefined" ? __GIT_INFO__ : "";
 const version = `v${packageJson.version}${gitInfo}`;
 
 const registry = new CommandRegistry();
+registry.registerCommand(apiCommand);
 registry.registerCommand(statusCommand);
 registry.registerCommand(deployCommand);
 registry.registerCommand(linkCommand);

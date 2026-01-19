@@ -3,6 +3,32 @@ import type { FetchOptions, FetchRequest } from "ofetch";
 import type { PhalaCloudError } from "../utils/errors";
 
 /**
+ * Full HTTP response including status, headers, and parsed body
+ */
+export interface FullResponse<T = unknown> {
+  /** HTTP status code */
+  status: number;
+  /** HTTP status text */
+  statusText: string;
+  /** Response headers */
+  headers: Headers;
+  /** Parsed response body */
+  data: T;
+  /** Whether the response status is 2xx */
+  ok: boolean;
+}
+
+/**
+ * Options for the generic request method
+ */
+export interface RequestOptions extends Omit<FetchOptions, "method"> {
+  /** HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, etc.) */
+  method?: string;
+  /** Request body (for POST, PUT, PATCH) */
+  body?: RequestInit["body"] | Record<string, unknown>;
+}
+
+/**
  * Enhanced error type that includes both HTTP and validation errors
  */
 export type SafeError = PhalaCloudError | z.ZodError;

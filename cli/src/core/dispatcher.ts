@@ -268,6 +268,24 @@ export async function dispatchCommand(
 		return 0;
 	} catch (error) {
 		if (error instanceof ZodError) {
+			// Check if the error is due to missing required positional argument
+			const hasMissingRequired = error.issues.some(
+				(issue) =>
+					issue.code === "invalid_type" &&
+					issue.received === "undefined" &&
+					issue.message === "Required",
+			);
+
+			// If missing required argument and no positionals were provided, show help
+			// Check commandArgv for non-flag arguments (positionals)
+			const hasPositionals = commandArgv.some((arg) => !arg.startsWith("-"));
+			if (hasMissingRequired && !hasPositionals) {
+				stdout.write(
+					`${formatCommandHelp({ executableName, definition, registry })}\n`,
+				);
+				return 0;
+			}
+
 			stderr.write(formatValidationError(error));
 			return 1;
 		}
