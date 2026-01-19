@@ -224,7 +224,7 @@ export const deployCommandMeta: CommandMeta = {
 
 export const deployCommandSchema = z.object({
 	compose: z.string().optional(),
-	json: z.boolean().default(true),
+	json: z.boolean().default(false),
 	debug: z.boolean().default(false),
 	apiKey: z.string().optional(),
 	name: z.string().optional(),
