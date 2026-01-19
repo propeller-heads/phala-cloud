@@ -1,3 +1,17 @@
+## [1.1.4](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.4-beta.1...cli-v1.1.4) (2026-01-19)
+
+### feat
+
+* **cli:** add link command to connect local directory to existing CVM ([9c33607](https://github.com/Phala-Network/phala-cloud/commit/9c33607e546ded7e373b3b80173fdeac07ad419e))
+* **cli:** add update check and self update ([714ea99](https://github.com/Phala-Network/phala-cloud/commit/714ea995c17992a43fe69dfd2069641238ef5861))
+
+### fix
+
+* **cli:** auto-switch to POST when body parameters are provided ([f0f8551](https://github.com/Phala-Network/phala-cloud/commit/f0f8551c3fb592b0582c8dc290496956e65e85da))
+* **cli:** change deploy command JSON output default to false ([db89fc8](https://github.com/Phala-Network/phala-cloud/commit/db89fc86a686d4f8aea06ec1b61b19b0301dde8e))
+* **cli:** require --yes for non-interactive self update ([50445ee](https://github.com/Phala-Network/phala-cloud/commit/50445eed936f0083407c538a7714c5f3fe896baf))
+* **cli:** restore arg parsing inside try-catch block ([fbbb020](https://github.com/Phala-Network/phala-cloud/commit/fbbb02024c218e7a942dae193be8858de1d77f30))
+* **cli:** truncate description to first line in command listings ([c575c33](https://github.com/Phala-Network/phala-cloud/commit/c575c33e996a7a02f814dd1ed950e4acc6b67de4))
 ## [1.1.4-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.3...cli-v1.1.4-beta.1) (2026-01-17)
 
 ### docs
