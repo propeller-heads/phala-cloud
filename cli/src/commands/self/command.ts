@@ -5,6 +5,6 @@ export const selfGroup: CommandGroup = {
 	meta: {
 		name: "self",
 		description: "Self management commands",
-		stability: "stable",
+		stability: "unstable",
 	},
 };

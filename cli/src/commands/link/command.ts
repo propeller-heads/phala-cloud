@@ -13,7 +13,7 @@ export const jsonOption = {
 export const linkCommandMeta: CommandMeta = {
 	name: "link",
 	description: "Link a local directory to a CVM",
-	stability: "stable",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "cvm-id",

@@ -45,7 +45,7 @@ export const channelOption = {
 export const selfUpdateCommandMeta: CommandMeta = {
 	name: "update",
 	description: "Update the Phala CLI",
-	stability: "stable",
+	stability: "unstable",
 	options: [
 		jsonOption,
 		yesOption,
