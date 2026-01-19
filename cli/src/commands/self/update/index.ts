@@ -132,10 +132,24 @@ async function runSelfUpdate(
 		return 0;
 	}
 
+	const canPrompt = context.stderr.isTTY === true && input.json !== true;
+	if (!input.yes && !canPrompt) {
+		const message =
+			"Non-interactive session detected. Re-run with --yes to apply the update, or use --dry-run to print the command.\n";
+		if (input.json) {
+			context.success({
+				command: commandString,
+				ran: false,
+				reason: "nonInteractive",
+			});
+			return 0;
+		}
+		context.stderr.write(message);
+		return 1;
+	}
+
 	const shouldRun =
 		input.yes ||
-		input.json ||
-		context.stderr.isTTY !== true ||
 		(await prompts({
 			type: "confirm",
 			name: "ok",
