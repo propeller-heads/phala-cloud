@@ -158,4 +158,64 @@ name = "name-field"
 
 		expect(() => loadProjectConfig()).toThrow();
 	});
+
+	test("should load compose_file", () => {
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			'compose_file = "docker-compose.yml"',
+			"utf8",
+		);
+
+		const config = loadProjectConfig();
+		expect(config.compose_file).toBe("docker-compose.yml");
+	});
+
+	test("should load env_file", () => {
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			'env_file = ".env.production"',
+			"utf8",
+		);
+
+		const config = loadProjectConfig();
+		expect(config.env_file).toBe(".env.production");
+	});
+
+	test("should load compose_file and env_file with cvm_id", () => {
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			`
+name = "my-cvm"
+compose_file = "docker-compose.yml"
+env_file = ".env.production"
+`,
+			"utf8",
+		);
+
+		const config = loadProjectConfig();
+		expect(config.cvm_id).toBe("my-cvm");
+		expect(config.compose_file).toBe("docker-compose.yml");
+		expect(config.env_file).toBe(".env.production");
+	});
+
+	test("should load all deploy config fields together", () => {
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			`
+name = "my-app"
+compose_file = "docker-compose.yaml"
+env_file = ".env"
+gateway_domain = "gateway.example.com"
+gateway_port = 443
+`,
+			"utf8",
+		);
+
+		const config = loadProjectConfig();
+		expect(config.cvm_id).toBe("my-app");
+		expect(config.compose_file).toBe("docker-compose.yaml");
+		expect(config.env_file).toBe(".env");
+		expect(config.gateway_domain).toBe("gateway.example.com");
+		expect(config.gateway_port).toBe(443);
+	});
 });
