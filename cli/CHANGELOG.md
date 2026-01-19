@@ -7,6 +7,8 @@
 ### feat
 
 * **cli:** add api command for raw HTTP requests ([eaaecec](https://github.com/Phala-Network/phala-cloud/commit/eaaecec8a38421b29f62b6e9eb908215b837f987))
+* **cli:** add update check and self update ([e88f795](https://github.com/Phala-Network/phala-cloud/commit/e88f795ed26451e751577895543eb05d015583e9))
+
 ## [1.1.3](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.3-beta.1...cli-v1.1.3) (2026-01-16)
 ## [1.1.3-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.2...cli-v1.1.3-beta.1) (2026-01-16)
 

@@ -32,7 +32,7 @@ ENVIRONMENT VARIABLES
 
   PHALA_CLOUD_API_KEY       Override the API key (useful for CI/CD)
   PHALA_CLOUD_API_PREFIX    Override the API base URL`,
-	stability: "stable",
+	stability: "unstable",
 	arguments: [
 		{
 			name: "endpoint",
