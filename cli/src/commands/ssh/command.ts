@@ -71,7 +71,7 @@ export const sshCommandMeta: CommandMeta = {
 		},
 		{
 			name: "Offline mode: connect without API (using phala.toml gateway)",
-			value: "phala ssh app_123 -g dstack-gateway.example.com -p 16185",
+			value: "phala ssh app_123 -g dstack-pha-prod7.phala.network -p 16185",
 		},
 		{
 			name: "Connect with custom SSH key",
