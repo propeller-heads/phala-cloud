@@ -18,11 +18,15 @@ export const apiCommandMeta: CommandMeta = {
 
 The endpoint should be an API path like "/cvms" or "/users/me".
 
-By default, GET is used. If you add -f or -F parameters, it switches to POST.
+By default, GET is used. If you add -f, -F, -d or --input, it switches to POST.
 Use -X to override the method explicitly.
 
 Use -f key=value for string parameters, -F key:=value for typed JSON values
-(numbers, booleans, null, arrays, objects).
+(numbers, booleans, null, arrays, objects). Both support @file syntax to read
+values from files: -f content=@file.txt (as string), -F config:=@data.json (as JSON).
+
+Use -d to send raw request body data (cURL-style). If the value is valid JSON,
+it will be sent as JSON automatically.
 
 Use --input to send a JSON file as request body, or --input - to read from stdin.
 
@@ -52,14 +56,16 @@ ENVIRONMENT VARIABLES
 		{
 			name: "field",
 			shorthand: "f",
-			description: "String parameter: key=value",
+			description:
+				"String parameter: key=value (use key=@file to read from file)",
 			type: "string[]",
 			target: "field",
 		},
 		{
 			name: "raw-field",
 			shorthand: "F",
-			description: "Typed JSON parameter: key:=value",
+			description:
+				"Typed JSON parameter: key:=value (use key:=@file for JSON file)",
 			type: "string[]",
 			target: "rawField",
 		},
@@ -69,6 +75,13 @@ ENVIRONMENT VARIABLES
 			description: "HTTP header: key:value",
 			type: "string[]",
 			target: "header",
+		},
+		{
+			name: "data",
+			shorthand: "d",
+			description: "Request body data (cURL-style)",
+			type: "string[]",
+			target: "data",
 		},
 		{
 			name: "input",
@@ -123,6 +136,18 @@ ENVIRONMENT VARIABLES
 			value: "phala api /endpoint -X POST --input data.json",
 		},
 		{
+			name: "POST with cURL-style -d",
+			value: `phala api /endpoint -d '{"foo":"bar"}'`,
+		},
+		{
+			name: "POST with file content as string field",
+			value: "phala api /endpoint -f content=@readme.txt",
+		},
+		{
+			name: "POST with JSON file as nested object",
+			value: "phala api /endpoint -F config:=@settings.json",
+		},
+		{
 			name: "Show response headers",
 			value: "phala api /cvms -i",
 		},
@@ -138,6 +163,7 @@ export const apiCommandSchema = z.object({
 	field: z.array(z.string()).optional(),
 	rawField: z.array(z.string()).optional(),
 	header: z.array(z.string()).optional(),
+	data: z.array(z.string()).optional(),
 	input: z.string().optional(),
 	include: z.boolean().default(false),
 	jq: z.string().optional(),
