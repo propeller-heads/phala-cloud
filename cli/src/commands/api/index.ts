@@ -22,7 +22,9 @@ try {
 }
 
 /**
- * Parse key=value string fields into an object
+ * Parse key=value string fields into an object.
+ * Supports @file syntax: key=@file.txt reads file content as string value.
+ * Use key=@- to read from stdin.
  */
 function parseStringFields(
 	fields: string[] | undefined,
@@ -33,14 +35,22 @@ function parseStringFields(
 		if (eqIdx > 0) {
 			const key = field.slice(0, eqIdx);
 			const value = field.slice(eqIdx + 1);
-			result[key] = value;
+			if (value.startsWith("@")) {
+				// Read from file or stdin
+				const path = value.slice(1);
+				result[key] = readFileContent(path);
+			} else {
+				result[key] = value;
+			}
 		}
 	}
 	return result;
 }
 
 /**
- * Parse key:=value JSON fields into an object with proper types
+ * Parse key:=value JSON fields into an object with proper types.
+ * Supports @file syntax: key:=@file.json reads and parses file as JSON.
+ * Use key:=@- to read JSON from stdin.
  */
 function parseJsonFields(
 	fields: string[] | undefined,
@@ -51,7 +61,20 @@ function parseJsonFields(
 		if (sepIdx > 0) {
 			const key = field.slice(0, sepIdx);
 			const value = field.slice(sepIdx + 2);
-			result[key] = parseJsonValue(value);
+			if (value.startsWith("@")) {
+				// Read from file and parse as JSON
+				const path = value.slice(1);
+				const content = readFileContent(path);
+				try {
+					result[key] = JSON.parse(content);
+				} catch {
+					throw new Error(
+						`Failed to parse JSON from file "${path}" for field "${key}"`,
+					);
+				}
+			} else {
+				result[key] = parseJsonValue(value);
+			}
 		}
 	}
 	return result;
@@ -101,15 +124,31 @@ function parseHeaders(headers: string[] | undefined): Record<string, string> {
 	return result;
 }
 
+function hasHeader(
+	headers: Record<string, string>,
+	headerName: string,
+): boolean {
+	const target = headerName.toLowerCase();
+	return Object.keys(headers).some((k) => k.toLowerCase() === target);
+}
+
 /**
- * Read request body from file or stdin
+ * Read content from file or stdin.
+ * Supports "@-" for stdin and "@path" for file paths.
  */
-function readInputBody(inputPath: string): string {
-	if (inputPath === "-") {
+function readFileContent(path: string): string {
+	if (path === "-") {
 		// Read from stdin (fd 0)
 		return readFileSync(0, "utf-8");
 	}
-	return readFileSync(inputPath, "utf-8");
+	return readFileSync(path, "utf-8");
+}
+
+/**
+ * Read request body from file or stdin (legacy wrapper)
+ */
+function readInputBody(inputPath: string): string {
+	return readFileContent(inputPath);
 }
 
 /**
@@ -119,21 +158,64 @@ function methodHasBody(method: string): boolean {
 	return !["GET", "HEAD", "OPTIONS"].includes(method);
 }
 
+type BuiltRequestBody = {
+	body: Record<string, unknown> | string | undefined;
+	defaultContentType?: string;
+};
+
 /**
- * Build request body from input options
+ * Build request body from input options.
+ *
+ * Notes:
+ * - `--input` takes precedence over everything else
+ * - `-d/--data` is mutually exclusive with `-f/-F` (to avoid ambiguity)
  */
-function buildRequestBody(
-	input: ApiCommandInput,
-): Record<string, unknown> | string | undefined {
+export function buildApiRequestBody(input: ApiCommandInput): BuiltRequestBody {
+	if (input.input && input.data && input.data.length > 0) {
+		throw new Error('"-d/--data" cannot be used with "--input"');
+	}
+
 	// --input takes precedence
 	if (input.input) {
 		const content = readInputBody(input.input);
 		// Try to parse as JSON, if it fails return as string
 		try {
-			return JSON.parse(content);
+			return { body: JSON.parse(content) };
 		} catch {
-			return content;
+			return { body: content };
 		}
+	}
+
+	// -d/--data: cURL-style raw body data
+	if (input.data && input.data.length > 0) {
+		if (
+			(input.field && input.field.length > 0) ||
+			(input.rawField && input.rawField.length > 0)
+		) {
+			throw new Error(
+				'"-d/--data" cannot be used with "-f/--field" or "-F/--raw-field"',
+			);
+		}
+
+		// cURL-style: multiple -d get joined with "&"
+		const combined =
+			input.data.length === 1 ? input.data[0] : input.data.join("&");
+
+		// If it's valid JSON, send as JSON automatically
+		const trimmed = combined.trim();
+		if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+			try {
+				return { body: JSON.parse(trimmed) };
+			} catch {
+				// fall through to raw string
+			}
+		}
+
+		// Match cURL default for -d: application/x-www-form-urlencoded
+		return {
+			body: combined,
+			defaultContentType: "application/x-www-form-urlencoded",
+		};
 	}
 
 	// Merge string fields and JSON fields
@@ -142,10 +224,10 @@ function buildRequestBody(
 	const merged = { ...stringFields, ...jsonFields };
 
 	if (Object.keys(merged).length === 0) {
-		return undefined;
+		return { body: undefined };
 	}
 
-	return merged;
+	return { body: merged };
 }
 
 export async function runApiCommand(
@@ -169,12 +251,7 @@ export async function runApiCommand(
 		},
 	});
 
-	// Build request
-	const body = buildRequestBody(input);
 	const customHeaders = parseHeaders(input.header);
-
-	// Auto-switch to POST if body is present and method is still default GET
-	const method = body !== undefined && input.method === "GET" ? "POST" : input.method;
 
 	// Normalize endpoint (ensure it starts with /)
 	const endpoint = input.endpoint.startsWith("/")
@@ -182,6 +259,17 @@ export async function runApiCommand(
 		: `/${input.endpoint}`;
 
 	try {
+		// Build request
+		const { body, defaultContentType } = buildApiRequestBody(input);
+
+		if (defaultContentType && !hasHeader(customHeaders, "content-type")) {
+			customHeaders["Content-Type"] = defaultContentType;
+		}
+
+		// Auto-switch to POST if body is present and method is still default GET
+		const method =
+			body !== undefined && input.method === "GET" ? "POST" : input.method;
+
 		// Execute request with full response
 		const response = await client.requestFull(endpoint, {
 			method,
