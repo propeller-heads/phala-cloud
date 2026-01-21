@@ -286,6 +286,52 @@ export class Client<V extends ApiVersion = DefaultApiVersion> {
   // ===== Direct methods (throw on error) =====
 
   /**
+   * Generic request method (throws PhalaCloudError on error)
+   */
+  async request<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
+    try {
+      const method = options?.method || "GET";
+      return await this.fetchInstance<T>(url, {
+        ...options,
+        method,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
+  }
+
+  /**
+   * Generic request method that returns the full response (status + headers + data)
+   *
+   * Unlike other direct methods, this does NOT throw for non-2xx HTTP statuses.
+   * It only throws for network/transport/unexpected errors.
+   */
+  async requestFull<T = unknown>(url: string, options?: RequestOptions): Promise<FullResponse<T>> {
+    try {
+      const method = options?.method || "GET";
+      const response = await this.fetchInstance.raw(url, {
+        ...options,
+        method,
+        ignoreResponseError: true,
+      } as Parameters<(typeof this.fetchInstance)["raw"]>[1]);
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: (response as unknown as { _data: T })._data,
+        ok: response.ok,
+      };
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
+  }
+
+  /**
    * Perform GET request (throws PhalaCloudError on error)
    */
   async get<T = unknown>(
@@ -490,6 +536,26 @@ export class Client<V extends ApiVersion = DefaultApiVersion> {
     options?: Omit<FetchOptions, "method">,
   ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.delete<T>(request, options));
+  }
+
+  /**
+   * Safe wrapper around the generic request method (returns SafeResult)
+   */
+  async safeRequestMethod<T = unknown>(
+    url: string,
+    options?: RequestOptions,
+  ): Promise<SafeResult<T, PhalaCloudError>> {
+    return this.safeRequest(() => this.request<T>(url, options));
+  }
+
+  /**
+   * Safe wrapper around requestFull (returns SafeResult)
+   */
+  async safeRequestFull<T = unknown>(
+    url: string,
+    options?: RequestOptions,
+  ): Promise<SafeResult<FullResponse<T>, PhalaCloudError>> {
+    return this.safeRequest(() => this.requestFull<T>(url, options));
   }
 
   /**
