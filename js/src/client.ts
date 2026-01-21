@@ -20,7 +20,10 @@ export type {
   DefaultApiVersion,
 } from "./types/client";
 
-export const SUPPORTED_API_VERSIONS = ["2025-10-28", "2026-01-21"] as const satisfies readonly ApiVersion[];
+export const SUPPORTED_API_VERSIONS = [
+  "2025-10-28",
+  "2026-01-21",
+] as const satisfies readonly ApiVersion[];
 export const DEFAULT_API_VERSION: DefaultApiVersion = "2026-01-21";
 const logger = debug("phala::api-client");
 
