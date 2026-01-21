@@ -118,7 +118,7 @@ export type AvailableNodes = z.infer<typeof AvailableNodesSchema>;
 
 const { action: getAvailableNodes, safeAction: safeGetAvailableNodes } = defineSimpleAction(
   AvailableNodesSchema,
-  async (client: Client) => {
+  async (client) => {
     return await client.get("/teepods/available");
   },
 );

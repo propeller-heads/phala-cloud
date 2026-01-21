@@ -8,3 +8,6 @@ export * from "./cvm_id";
 export * from "./common";
 export * from "./supported_chains";
 export * from "./version-mappings";
+export * from "./app_info_v20251028";
+export * from "./app_info_v20260121";
+export * from "./app_revision";
