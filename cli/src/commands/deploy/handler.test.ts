@@ -160,7 +160,171 @@ describe("buildProvisionPayload", () => {
 			expect(payload.prefer_dev).toBe(true);
 		});
 
-		test("should not include optional fields when not specified", () => {
+		test("should default kms to PHALA when not specified", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("PHALA");
+		});
+
+		test("should set kms to PHALA when kms is 'phala'", () => {
+			const options = {
+				kms: "phala",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("PHALA");
+		});
+
+		test("should set kms to ETHEREUM when kms is 'ethereum'", () => {
+			const options = {
+				kms: "ethereum",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("ETHEREUM");
+		});
+
+		test("should set kms to ETHEREUM when kms is 'eth' (alias)", () => {
+			const options = {
+				kms: "eth",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("ETHEREUM");
+		});
+
+		test("should set kms to BASE when kms is 'base'", () => {
+			const options = {
+				kms: "base",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("BASE");
+		});
+
+		test("should use preResolvedKmsSelection when provided", () => {
+			const options = {
+				kms: "ethereum", // This would normally set kms to "ETHEREUM"
+			};
+
+			// Pass a pre-resolved selection that overrides the options
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+				{ kmsType: "BASE", deprecatedKmsId: undefined }, // Override to "BASE"
+			);
+
+			expect(payload.kms).toBe("BASE");
+		});
+
+		test("should include deprecatedKmsId when provided via preResolvedKmsSelection", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+				{ kmsType: "PHALA", deprecatedKmsId: "custom-kms" },
+			);
+
+			expect(payload.kms).toBe("PHALA");
+			expect(payload.kms_id).toBe("custom-kms");
+		});
+
+		test("should default to prefer_dev=false when using BASE KMS", () => {
+			const options = {
+				kms: "base",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("BASE");
+			expect(payload.prefer_dev).toBe(false);
+		});
+
+		test("should default to prefer_dev=false when using ETHEREUM KMS", () => {
+			const options = {
+				kms: "ethereum",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("ETHEREUM");
+			expect(payload.prefer_dev).toBe(false);
+		});
+
+		test("should allow --dev-os to override on-chain KMS default", () => {
+			const options = {
+				kms: "base",
+				devOs: true,
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.kms).toBe("BASE");
+			expect(payload.prefer_dev).toBe(true);
+		});
+
+		test("should not include optional fields when not specified (except kms which defaults to PHALA)", () => {
 			const options = {};
 
 			const payload = buildProvisionPayload(
@@ -180,6 +344,8 @@ describe("buildProvisionPayload", () => {
 			expect("image" in payload).toBe(false);
 			expect("kms_id" in payload).toBe(false);
 			expect("prefer_dev" in payload).toBe(false);
+			// kms always has a value (defaults to PHALA)
+			expect(payload.kms).toBe("PHALA");
 		});
 	});
 
