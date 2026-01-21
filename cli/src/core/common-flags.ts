@@ -22,6 +22,7 @@ export const interactiveOption: CommandOption = {
 	description: "Enable interactive mode",
 	type: "boolean",
 	target: "interactive",
+	group: "basic",
 };
 
 export const apiTokenOption: CommandOption = {
@@ -31,11 +32,25 @@ export const apiTokenOption: CommandOption = {
 	target: "apiToken",
 	aliases: ["api-key"],
 	argumentName: "token",
+	group: "basic",
+};
+
+export const jsonOption: CommandOption = {
+	name: "json",
+	shorthand: "j",
+	description: "Output in JSON format",
+	type: "boolean",
+	target: "json",
+	negatedName: "no-json",
+	group: "basic",
 };
 
 export const globalCommandOptions: readonly CommandOption[] = [
 	helpOption,
 	versionOption,
+	apiTokenOption,
+	jsonOption,
+	interactiveOption,
 ];
 
 export const commonAuthOptions: readonly CommandOption[] = [apiTokenOption];
@@ -71,4 +86,6 @@ export const uuidOption: CommandOption = {
 	description: "[DEPRECATED] Use --cvm-id instead. CVM UUID.",
 	type: "string",
 	target: "cvmId",
+	deprecated: true,
+	group: "deprecated",
 };

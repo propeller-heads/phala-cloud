@@ -34,7 +34,6 @@ import {
 	safeGetCvmInfo,
 	safeGetCvmList,
 	safeGetCurrentUser,
-	safeGetKmsList,
 	safeProvisionCvm,
 	safeProvisionCvmComposeFileUpdate,
 	safeUpdateCvmVisibility,
@@ -62,6 +61,7 @@ interface Options {
 	env?: string[];
 	envFile?: string | boolean;
 	interactive?: boolean;
+	kms?: string;
 	kmsId?: string;
 	cvmId?: string;
 	uuid?: string;
@@ -71,7 +71,7 @@ interface Options {
 	rpcUrl?: string;
 	json?: boolean;
 	debug?: boolean;
-	apiKey?: string;
+	apiToken?: string;
 	wait?: boolean;
 	sshPubkey?: string;
 	devOs?: boolean;
@@ -183,12 +183,12 @@ function handleProvisionError(
 }
 
 async function getApiClient({
-	apiKey,
+	apiToken,
 	interactive,
-}: Readonly<Pick<Options, "apiKey" | "interactive">>): Promise<Client> {
+}: Readonly<Pick<Options, "apiToken" | "interactive">>): Promise<Client> {
 	// Priority 1: Command-line provided API key
-	if (apiKey) {
-		return createClient({ apiKey });
+	if (apiToken) {
+		return createClient({ apiKey: apiToken });
 	}
 
 	// Priority 2: Environment variable
@@ -204,21 +204,21 @@ async function getApiClient({
 
 	// Priority 4: Interactive prompt (only if no API key found)
 	if (interactive) {
-		const { apiKey: promptedKey } = await inquirer.prompt([
+		const { apiToken: promptedToken } = await inquirer.prompt([
 			{
 				type: "password",
-				name: "apiKey",
-				message: "Enter your API key:",
+				name: "apiToken",
+				message: "Enter your API token:",
 				validate: (input: string) =>
-					input.trim() ? true : "API key is required",
+					input.trim() ? true : "API token is required",
 			},
 		]);
-		return createClient({ apiKey: promptedKey });
+		return createClient({ apiKey: promptedToken });
 	}
 
 	// No API key available
 	throw new Error(
-		"API key is required. Please run 'phala auth login' or set PHALA_CLOUD_API_KEY environment variable",
+		"API token is required. Please run 'phala auth login' or set PHALA_CLOUD_API_KEY environment variable",
 	);
 }
 
@@ -248,15 +248,16 @@ async function readDockerComposeFile({
                        Docker Compose file is required.
 
                            Usage examples:
-                           phala deploy --node-id 1 docker-compose.yml
-                       phala deploy --node-id 6 --kms-id t16z-dev --private-key <your-private-key> --rpc-url <rpc-url> docker-compose.yml
+                           phala deploy -c docker-compose.yml
+                       phala deploy --kms ethereum --private-key <your-private-key> --rpc-url <rpc-url> -c docker-compose.yml
 
                        Minimal required parameters:
-                           --compose <path>    Path to docker-compose.yml
+                           -c, --compose <path>    Path to docker-compose.yml
 
                        For on-chain KMS, also provide:
-                               --kms-id <id>       KMS ID
-                           --private-key <key> Private key for deployment
+                           --kms <type>            KMS type (phala, ethereum, base)
+                           --private-key <key>     Private key for deployment
+                           --rpc-url <url>         RPC URL for the blockchain
 
                                Run with --interactive for guided setup
                                    `),
@@ -280,8 +281,9 @@ const validatePrivateKey = async (
 	// 1. Get private key from options or environment
 	let privateKey = options.privateKey || process.env.PRIVATE_KEY;
 
-	// 2. Handle KMS related validations
-	if (options.kmsId && chainId) {
+	// 2. Handle on-chain KMS related validations
+	// If chainId is present, we will perform on-chain operations and require a private key.
+	if (chainId) {
 		if (!options.privateKey) {
 			if (options.interactive) {
 				const result = await inquirer.prompt([
@@ -303,6 +305,33 @@ const validatePrivateKey = async (
 	}
 	return privateKey;
 };
+
+function resolveKmsSelection(options: Options): {
+	kmsType: "PHALA" | "ETHEREUM" | "BASE";
+	deprecatedKmsId?: string;
+} {
+	if (options.kmsId) {
+		logger.warn("--kms-id is deprecated. Use --kms instead.");
+	}
+
+	const kmsInput = (options.kms ?? "phala").toLowerCase();
+
+	let kmsType: "PHALA" | "ETHEREUM" | "BASE";
+	switch (kmsInput) {
+		case "eth":
+		case "ethereum":
+			kmsType = "ETHEREUM";
+			break;
+		case "base":
+			kmsType = "BASE";
+			break;
+		default:
+			kmsType = "PHALA";
+			break;
+	}
+
+	return { kmsType, deprecatedKmsId: options.kmsId };
+}
 
 const validateName = async (options: Options): Promise<string | undefined> => {
 	let name = options.name;
@@ -577,6 +606,7 @@ const resolvePrivacySettings = (
 /**
  * Build provision payload from options
  * All parameters are optional - backend will auto-match resources
+ * @param preResolvedKmsSelection - Optional pre-resolved KMS selection to avoid duplicate calls/warnings
  */
 export const buildProvisionPayload = (
 	options: Options,
@@ -584,6 +614,7 @@ export const buildProvisionPayload = (
 	dockerComposeYml: string,
 	envs: EnvVar[],
 	privacySettings: PrivacySettings,
+	preResolvedKmsSelection?: ReturnType<typeof resolveKmsSelection>,
 ) => {
 	const payload: Record<string, unknown> = {
 		name: name,
@@ -596,6 +627,9 @@ export const buildProvisionPayload = (
 		},
 		listed: privacySettings.listed,
 	};
+
+	const { kmsType, deprecatedKmsId } =
+		preResolvedKmsSelection ?? resolveKmsSelection(options);
 
 	// Only add user-specified parameters - let backend auto-match the rest
 	if (options.instanceType) {
@@ -626,17 +660,22 @@ export const buildProvisionPayload = (
 		payload.image = options.image;
 	}
 
-	if (options.kmsId) {
-		payload.kms_id = options.kmsId;
+	// Always set kms type (defaults to PHALA)
+	payload.kms = kmsType;
+	// Keep kms_id for backward compatibility if provided
+	if (deprecatedKmsId) {
+		payload.kms_id = deprecatedKmsId;
 	}
 
 	// Add prefer_dev flag based on --dev-os or --non-dev-os
+	// For on-chain KMS (ETHEREUM/BASE), default to non-dev-os since dev images may not be available
+	const isOnchainKms = kmsType === "ETHEREUM" || kmsType === "BASE";
 	if (options.devOs) {
 		payload.prefer_dev = true;
-	} else if (options.nonDevOs) {
+	} else if (options.nonDevOs || isOnchainKms) {
 		payload.prefer_dev = false;
 	}
-	// If neither flag is set, don't add prefer_dev (let backend auto-select)
+	// If neither flag is set and not on-chain KMS, don't add prefer_dev (let backend auto-select)
 
 	return payload;
 };
@@ -650,6 +689,9 @@ const deployNewCvm = async (
 	stderr: NodeJS.WriteStream,
 	projectConfig?: PrivacyConfig,
 ) => {
+	// Resolve KMS selection once at the start to avoid duplicate calls and warnings
+	const kmsSelection = resolveKmsSelection(validatedOptions);
+
 	const name = await validateName(validatedOptions);
 
 	// Read SSH public key and add to environment variables
@@ -671,6 +713,7 @@ const deployNewCvm = async (
 		docker_compose_yml,
 		envsWithSshKey,
 		privacySettings,
+		kmsSelection,
 	);
 
 	stdout.write(`Provisioning CVM ${name}...\n`);
@@ -689,36 +732,35 @@ const deployNewCvm = async (
 	const app = provision_result.data as any;
 	let commit_result;
 
-	// Check if we need on-chain KMS deployment
-	const needsOnchainKms = validatedOptions.kmsId && !app.app_id;
+	const provisionKmsInfo = app.kms_info;
+	const needsOnchainKms =
+		!app.app_id &&
+		!!provisionKmsInfo?.chain_id &&
+		!!provisionKmsInfo?.kms_contract_address;
 
 	if (needsOnchainKms) {
-		// For on-chain KMS, we need to get KMS info and deploy contract
-		const kms_result = await safeGetKmsList(client);
-		if (!kms_result.success) {
-			throw new Error(`Failed to get KMS list: ${kms_result.error.message}`);
+		if (!provisionKmsInfo?.chain_id || !provisionKmsInfo?.chain) {
+			throw new Error(
+				"KMS chain info is missing from provision response. Please retry or contact support.",
+			);
 		}
-
-		// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-		const kms_list = kms_result.data as any;
-		const kms = kms_list.items.find(
-			// biome-ignore lint/suspicious/noExplicitAny: type inference issue with @phala/cloud library
-			(k: any) =>
-				k.slug === validatedOptions.kmsId || k.id === validatedOptions.kmsId,
-		);
-
-		if (!kms || !kms.chain_id) {
-			throw new Error(`KMS ${validatedOptions.kmsId} not found or invalid`);
+		if (!provisionKmsInfo?.kms_contract_address) {
+			throw new Error(
+				"KMS contract address is missing from provision response. Please retry or contact support.",
+			);
 		}
 
 		// Validate private key for on-chain KMS
-		const privateKey = await validatePrivateKey(validatedOptions, kms.chain_id);
+		const privateKey = await validatePrivateKey(
+			validatedOptions,
+			provisionKmsInfo.chain_id,
+		);
 
 		// Deploy contract
 		const deploy_result = await safeDeployAppAuth({
-			chain: kms.chain,
+			chain: provisionKmsInfo.chain,
 			rpcUrl: validatedOptions.rpcUrl,
-			kmsContractAddress: kms.kms_contract_address,
+			kmsContractAddress: provisionKmsInfo.kms_contract_address,
 			privateKey: privateKey as `0x${string}`,
 			deviceId: app.device_id,
 			composeHash: app.compose_hash,
@@ -737,9 +779,15 @@ const deployNewCvm = async (
 		const deployed_contract = deploy_result.data as any;
 
 		// Get encryption key
+		const kmsRef = provisionKmsInfo.slug || provisionKmsInfo.id;
+		if (!kmsRef) {
+			throw new Error(
+				"KMS reference (slug or id) is missing from provision response",
+			);
+		}
 		const resp = await safeGetAppEnvEncryptPubKey(client, {
 			app_id: deployed_contract.appId,
-			kms: kms.slug,
+			kms: kmsRef,
 		});
 
 		if (!resp.success) {
@@ -760,7 +808,7 @@ const deployNewCvm = async (
 			app_id: deployed_contract.appId,
 			encrypted_env: encrypted_env_vars,
 			compose_hash: app.compose_hash,
-			kms_id: kms.slug,
+			kms_id: kmsRef,
 			contract_address: deployed_contract.appAuthAddress,
 			deployer_address: deployed_contract.deployer,
 		});
@@ -775,7 +823,7 @@ const deployNewCvm = async (
 			app_id: app.app_id,
 			encrypted_env: encrypted_env_vars,
 			compose_hash: app.compose_hash,
-			kms_id: validatedOptions.kmsId,
+			kms_id: kmsSelection.deprecatedKmsId,
 		});
 	}
 
@@ -856,6 +904,7 @@ const updateCvm = async (
 		id: validatedOptions.uuid,
 		app_compose:
 			app_compose as ProvisionCvmComposeFileUpdateRequest["app_compose"],
+		update_env_vars: !!(envs && envs.length > 0),
 	});
 	if (!provision_result.success) {
 		logger.logDetailedError(
@@ -1018,7 +1067,7 @@ export async function runDeploy(
 			input.compose || context.projectConfig.compose_file;
 
 		const client = await getApiClient({
-			apiKey: input.apiKey,
+			apiToken: input.apiToken,
 			interactive: input.interactive,
 		});
 

@@ -5,11 +5,7 @@ import {
 	DEFAULT_MEMORY,
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
-import {
-	commonAuthOptions,
-	cvmIdOption,
-	uuidOption,
-} from "@/src/core/common-flags";
+import { cvmIdOption, uuidOption } from "@/src/core/common-flags";
 
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
@@ -18,28 +14,23 @@ export const deployCommandMeta: CommandMeta = {
 	stability: "stable",
 	arguments: [],
 	options: [
-		...commonAuthOptions,
 		cvmIdOption,
 		uuidOption,
-		{
-			name: "json",
-			description: "Output in JSON format",
-			type: "boolean",
-			target: "json",
-			negatedName: "no-json",
-		},
 		{
 			name: "debug",
 			description: "Enable debug logging",
 			type: "boolean",
 			target: "debug",
+			group: "advanced",
 		},
 		{
 			name: "name",
 			shorthand: "n",
-			description: "Name of the CVM",
+			description:
+				"Name of the CVM (optional; default: current directory name, converted to a valid hostname)",
 			type: "string",
 			target: "name",
+			group: "basic",
 		},
 		{
 			name: "compose",
@@ -48,6 +39,7 @@ export const deployCommandMeta: CommandMeta = {
 				"Path to Docker Compose file (default: docker-compose.yml in current directory)",
 			type: "string",
 			target: "compose",
+			group: "basic",
 		},
 		{
 			name: "instance-type",
@@ -56,24 +48,30 @@ export const deployCommandMeta: CommandMeta = {
 				"Instance type (e.g., tdx.small, tdx.medium, tdx.large). Optional - auto-selected if not specified.",
 			type: "string",
 			target: "instanceType",
+			group: "basic",
 		},
 		{
 			name: "vcpu",
 			description: `[DEPRECATED] Use --instance-type instead. Number of vCPUs, default is ${DEFAULT_VCPU}`,
 			type: "string",
 			target: "vcpu",
+			deprecated: true,
+			group: "deprecated",
 		},
 		{
 			name: "memory",
 			description: `[DEPRECATED] Use --instance-type instead. Memory with optional unit, e.g., 2G, 1024MB, default is ${DEFAULT_MEMORY}MB`,
 			type: "string",
 			target: "memory",
+			deprecated: true,
+			group: "deprecated",
 		},
 		{
 			name: "disk-size",
 			description: `Disk size with optional unit (optional, auto-matched if not specified), e.g., 50G, 100GB, default is ${DEFAULT_DISK_SIZE}GB`,
 			type: "string",
 			target: "diskSize",
+			group: "advanced",
 		},
 		{
 			name: "image",
@@ -81,6 +79,7 @@ export const deployCommandMeta: CommandMeta = {
 				"OS image version (optional, auto-selected if not specified)",
 			type: "string",
 			target: "image",
+			group: "advanced",
 		},
 		{
 			name: "region",
@@ -89,12 +88,14 @@ export const deployCommandMeta: CommandMeta = {
 				"Preferred region (e.g., us-west, eu-central). Optional - auto-selected if not specified.",
 			type: "string",
 			target: "region",
+			group: "basic",
 		},
 		{
 			name: "node-id",
 			description: "Node ID (optional, auto-selected if not specified)",
 			type: "string",
 			target: "nodeId",
+			group: "advanced",
 		},
 		{
 			name: "env",
@@ -103,50 +104,58 @@ export const deployCommandMeta: CommandMeta = {
 				"Environment variable (KEY=VALUE) or path to env file. Can be specified multiple times.",
 			type: "string[]",
 			target: "env",
+			group: "basic",
 		},
 		{
 			name: "env-file",
 			description: "[DEPRECATED] Use -e instead. Path to environment file.",
 			type: "string",
 			target: "envFile",
-			hidden: true,
+			deprecated: true,
+			group: "deprecated",
 		},
 		{
-			name: "interactive",
-			shorthand: "i",
-			description: "Enable interactive mode for required parameters",
-			type: "boolean",
-			target: "interactive",
+			name: "kms",
+			description: "KMS type: phala (default), ethereum/eth, or base",
+			type: "string",
+			target: "kms",
+			group: "basic",
 		},
 		{
 			name: "kms-id",
-			description: "KMS ID to use.",
+			description: "[DEPRECATED] Use --kms instead. KMS ID to use.",
 			type: "string",
 			target: "kmsId",
+			deprecated: true,
+			group: "deprecated",
 		},
 		{
 			name: "custom-app-id",
 			description: "Custom App ID to use.",
 			type: "string",
 			target: "customAppId",
+			group: "advanced",
 		},
 		{
 			name: "pre-launch-script",
 			description: "Path to pre-launch script",
 			type: "string",
 			target: "preLaunchScript",
+			group: "advanced",
 		},
 		{
 			name: "private-key",
 			description: "Private key for signing transactions.",
 			type: "string",
 			target: "privateKey",
+			group: "advanced",
 		},
 		{
 			name: "rpc-url",
 			description: "RPC URL for the blockchain.",
 			type: "string",
 			target: "rpcUrl",
+			group: "advanced",
 		},
 		{
 			name: "wait",
@@ -154,18 +163,21 @@ export const deployCommandMeta: CommandMeta = {
 				"Wait for CVM to complete deployment/update before returning (only applies to updates)",
 			type: "boolean",
 			target: "wait",
+			group: "basic",
 		},
 		{
 			name: "ssh-pubkey",
 			description: "Path to SSH public key file (default: ~/.ssh/id_rsa.pub)",
 			type: "string",
 			target: "sshPubkey",
+			group: "basic",
 		},
 		{
 			name: "dev-os",
 			description: "Use development OS image (requires SSH public key)",
 			type: "boolean",
 			target: "devOs",
+			group: "basic",
 		},
 		{
 			name: "non-dev-os",
@@ -173,6 +185,7 @@ export const deployCommandMeta: CommandMeta = {
 				"Use non-development OS image (SSH public key only if explicitly specified)",
 			type: "boolean",
 			target: "nonDevOs",
+			group: "basic",
 		},
 		{
 			name: "public-logs",
@@ -218,9 +231,8 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy --region us-west",
 		},
 		{
-			name: "Deploy with on-chain KMS",
-			value:
-				"phala deploy --kms-id ethereum --private-key <key> --rpc-url <url>",
+			name: "Deploy with on-chain KMS (Ethereum)",
+			value: "phala deploy --kms ethereum --private-key <key> --rpc-url <url>",
 		},
 		// --- Update Existing CVM Examples ---
 		{
@@ -260,7 +272,7 @@ export const deployCommandSchema = z.object({
 	compose: z.string().optional(),
 	json: z.boolean().default(false),
 	debug: z.boolean().default(false),
-	apiKey: z.string().optional(),
+	apiToken: z.string().optional(),
 	name: z.string().optional(),
 	instanceType: z.string().optional(),
 	vcpu: z.string().optional(),
@@ -272,6 +284,7 @@ export const deployCommandSchema = z.object({
 	env: z.array(z.string()).optional(),
 	envFile: z.string().optional(),
 	interactive: z.boolean().default(false),
+	kms: z.enum(["phala", "ethereum", "eth", "base"]).default("phala"),
 	kmsId: z.string().optional(),
 	cvmId: z.string().optional(),
 	customAppId: z.string().optional(),

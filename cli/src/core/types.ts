@@ -30,6 +30,11 @@ export interface CommandOption {
 	readonly deprecated?: boolean;
 	readonly hidden?: boolean;
 	/**
+	 * Optional grouping hint for help output.
+	 * When omitted, the option will be treated as "basic" unless deprecated is detected.
+	 */
+	readonly group?: "basic" | "advanced" | "deprecated";
+	/**
 	 * Optional long aliases (e.g. `--token` for `--api-token`).
 	 */
 	readonly aliases?: readonly string[];
