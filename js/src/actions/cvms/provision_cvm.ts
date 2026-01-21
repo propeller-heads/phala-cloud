@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type Client } from "../../client";
+import { KmsInfoSchema } from "../../types/kms_info";
 import { defineAction } from "../../utils/define-action";
 import { isValidHostname } from "../../utils/hostname";
 
@@ -163,6 +164,7 @@ export const ProvisionCvmSchema = z
     app_id: z.string().nullable().optional(),
     app_env_encrypt_pubkey: z.string().nullable().optional(),
     compose_hash: z.string(),
+    kms_info: KmsInfoSchema.nullable().optional(),
     fmspc: z.string().nullable().optional(),
     device_id: z.string().nullable().optional(),
     os_image_hash: z.string().nullable().optional(),
