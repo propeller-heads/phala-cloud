@@ -105,7 +105,6 @@ export {
 export {
   getCvmInfo,
   safeGetCvmInfo,
-  CvmLegacyDetailSchema,
   GetCvmInfoRequestSchema,
   type GetCvmInfoRequest,
   type GetCvmInfoResponse,
@@ -114,7 +113,6 @@ export {
 export {
   getCvmList,
   safeGetCvmList,
-  GetCvmListSchema,
   GetCvmListRequestSchema,
   type GetCvmListRequest,
   type GetCvmListResponse,

@@ -5,10 +5,10 @@ import {
   safeGetCvmInfo,
   type GetCvmInfoResponse,
 } from "./get_cvm_info";
-import type { CvmLegacyDetail } from "../../types/cvm_info";
+import type { CvmDetailV20251028 } from "../../types/cvm_info_v20251028";
 
-// Mock response data matching the CvmLegacyDetailSchema structure
-const mockCvmInfoData: CvmLegacyDetail = {
+// Mock response data matching the CvmDetailV20251028Schema structure
+const mockCvmInfoData: CvmDetailV20251028 = {
   id: 123,
   name: "test-cvm",
   status: "running",
@@ -93,9 +93,11 @@ describe("getCvmInfo", () => {
   let mockGet: any;
 
   beforeEach(() => {
+    // Use v20251028 version since mock data is in that format
     client = createClient({
       apiKey: "test-api-key",
       baseURL: "https://api.test.com",
+      version: "2025-10-28",
     });
     mockSafeGet = vi.spyOn(client, "safeGet");
     mockGet = vi.spyOn(client, "get");
@@ -109,7 +111,7 @@ describe("getCvmInfo", () => {
 
       expect(mockGet).toHaveBeenCalledWith("/cvms/test-cvm-id");
       expect(result).toEqual(mockCvmInfoData);
-      expect((result as CvmLegacyDetail).name).toBe("test-cvm");
+      expect((result as CvmDetailV20251028).name).toBe("test-cvm");
     });
 
     it("should call correct endpoint with uuid", async () => {
@@ -220,7 +222,7 @@ describe("getCvmInfo", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toEqual(mockCvmInfoData);
-        expect((result.data as CvmLegacyDetail).name).toBe("test-cvm");
+        expect((result.data as CvmDetailV20251028).name).toBe("test-cvm");
       }
     });
 

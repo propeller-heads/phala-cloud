@@ -3,6 +3,16 @@ import type { FetchOptions, FetchRequest } from "ofetch";
 import type { PhalaCloudError } from "../utils/errors";
 
 /**
+ * Supported API versions
+ */
+export type ApiVersion = "2025-10-28" | "2026-01-21";
+
+/**
+ * Default API version (latest stable)
+ */
+export type DefaultApiVersion = "2026-01-21";
+
+/**
  * Full HTTP response including status, headers, and parsed body
  */
 export interface FullResponse<T = unknown> {
@@ -48,7 +58,7 @@ export type SafeResult<T, E = SafeError> =
  * - PHALA_CLOUD_API_KEY: API key for authentication
  * - PHALA_CLOUD_API_PREFIX: Base URL prefix for the API
  */
-export interface ClientConfig extends FetchOptions {
+export interface ClientConfig<V extends ApiVersion = ApiVersion> extends FetchOptions {
   /**
    * API key for authentication
    * If not provided, will read from PHALA_CLOUD_API_KEY environment variable
@@ -69,7 +79,7 @@ export interface ClientConfig extends FetchOptions {
   /**
    * API version to use
    */
-  version?: string;
+  version?: V;
 
   /**
    * Use cookie-based authentication instead of API key
@@ -86,4 +96,12 @@ export interface ClientConfig extends FetchOptions {
     response: Response;
     options: FetchOptions;
   }) => void | Promise<void>;
+}
+
+/**
+ * Resolved client configuration with version guaranteed
+ */
+export interface ResolvedClientConfig<V extends ApiVersion = ApiVersion>
+  extends Omit<ClientConfig<V>, "version"> {
+  version: V;
 }

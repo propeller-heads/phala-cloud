@@ -1,7 +1,11 @@
 import { z } from "zod";
-import { type Client } from "../../client";
-import { CvmInfoSchema } from "../../types/cvm_info";
-import { defineAction } from "../../utils/define-action";
+import { type Client, type SafeResult } from "../../client";
+import type { ApiVersion } from "../../types/client";
+import { PaginatedCvmInfosV20251028Schema } from "../../types/cvm_info_v20251028";
+import type { PaginatedCvmInfosV20251028 } from "../../types/cvm_info_v20251028";
+import { PaginatedCvmInfosV20260121Schema } from "../../types/cvm_info_v20260121";
+import type { PaginatedCvmInfosV20260121 } from "../../types/cvm_info_v20260121";
+import type { GetCvmListResponseForVersion } from "../../types/version-mappings";
 
 export const GetCvmListRequestSchema = z
   .object({
@@ -13,18 +17,16 @@ export const GetCvmListRequestSchema = z
   })
   .strict();
 
-export const GetCvmListSchema = z
-  .object({
-    items: z.array(CvmInfoSchema),
-    total: z.number(),
-    page: z.number(),
-    page_size: z.number(),
-    pages: z.number(),
-  })
-  .strict();
-
 export type GetCvmListRequest = z.infer<typeof GetCvmListRequestSchema>;
-export type GetCvmListResponse = z.infer<typeof GetCvmListSchema>;
+
+// Union type for backward compatibility
+export type GetCvmListResponse = PaginatedCvmInfosV20251028 | PaginatedCvmInfosV20260121;
+
+function getSchemaForVersion(version: ApiVersion) {
+  return version === "2025-10-28"
+    ? PaginatedCvmInfosV20251028Schema
+    : PaginatedCvmInfosV20260121Schema;
+}
 
 /**
  * Get a paginated list of CVMs
@@ -34,7 +36,7 @@ export type GetCvmListResponse = z.infer<typeof GetCvmListSchema>;
  * @param request.page - Page number (1-based)
  * @param request.page_size - Number of items per page
  * @param request.node_id - Filter by node ID
- * @returns Paginated list of CVMs
+ * @returns Paginated list of CVMs with type based on client API version
  *
  * @example
  * ```typescript
@@ -43,17 +45,46 @@ export type GetCvmListResponse = z.infer<typeof GetCvmListSchema>;
  *
  * // Get with custom page size
  * const list = await getCvmList(client, { page: 1, page_size: 20 })
- *
- * // Get with custom schema
- * const list = await getCvmList(client, { page: 1 }, { schema: customSchema })
  * ```
  */
-const { action: getCvmList, safeAction: safeGetCvmList } = defineAction<
-  GetCvmListRequest | undefined,
-  typeof GetCvmListSchema
->(GetCvmListSchema, async (client, request) => {
+export function getCvmList<V extends ApiVersion>(
+  client: Client<V>,
+  request?: GetCvmListRequest,
+): Promise<GetCvmListResponseForVersion<V>>;
+export async function getCvmList<V extends ApiVersion>(
+  client: Client<V>,
+  request?: GetCvmListRequest,
+): Promise<GetCvmListResponseForVersion<V>> {
   const validatedRequest = GetCvmListRequestSchema.parse(request ?? {});
-  return await client.get("/cvms/paginated", { params: validatedRequest });
-});
+  const response = await client.get("/cvms/paginated", { params: validatedRequest });
+  const schema = getSchemaForVersion(client.config.version);
+  return schema.parse(response) as GetCvmListResponseForVersion<V>;
+}
 
-export { getCvmList, safeGetCvmList };
+/**
+ * Safe version of getCvmList that returns a SafeResult instead of throwing
+ */
+export function safeGetCvmList<V extends ApiVersion>(
+  client: Client<V>,
+  request?: GetCvmListRequest,
+): Promise<SafeResult<GetCvmListResponseForVersion<V>>>;
+export async function safeGetCvmList<V extends ApiVersion>(
+  client: Client<V>,
+  request?: GetCvmListRequest,
+): Promise<SafeResult<GetCvmListResponseForVersion<V>>> {
+  try {
+    const data = await getCvmList(client, request);
+    return { success: true, data };
+  } catch (error) {
+    if (error && typeof error === "object" && ("status" in error || "issues" in error)) {
+      return { success: false, error } as SafeResult<GetCvmListResponseForVersion<V>>;
+    }
+    return {
+      success: false,
+      error: {
+        name: "Error",
+        message: error instanceof Error ? error.message : String(error),
+      },
+    } as SafeResult<GetCvmListResponseForVersion<V>>;
+  }
+}

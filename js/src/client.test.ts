@@ -485,7 +485,10 @@ describe("createClient", () => {
 
 		const client = createClient(config);
 
-		expect(client.config).toEqual(config);
+		expect(client.config).toEqual({
+			...config,
+			version: "2026-01-21", // Default version is added
+		});
 	});
 });
 
