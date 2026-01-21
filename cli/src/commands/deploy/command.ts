@@ -193,6 +193,7 @@ export const deployCommandMeta: CommandMeta = {
 				"Make CVM logs publicly accessible (default: true for --dev-os, false otherwise)",
 			type: "boolean",
 			target: "publicLogs",
+			negatedName: "no-public-logs",
 		},
 		{
 			name: "public-sysinfo",
@@ -200,12 +201,14 @@ export const deployCommandMeta: CommandMeta = {
 				"Make CVM system info publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicSysinfo",
+			negatedName: "no-public-sysinfo",
 		},
 		{
 			name: "listed",
 			description: "List CVM on the public Trust Center (default: false)",
 			type: "boolean",
 			target: "listed",
+			negatedName: "no-listed",
 		},
 	],
 	examples: [
@@ -254,16 +257,16 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		// --- Privacy Settings Examples ---
 		{
-			name: "Deploy with explicit privacy settings",
-			value: "phala deploy --public-logs=false --public-sysinfo=false",
+			name: "Deploy with logs and sysinfo disabled",
+			value: "phala deploy --no-public-logs --no-public-sysinfo",
 		},
 		{
 			name: "Deploy and list on Trust Center",
 			value: "phala deploy --listed",
 		},
 		{
-			name: "Update existing CVM visibility",
-			value: "phala deploy --cvm-id app_123 --public-logs=false",
+			name: "Update existing CVM to disable logs",
+			value: "phala deploy --cvm-id app_123 --no-public-logs",
 		},
 	],
 };

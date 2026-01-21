@@ -999,27 +999,12 @@ const updateCvm = async (
 		);
 	}
 
-	// Update visibility if explicitly specified
-	if (
+	const needsVisibilityUpdate =
 		validatedOptions.publicLogs !== undefined ||
-		validatedOptions.publicSysinfo !== undefined
-	) {
-		const visibilityResult = await safeUpdateCvmVisibility(client, {
-			id: validatedOptions.uuid,
-			public_logs: validatedOptions.publicLogs ?? cvm.public_logs,
-			public_sysinfo: validatedOptions.publicSysinfo ?? cvm.public_sysinfo,
-		});
-		if (!visibilityResult.success) {
-			logger.warn(
-				`Failed to update visibility: ${visibilityResult.error.message}`,
-			);
-		} else {
-			logger.info("CVM visibility settings updated");
-		}
-	}
+		validatedOptions.publicSysinfo !== undefined;
 
-	// Wait for update to complete if --wait flag is set
-	if (validatedOptions.wait) {
+	// Wait for compose update to complete if --wait flag is set OR if we need to update visibility
+	if (validatedOptions.wait || needsVisibilityUpdate) {
 		logger.info("Waiting for update to complete...");
 		try {
 			await waitForCvmReady(
@@ -1031,6 +1016,31 @@ const updateCvm = async (
 			throw new Error(
 				`Wait failed: ${error instanceof Error ? error.message : String(error)}`,
 			);
+		}
+	}
+
+	// Update visibility if explicitly specified (after waiting for compose update)
+	if (needsVisibilityUpdate) {
+		const visibilityResult = await safeUpdateCvmVisibility(client, {
+			id: validatedOptions.uuid,
+			public_logs: validatedOptions.publicLogs ?? cvm.public_logs,
+			public_sysinfo: validatedOptions.publicSysinfo ?? cvm.public_sysinfo,
+		});
+		if (visibilityResult.success) {
+			logger.info("CVM visibility settings updated");
+		} else {
+			const is409 =
+				"status" in visibilityResult.error &&
+				visibilityResult.error.status === 409;
+			if (is409) {
+				logger.warn(
+					"Cannot update visibility while CVM operation is in progress. Please wait and try again.",
+				);
+			} else {
+				logger.warn(
+					`Failed to update visibility: ${visibilityResult.error.message}`,
+				);
+			}
 		}
 	}
 
