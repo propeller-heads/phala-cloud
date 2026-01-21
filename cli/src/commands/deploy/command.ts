@@ -177,14 +177,7 @@ export const deployCommandMeta: CommandMeta = {
 			description: "Use development OS image (requires SSH public key)",
 			type: "boolean",
 			target: "devOs",
-			group: "basic",
-		},
-		{
-			name: "non-dev-os",
-			description:
-				"Use non-development OS image (SSH public key only if explicitly specified)",
-			type: "boolean",
-			target: "nonDevOs",
+			negatedName: "no-dev-os",
 			group: "basic",
 		},
 		{
@@ -197,8 +190,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "public-sysinfo",
-			description:
-				"Make CVM system info publicly accessible (default: true)",
+			description: "Make CVM system info publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicSysinfo",
 			negatedName: "no-public-sysinfo",
@@ -296,8 +288,7 @@ export const deployCommandSchema = z.object({
 	rpcUrl: z.string().optional(),
 	wait: z.boolean().default(false),
 	sshPubkey: z.string().optional(),
-	devOs: z.boolean().default(false),
-	nonDevOs: z.boolean().default(false),
+	devOs: z.boolean().optional(),
 	publicLogs: z.boolean().optional(),
 	publicSysinfo: z.boolean().optional(),
 	listed: z.boolean().optional(),

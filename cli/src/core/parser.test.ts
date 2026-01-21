@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { parseCommandArguments } from "./parser";
+import { buildCommandSchemaInput } from "./input-builder";
+import type { CommandMeta } from "./types";
 
 describe("parseCommandArguments", () => {
 	describe("pass-through argument splitting (--)", () => {
@@ -82,5 +84,122 @@ describe("parseCommandArguments", () => {
 			// Everything after first -- goes to passThrough, including the second --
 			expect(result.passThrough).toEqual(["echo", "--", "hello"]);
 		});
+	});
+
+	describe("boolean flags with negatedName", () => {
+		const booleanOptions = [
+			{
+				name: "dev-os",
+				type: "boolean" as const,
+				target: "devOs",
+				negatedName: "no-dev-os",
+			},
+			{
+				name: "public-logs",
+				type: "boolean" as const,
+				target: "publicLogs",
+				negatedName: "no-public-logs",
+			},
+		];
+
+		test("should set flag to true when --flag is passed", () => {
+			const result = parseCommandArguments(["--dev-os"], booleanOptions);
+			expect(result.flags["--dev-os"]).toBe(true);
+			expect(result.flags["--no-dev-os"]).toBeUndefined();
+		});
+
+		test("should set negated flag to true when --no-flag is passed", () => {
+			const result = parseCommandArguments(["--no-dev-os"], booleanOptions);
+			expect(result.flags["--dev-os"]).toBeUndefined();
+			expect(result.flags["--no-dev-os"]).toBe(true);
+		});
+
+		test("should handle multiple boolean flags with negation", () => {
+			const result = parseCommandArguments(
+				["--dev-os", "--no-public-logs"],
+				booleanOptions,
+			);
+			expect(result.flags["--dev-os"]).toBe(true);
+			expect(result.flags["--no-public-logs"]).toBe(true);
+		});
+
+		test("should handle negated flag alone", () => {
+			const result = parseCommandArguments(
+				["--no-public-logs"],
+				booleanOptions,
+			);
+			expect(result.flags["--public-logs"]).toBeUndefined();
+			expect(result.flags["--no-public-logs"]).toBe(true);
+		});
+	});
+});
+
+describe("buildCommandSchemaInput with negatedName", () => {
+	const mockMeta: CommandMeta = {
+		name: "test",
+		description: "Test command",
+		stability: "stable",
+		arguments: [],
+		options: [
+			{
+				name: "dev-os",
+				type: "boolean",
+				target: "devOs",
+				negatedName: "no-dev-os",
+			},
+			{
+				name: "public-logs",
+				type: "boolean",
+				target: "publicLogs",
+				negatedName: "no-public-logs",
+			},
+			{
+				name: "listed",
+				type: "boolean",
+				target: "listed",
+				negatedName: "no-listed",
+			},
+		],
+	};
+
+	test("should set target to true when --flag is passed", () => {
+		const parsed = parseCommandArguments(["--dev-os"], mockMeta.options);
+		const input = buildCommandSchemaInput(mockMeta, parsed);
+		expect(input.options.devOs).toBe(true);
+	});
+
+	test("should set target to false when --no-flag is passed", () => {
+		const parsed = parseCommandArguments(["--no-dev-os"], mockMeta.options);
+		const input = buildCommandSchemaInput(mockMeta, parsed);
+		expect(input.options.devOs).toBe(false);
+	});
+
+	test("should leave target undefined when neither flag nor negated flag is passed", () => {
+		const parsed = parseCommandArguments([], mockMeta.options);
+		const input = buildCommandSchemaInput(mockMeta, parsed);
+		expect(input.options.devOs).toBeUndefined();
+	});
+
+	test("should handle multiple flags with mixed positive and negative", () => {
+		const parsed = parseCommandArguments(
+			["--dev-os", "--no-public-logs", "--listed"],
+			mockMeta.options,
+		);
+		const input = buildCommandSchemaInput(mockMeta, parsed);
+		expect(input.options.devOs).toBe(true);
+		expect(input.options.publicLogs).toBe(false);
+		expect(input.options.listed).toBe(true);
+	});
+
+	test("negated flag should override positive flag when both are passed (last wins in parsing)", () => {
+		// When both are passed, the negated lookup processes after positive
+		// So --no-flag will set target to false
+		const parsed = parseCommandArguments(
+			["--dev-os", "--no-dev-os"],
+			mockMeta.options,
+		);
+		const input = buildCommandSchemaInput(mockMeta, parsed);
+		// negatedLookup is processed after descriptors, so false wins
+		expect(input.options.devOs).toBe(false);
 	});
 });

@@ -46,7 +46,10 @@ import inquirer from "inquirer";
 import type { DeployCommandInput } from "./command";
 import type { RuntimeProjectConfig } from "@/src/utils/project-config";
 
-type PrivacyConfig = Pick<RuntimeProjectConfig, "public_logs" | "public_sysinfo" | "listed">;
+type PrivacyConfig = Pick<
+	RuntimeProjectConfig,
+	"public_logs" | "public_sysinfo" | "listed"
+>;
 
 interface Options {
 	name?: string;
@@ -75,7 +78,6 @@ interface Options {
 	wait?: boolean;
 	sshPubkey?: string;
 	devOs?: boolean;
-	nonDevOs?: boolean;
 	publicLogs?: boolean;
 	publicSysinfo?: boolean;
 	listed?: boolean;
@@ -471,8 +473,8 @@ const resolveEnvVars = async (
 const readSshPubkey = async (options: Options): Promise<string | undefined> => {
 	let sshPubkeyPath = options.sshPubkey;
 
-	// For --non-dev-os, only use SSH key if explicitly specified
-	if (options.nonDevOs && !options.sshPubkey) {
+	// For --no-dev-os, only use SSH key if explicitly specified
+	if (options.devOs === false && !options.sshPubkey) {
 		return undefined;
 	}
 
@@ -598,7 +600,8 @@ const resolvePrivacySettings = (
 
 	return {
 		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? isDevMode,
-		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		publicSysinfo:
+			options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
 		listed: options.listed ?? projectConfig?.listed ?? false,
 	};
 };
@@ -667,15 +670,15 @@ export const buildProvisionPayload = (
 		payload.kms_id = deprecatedKmsId;
 	}
 
-	// Add prefer_dev flag based on --dev-os or --non-dev-os
-	// For on-chain KMS (ETHEREUM/BASE), default to non-dev-os since dev images may not be available
+	// Add prefer_dev flag based on --dev-os / --no-dev-os
+	// For on-chain KMS (ETHEREUM/BASE), default to non-dev since dev images may not be available
 	const isOnchainKms = kmsType === "ETHEREUM" || kmsType === "BASE";
-	if (options.devOs) {
+	if (options.devOs === true) {
 		payload.prefer_dev = true;
-	} else if (options.nonDevOs || isOnchainKms) {
+	} else if (options.devOs === false || isOnchainKms) {
 		payload.prefer_dev = false;
 	}
-	// If neither flag is set and not on-chain KMS, don't add prefer_dev (let backend auto-select)
+	// If devOs is undefined and not on-chain KMS, don't add prefer_dev (let backend auto-select)
 
 	return payload;
 };
@@ -705,7 +708,10 @@ const deployNewCvm = async (
 	}
 
 	// Resolve privacy settings based on options, phala.toml, and dev mode
-	const privacySettings = resolvePrivacySettings(validatedOptions, projectConfig);
+	const privacySettings = resolvePrivacySettings(
+		validatedOptions,
+		projectConfig,
+	);
 
 	const payload = buildProvisionPayload(
 		validatedOptions,
