@@ -50,7 +50,10 @@ export function defineSimpleAction<TSchema extends z.ZodTypeAny, TReturnOverride
   }
 
   // Safe variant overloads
-  function safeAction(client: Client<ApiVersion>, parameters: { schema: false }): Promise<SafeResult<unknown>>;
+  function safeAction(
+    client: Client<ApiVersion>,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
   function safeAction<T extends z.ZodTypeAny>(
     client: Client<ApiVersion>,
     parameters: { schema: T },

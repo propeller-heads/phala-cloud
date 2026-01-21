@@ -46,7 +46,10 @@ import inquirer from "inquirer";
 import type { DeployCommandInput } from "./command";
 import type { RuntimeProjectConfig } from "@/src/utils/project-config";
 
-type PrivacyConfig = Pick<RuntimeProjectConfig, "public_logs" | "public_sysinfo" | "listed">;
+type PrivacyConfig = Pick<
+	RuntimeProjectConfig,
+	"public_logs" | "public_sysinfo" | "listed"
+>;
 
 interface Options {
 	name?: string;
@@ -598,7 +601,8 @@ const resolvePrivacySettings = (
 
 	return {
 		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? isDevMode,
-		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		publicSysinfo:
+			options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
 		listed: options.listed ?? projectConfig?.listed ?? false,
 	};
 };
@@ -705,7 +709,10 @@ const deployNewCvm = async (
 	}
 
 	// Resolve privacy settings based on options, phala.toml, and dev mode
-	const privacySettings = resolvePrivacySettings(validatedOptions, projectConfig);
+	const privacySettings = resolvePrivacySettings(
+		validatedOptions,
+		projectConfig,
+	);
 
 	const payload = buildProvisionPayload(
 		validatedOptions,

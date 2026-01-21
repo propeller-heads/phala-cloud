@@ -196,8 +196,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "public-sysinfo",
-			description:
-				"Make CVM system info publicly accessible (default: true)",
+			description: "Make CVM system info publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicSysinfo",
 		},

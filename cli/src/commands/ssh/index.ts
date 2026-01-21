@@ -95,7 +95,8 @@ async function runSshCommand(
 				gatewayDomain = cvmInfo.gatewayDomain;
 
 				// Warn if not a dev image
-				if (!isDevImage(cvmInfo.baseImage)) {
+				const devImage = cvmInfo.isDevImage ?? isDevImage(cvmInfo.baseImage);
+				if (devImage === false) {
 					logger.warn(
 						"This CVM is not using a dev image. SSH access may not be available.",
 					);
