@@ -174,6 +174,26 @@ export const deployCommandMeta: CommandMeta = {
 			type: "boolean",
 			target: "nonDevOs",
 		},
+		{
+			name: "public-logs",
+			description:
+				"Make CVM logs publicly accessible (default: true for --dev-os, false otherwise)",
+			type: "boolean",
+			target: "publicLogs",
+		},
+		{
+			name: "public-sysinfo",
+			description:
+				"Make CVM system info publicly accessible (default: true)",
+			type: "boolean",
+			target: "publicSysinfo",
+		},
+		{
+			name: "listed",
+			description: "List CVM on the public Trust Center (default: false)",
+			type: "boolean",
+			target: "listed",
+		},
 	],
 	examples: [
 		// --- New Deployment Examples ---
@@ -220,6 +240,19 @@ export const deployCommandMeta: CommandMeta = {
 			name: "Update CVM configured in phala.toml (auto-detected)",
 			value: "phala deploy",
 		},
+		// --- Privacy Settings Examples ---
+		{
+			name: "Deploy with explicit privacy settings",
+			value: "phala deploy --public-logs=false --public-sysinfo=false",
+		},
+		{
+			name: "Deploy and list on Trust Center",
+			value: "phala deploy --listed",
+		},
+		{
+			name: "Update existing CVM visibility",
+			value: "phala deploy --cvm-id app_123 --public-logs=false",
+		},
 	],
 };
 
@@ -249,6 +282,9 @@ export const deployCommandSchema = z.object({
 	sshPubkey: z.string().optional(),
 	devOs: z.boolean().default(false),
 	nonDevOs: z.boolean().default(false),
+	publicLogs: z.boolean().optional(),
+	publicSysinfo: z.boolean().optional(),
+	listed: z.boolean().optional(),
 });
 
 export type DeployCommandInput = z.infer<typeof deployCommandSchema>;

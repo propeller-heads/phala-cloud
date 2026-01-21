@@ -37,6 +37,7 @@ import {
 	safeGetKmsList,
 	safeProvisionCvm,
 	safeProvisionCvmComposeFileUpdate,
+	safeUpdateCvmVisibility,
 	convertToHostname,
 	isValidHostname,
 } from "@phala/cloud";
@@ -44,6 +45,9 @@ import dedent from "dedent";
 import fs from "fs-extra";
 import inquirer from "inquirer";
 import type { DeployCommandInput } from "./command";
+import type { RuntimeProjectConfig } from "@/src/utils/project-config";
+
+type PrivacyConfig = Pick<RuntimeProjectConfig, "public_logs" | "public_sysinfo" | "listed">;
 
 interface Options {
 	name?: string;
@@ -72,6 +76,9 @@ interface Options {
 	sshPubkey?: string;
 	devOs?: boolean;
 	nonDevOs?: boolean;
+	publicLogs?: boolean;
+	publicSysinfo?: boolean;
+	listed?: boolean;
 	[key: string]: unknown;
 }
 
@@ -545,6 +552,28 @@ const validateCpuMemoryDiskSize = async (options: Options) => {
 	};
 };
 
+interface PrivacySettings {
+	publicLogs: boolean;
+	publicSysinfo: boolean;
+	listed: boolean;
+}
+
+/**
+ * Resolve privacy settings with priority: CLI flags > phala.toml > dev mode defaults
+ */
+const resolvePrivacySettings = (
+	options: Options,
+	projectConfig?: PrivacyConfig,
+): PrivacySettings => {
+	const isDevMode = options.devOs === true;
+
+	return {
+		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? isDevMode,
+		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		listed: options.listed ?? projectConfig?.listed ?? false,
+	};
+};
+
 /**
  * Build provision payload from options
  * All parameters are optional - backend will auto-match resources
@@ -554,6 +583,7 @@ export const buildProvisionPayload = (
 	name: string,
 	dockerComposeYml: string,
 	envs: EnvVar[],
+	privacySettings: PrivacySettings,
 ) => {
 	const payload: Record<string, unknown> = {
 		name: name,
@@ -561,7 +591,10 @@ export const buildProvisionPayload = (
 			name: "", // Required by backend schema, defaults to empty string
 			docker_compose_file: dockerComposeYml,
 			allowed_envs: envs?.map((e) => e.key) || [],
+			public_logs: privacySettings.publicLogs,
+			public_sysinfo: privacySettings.publicSysinfo,
 		},
+		listed: privacySettings.listed,
 	};
 
 	// Only add user-specified parameters - let backend auto-match the rest
@@ -615,6 +648,7 @@ const deployNewCvm = async (
 	client: Client,
 	stdout: NodeJS.WriteStream,
 	stderr: NodeJS.WriteStream,
+	projectConfig?: PrivacyConfig,
 ) => {
 	const name = await validateName(validatedOptions);
 
@@ -628,11 +662,15 @@ const deployNewCvm = async (
 		});
 	}
 
+	// Resolve privacy settings based on options, phala.toml, and dev mode
+	const privacySettings = resolvePrivacySettings(validatedOptions, projectConfig);
+
 	const payload = buildProvisionPayload(
 		validatedOptions,
 		name,
 		docker_compose_yml,
 		envsWithSshKey,
+		privacySettings,
 	);
 
 	stdout.write(`Provisioning CVM ${name}...\n`);
@@ -911,6 +949,26 @@ const updateCvm = async (
 			`Failed to commit CVM compose file update: ${commitResult.error.message}`,
 		);
 	}
+
+	// Update visibility if explicitly specified
+	if (
+		validatedOptions.publicLogs !== undefined ||
+		validatedOptions.publicSysinfo !== undefined
+	) {
+		const visibilityResult = await safeUpdateCvmVisibility(client, {
+			id: validatedOptions.uuid,
+			public_logs: validatedOptions.publicLogs ?? cvm.public_logs,
+			public_sysinfo: validatedOptions.publicSysinfo ?? cvm.public_sysinfo,
+		});
+		if (!visibilityResult.success) {
+			logger.warn(
+				`Failed to update visibility: ${visibilityResult.error.message}`,
+			);
+		} else {
+			logger.info("CVM visibility settings updated");
+		}
+	}
+
 	// Wait for update to complete if --wait flag is set
 	if (validatedOptions.wait) {
 		logger.info("Waiting for update to complete...");
@@ -1022,6 +1080,7 @@ export async function runDeploy(
 				client,
 				context.stdout,
 				context.stderr,
+				context.projectConfig,
 			);
 		}
 	} catch (error) {

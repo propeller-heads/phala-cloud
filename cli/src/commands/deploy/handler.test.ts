@@ -13,6 +13,11 @@ describe("buildProvisionPayload", () => {
 	const defaultDockerCompose =
 		"version: '3'\nservices:\n  app:\n    image: nginx";
 	const defaultEnvs = [{ key: "NODE_ENV", value: "production" }];
+	const defaultPrivacySettings = {
+		publicLogs: false,
+		publicSysinfo: true,
+		listed: false,
+	};
 
 	describe("prefer_dev flag handling (--dev-os / --non-dev-os)", () => {
 		test("should set prefer_dev to true when devOs is true", () => {
@@ -26,6 +31,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.prefer_dev).toBe(true);
@@ -42,6 +48,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.prefer_dev).toBe(false);
@@ -58,6 +65,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect("prefer_dev" in payload).toBe(false);
@@ -71,6 +79,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect("prefer_dev" in payload).toBe(false);
@@ -89,6 +98,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			// devOs is checked first in if-else chain
@@ -105,6 +115,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.name).toBe(defaultName);
@@ -135,6 +146,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.instance_type).toBe("tdx.small");
@@ -156,6 +168,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect("instance_type" in payload).toBe(false);
@@ -179,6 +192,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				[],
+				defaultPrivacySettings,
 			);
 
 			expect(
@@ -199,6 +213,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			// vcpu/memory should be included
@@ -219,6 +234,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.vcpu).toBe(4);
@@ -236,6 +252,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 
 			expect(payload.memory).toBe(8192);
@@ -250,6 +267,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 			expect(payload.memory).toBe(2048);
 
@@ -259,6 +277,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 			expect(payload.memory).toBe(4096);
 
@@ -268,6 +287,7 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 			expect(payload.memory).toBe(2048);
 
@@ -277,8 +297,56 @@ describe("buildProvisionPayload", () => {
 				defaultName,
 				defaultDockerCompose,
 				defaultEnvs,
+				defaultPrivacySettings,
 			);
 			expect(payload.memory).toBe(1024);
+		});
+	});
+
+	describe("privacy settings", () => {
+		test("should include public_logs and public_sysinfo in compose_file", () => {
+			const options = {};
+			const privacySettings = {
+				publicLogs: true,
+				publicSysinfo: false,
+				listed: true,
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				privacySettings,
+			);
+
+			expect(
+				(payload.compose_file as Record<string, unknown>).public_logs,
+			).toBe(true);
+			expect(
+				(payload.compose_file as Record<string, unknown>).public_sysinfo,
+			).toBe(false);
+			expect(payload.listed).toBe(true);
+		});
+
+		test("should include default privacy settings", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(
+				(payload.compose_file as Record<string, unknown>).public_logs,
+			).toBe(false);
+			expect(
+				(payload.compose_file as Record<string, unknown>).public_sysinfo,
+			).toBe(true);
+			expect(payload.listed).toBe(false);
 		});
 	});
 });

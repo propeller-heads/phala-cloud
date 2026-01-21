@@ -1,6 +1,27 @@
-import { CvmIdSchema } from "@phala/cloud";
+import { CvmIdSchema, safeGetCvmInfo } from "@phala/cloud";
 import type { CommandContext } from "@/src/core/types";
 import { logger, setJsonMode } from "@/src/utils/logger";
+import { getClient } from "@/src/lib/client";
+
+/**
+ * Check if logs are disabled for a CVM and warn the user if so.
+ * @returns true if logs are disabled, false otherwise
+ */
+async function checkAndWarnIfLogsDisabled(appId: string): Promise<boolean> {
+	try {
+		const client = await getClient();
+		const result = await safeGetCvmInfo(client, { id: appId });
+		if (result.success && result.data.public_logs === false) {
+			logger.warn("Logs are disabled for this CVM (public_logs=false).");
+			logger.warn("To enable logs, run:");
+			logger.warn(`  phala deploy --cvm-id ${appId} --public-logs`);
+			return true;
+		}
+	} catch (e) {
+		logger.debug?.(`Failed to check CVM info: ${e}`);
+	}
+	return false;
+}
 
 export interface LogsHandlerConfig<TOptions> {
 	logType: "container" | "serial";
@@ -104,11 +125,19 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 			if (logs.trim()) {
 				console.log(logs);
 			} else {
-				logger.info("No logs available");
+				const logsDisabled = await checkAndWarnIfLogsDisabled(appId);
+				if (!logsDisabled) {
+					logger.info("No logs available");
+				}
 			}
 
 			return 0;
 		} catch (error) {
+			const logsDisabled = await checkAndWarnIfLogsDisabled(appId);
+			if (logsDisabled) {
+				return 1;
+			}
+
 			logger.logDetailedError(error);
 			context.fail(
 				`Failed to fetch ${logTypeName} logs: ${
