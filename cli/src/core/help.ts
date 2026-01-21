@@ -124,21 +124,73 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		}
 	}
 
-	const allOptions = [
-		...globalCommandOptions,
-		...(definition.meta.options ?? []),
-	];
-	if (allOptions.length > 0) {
+	const allOptions = [...(definition.meta.options ?? [])];
+	const visibleGlobalOptions = globalCommandOptions.filter((o) => !o.hidden);
+	const visibleCommandOptions = allOptions.filter((o) => !o.hidden);
+	const globalOptionNames = new Set(globalCommandOptions.map((o) => o.name));
+	const visibleNonGlobalCommandOptions = visibleCommandOptions.filter(
+		(o) => !globalOptionNames.has(o.name),
+	);
+
+	if (visibleGlobalOptions.length > 0) {
+		const commandShorthands = new Set(
+			visibleNonGlobalCommandOptions
+				.map((o) => o.shorthand)
+				.filter((s): s is string => typeof s === "string" && s.length > 0),
+		);
+
 		lines.push("");
-		lines.push("Options:");
-		for (const option of allOptions) {
-			if (option.hidden) {
-				continue;
-			}
+		lines.push("Global options:");
+		for (const option of visibleGlobalOptions) {
+			const includeShorthand =
+				!option.shorthand || !commandShorthands.has(option.shorthand);
 			lines.push(
-				`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
+				`  ${formatOptionSignature(option, { includeShorthand }).padEnd(24)}${option.description ?? ""}`.trimEnd(),
 			);
 		}
+	}
+
+	if (visibleNonGlobalCommandOptions.length > 0) {
+		const isDeprecatedOption = (option: CommandOption): boolean => {
+			if (option.group === "deprecated") return true;
+			if (option.deprecated) return true;
+			const description = option.description ?? "";
+			return description.includes("[DEPRECATED]");
+		};
+
+		const groupName = (
+			option: CommandOption,
+		): "basic" | "advanced" | "deprecated" => {
+			if (option.group) return option.group;
+			if (isDeprecatedOption(option)) return "deprecated";
+			return "basic";
+		};
+
+		const groups: Record<"basic" | "advanced" | "deprecated", CommandOption[]> =
+			{
+				basic: [],
+				advanced: [],
+				deprecated: [],
+			};
+
+		for (const option of visibleNonGlobalCommandOptions) {
+			groups[groupName(option)].push(option);
+		}
+
+		const emitGroup = (title: string, options: CommandOption[]): void => {
+			if (options.length === 0) return;
+			lines.push("");
+			lines.push(title);
+			for (const option of options) {
+				lines.push(
+					`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
+				);
+			}
+		};
+
+		emitGroup("Basic options:", groups.basic);
+		emitGroup("Advanced options:", groups.advanced);
+		emitGroup("Deprecated options:", groups.deprecated);
 	}
 
 	// Pass-through arguments section
@@ -236,9 +288,12 @@ function formatArgumentSignature(argument: {
 	return `<${argument.name}>`;
 }
 
-function formatOptionSignature(option: CommandOption): string {
+function formatOptionSignature(
+	option: CommandOption,
+	{ includeShorthand = true }: { includeShorthand?: boolean } = {},
+): string {
 	const parts: string[] = [];
-	if (option.shorthand) {
+	if (includeShorthand && option.shorthand) {
 		parts.push(`-${option.shorthand}`);
 	}
 	let signature = `--${option.name}`;
