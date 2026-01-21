@@ -82,7 +82,7 @@ export const cpCommandMeta: CommandMeta = {
 		{
 			name: "Offline mode: copy without API (using phala.toml gateway)",
 			value:
-				"phala cp -g dstack-gateway.example.com -p 16185 ./file.txt app_123:/root/",
+				"phala cp -g dstack-pha-prod7.phala.network -p 16185 ./file.txt app_123:/root/",
 		},
 		{
 			name: "Upload directory recursively",
