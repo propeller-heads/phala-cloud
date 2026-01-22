@@ -107,7 +107,6 @@ export {
   safeGetCvmInfo,
   GetCvmInfoRequestSchema,
   type GetCvmInfoRequest,
-  type GetCvmInfoResponse,
 } from "./cvms/get_cvm_info";
 
 export {
@@ -115,7 +114,6 @@ export {
   safeGetCvmList,
   GetCvmListRequestSchema,
   type GetCvmListRequest,
-  type GetCvmListResponse,
 } from "./cvms/get_cvm_list";
 
 export {
@@ -354,7 +352,6 @@ export {
   safeGetAppList,
   GetAppListRequestSchema,
   type GetAppListRequest,
-  type GetAppListResponse,
 } from "./apps/get_app_list";
 
 export {
@@ -362,7 +359,6 @@ export {
   safeGetAppInfo,
   GetAppInfoRequestSchema,
   type GetAppInfoRequest,
-  type GetAppInfoResponse,
 } from "./apps/get_app_info";
 
 export {
@@ -370,7 +366,6 @@ export {
   safeGetAppCvms,
   GetAppCvmsRequestSchema,
   type GetAppCvmsRequest,
-  type GetAppCvmsResponse,
 } from "./apps/get_app_cvms";
 
 export {

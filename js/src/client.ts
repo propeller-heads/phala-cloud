@@ -82,9 +82,6 @@ function formatResponse(
 
 /**
  * HTTP Client class with ofetch compatibility
- *
- * The type parameter V specifies the API version, which determines the response types
- * for version-dependent endpoints like getCvmList and getCvmInfo.
  */
 export class Client<V extends ApiVersion = DefaultApiVersion> {
   protected fetchInstance: typeof ofetch;
@@ -559,6 +556,23 @@ export class Client<V extends ApiVersion = DefaultApiVersion> {
     options?: RequestOptions,
   ): Promise<SafeResult<FullResponse<T>, PhalaCloudError>> {
     return this.safeRequest(() => this.requestFull<T>(url, options));
+  }
+
+  /**
+   * Create a new client with a different API version
+   *
+   * @example
+   * ```typescript
+   * const client = createClient(); // defaults to 2026-01-21
+   * const legacyClient = client.withVersion("2025-10-28");
+   * const data = await getCvmInfo(legacyClient, { id: "xxx" });
+   * ```
+   */
+  withVersion<NewV extends ApiVersion>(version: NewV): Client<NewV> {
+    return new Client<NewV>({
+      ...this.config,
+      version,
+    } as ClientConfig<NewV>);
   }
 
   /**

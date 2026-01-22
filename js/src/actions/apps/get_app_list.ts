@@ -5,7 +5,7 @@ import type { DstackAppListResponseV20251028 } from "../../types/app_info_v20251
 import { DstackAppListResponseV20260121Schema } from "../../types/app_info_v20260121";
 import type { DstackAppListResponseV20260121 } from "../../types/app_info_v20260121";
 import type { ApiVersion } from "../../types/client";
-import type { GetAppListResponseForVersion } from "../../types/version-mappings";
+import type { GetAppListResponse } from "../../types/version-mappings";
 
 export const GetAppListRequestSchema = z
   .object({
@@ -24,8 +24,6 @@ export const GetAppListRequestSchema = z
   .strict();
 
 export type GetAppListRequest = z.infer<typeof GetAppListRequestSchema>;
-
-export type GetAppListResponse = DstackAppListResponseV20251028 | DstackAppListResponseV20260121;
 
 function getSchemaForVersion(version: ApiVersion) {
   return version === "2025-10-28"
@@ -63,15 +61,15 @@ function getSchemaForVersion(version: ApiVersion) {
 export function getAppList<V extends ApiVersion>(
   client: Client<V>,
   request?: GetAppListRequest,
-): Promise<GetAppListResponseForVersion<V>>;
+): Promise<GetAppListResponse<V>>;
 export async function getAppList<V extends ApiVersion>(
   client: Client<V>,
   request?: GetAppListRequest,
-): Promise<GetAppListResponseForVersion<V>> {
+): Promise<GetAppListResponse<V>> {
   const validatedRequest = GetAppListRequestSchema.parse(request ?? {});
   const response = await client.get("/apps", { params: validatedRequest });
   const schema = getSchemaForVersion(client.config.version);
-  return schema.parse(response) as GetAppListResponseForVersion<V>;
+  return schema.parse(response) as GetAppListResponse<V>;
 }
 
 /**
@@ -80,17 +78,17 @@ export async function getAppList<V extends ApiVersion>(
 export function safeGetAppList<V extends ApiVersion>(
   client: Client<V>,
   request?: GetAppListRequest,
-): Promise<SafeResult<GetAppListResponseForVersion<V>>>;
+): Promise<SafeResult<GetAppListResponse<V>>>;
 export async function safeGetAppList<V extends ApiVersion>(
   client: Client<V>,
   request?: GetAppListRequest,
-): Promise<SafeResult<GetAppListResponseForVersion<V>>> {
+): Promise<SafeResult<GetAppListResponse<V>>> {
   try {
     const data = await getAppList(client, request);
     return { success: true, data };
   } catch (error) {
     if (error && typeof error === "object" && ("status" in error || "issues" in error)) {
-      return { success: false, error } as SafeResult<GetAppListResponseForVersion<V>>;
+      return { success: false, error } as SafeResult<GetAppListResponse<V>>;
     }
     return {
       success: false,
@@ -98,6 +96,6 @@ export async function safeGetAppList<V extends ApiVersion>(
         name: "Error",
         message: error instanceof Error ? error.message : String(error),
       },
-    } as SafeResult<GetAppListResponseForVersion<V>>;
+    } as SafeResult<GetAppListResponse<V>>;
   }
 }

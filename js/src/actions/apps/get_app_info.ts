@@ -5,7 +5,7 @@ import type { DstackAppWithCvmResponseV20251028 } from "../../types/app_info_v20
 import { DstackAppWithCvmResponseV20260121Schema } from "../../types/app_info_v20260121";
 import type { DstackAppWithCvmResponseV20260121 } from "../../types/app_info_v20260121";
 import type { ApiVersion } from "../../types/client";
-import type { GetAppInfoResponseForVersion } from "../../types/version-mappings";
+import type { GetAppInfoResponse } from "../../types/version-mappings";
 
 export const GetAppInfoRequestSchema = z
   .object({
@@ -14,10 +14,6 @@ export const GetAppInfoRequestSchema = z
   .strict();
 
 export type GetAppInfoRequest = z.infer<typeof GetAppInfoRequestSchema>;
-
-export type GetAppInfoResponse =
-  | DstackAppWithCvmResponseV20251028
-  | DstackAppWithCvmResponseV20260121;
 
 function getSchemaForVersion(version: ApiVersion) {
   return version === "2025-10-28"
@@ -41,15 +37,15 @@ function getSchemaForVersion(version: ApiVersion) {
 export function getAppInfo<V extends ApiVersion>(
   client: Client<V>,
   request: GetAppInfoRequest,
-): Promise<GetAppInfoResponseForVersion<V>>;
+): Promise<GetAppInfoResponse<V>>;
 export async function getAppInfo<V extends ApiVersion>(
   client: Client<V>,
   request: GetAppInfoRequest,
-): Promise<GetAppInfoResponseForVersion<V>> {
+): Promise<GetAppInfoResponse<V>> {
   const { appId } = GetAppInfoRequestSchema.parse(request);
   const response = await client.get(`/apps/${appId}`);
   const schema = getSchemaForVersion(client.config.version);
-  return schema.parse(response) as GetAppInfoResponseForVersion<V>;
+  return schema.parse(response) as GetAppInfoResponse<V>;
 }
 
 /**
@@ -58,17 +54,17 @@ export async function getAppInfo<V extends ApiVersion>(
 export function safeGetAppInfo<V extends ApiVersion>(
   client: Client<V>,
   request: GetAppInfoRequest,
-): Promise<SafeResult<GetAppInfoResponseForVersion<V>>>;
+): Promise<SafeResult<GetAppInfoResponse<V>>>;
 export async function safeGetAppInfo<V extends ApiVersion>(
   client: Client<V>,
   request: GetAppInfoRequest,
-): Promise<SafeResult<GetAppInfoResponseForVersion<V>>> {
+): Promise<SafeResult<GetAppInfoResponse<V>>> {
   try {
     const data = await getAppInfo(client, request);
     return { success: true, data };
   } catch (error) {
     if (error && typeof error === "object" && ("status" in error || "issues" in error)) {
-      return { success: false, error } as SafeResult<GetAppInfoResponseForVersion<V>>;
+      return { success: false, error } as SafeResult<GetAppInfoResponse<V>>;
     }
     return {
       success: false,
@@ -76,6 +72,6 @@ export async function safeGetAppInfo<V extends ApiVersion>(
         name: "Error",
         message: error instanceof Error ? error.message : String(error),
       },
-    } as SafeResult<GetAppInfoResponseForVersion<V>>;
+    } as SafeResult<GetAppInfoResponse<V>>;
   }
 }

@@ -1,10 +1,7 @@
 import { createClient as createBaseClient, Client as BaseClient } from "./client";
 import type { ClientConfig, ApiVersion, DefaultApiVersion } from "./types/client";
 import type { z } from "zod";
-import type {
-  GetCvmListResponseForVersion,
-  GetCvmInfoResponseForVersion,
-} from "./types/version-mappings";
+import type { GetCvmListResponse, GetCvmInfoResponse } from "./types/version-mappings";
 
 import { getCurrentUser, safeGetCurrentUser, type CurrentUser } from "./actions/get_current_user";
 import {
@@ -30,18 +27,8 @@ import {
   type WorkspaceResponse,
 } from "./actions/workspaces/list_workspaces";
 import { getWorkspace, safeGetWorkspace } from "./actions/workspaces/get_workspace";
-import {
-  getCvmInfo,
-  safeGetCvmInfo,
-  type GetCvmInfoRequest,
-  type GetCvmInfoResponse,
-} from "./actions/cvms/get_cvm_info";
-import {
-  getCvmList,
-  safeGetCvmList,
-  type GetCvmListRequest,
-  type GetCvmListResponse,
-} from "./actions/cvms/get_cvm_list";
+import { getCvmInfo, safeGetCvmInfo, type GetCvmInfoRequest } from "./actions/cvms/get_cvm_info";
+import { getCvmList, safeGetCvmList, type GetCvmListRequest } from "./actions/cvms/get_cvm_list";
 import {
   provisionCvm,
   safeProvisionCvm,
@@ -383,11 +370,11 @@ export function createClient<V extends ApiVersion = DefaultApiVersion>(
  *
  * This type definition ensures proper type inference for all action methods,
  * including their overload signatures for schema parameters.
- *
- * The type parameter V specifies the API version, which determines the response types
- * for version-dependent endpoints like getCvmList and getCvmInfo.
  */
 export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseClient<V> {
+  // Version switching
+  withVersion<NewV extends ApiVersion>(version: NewV): Client<NewV>;
+
   // Generic request methods (inherited from BaseClient, re-declared for visibility)
   request<T = unknown>(url: string, options?: import("./types/client").RequestOptions): Promise<T>;
 
@@ -486,9 +473,9 @@ export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseCl
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 
-  getCvmList(request?: GetCvmListRequest): Promise<GetCvmListResponseForVersion<V>>;
+  getCvmList(request?: GetCvmListRequest): Promise<GetCvmListResponse<V>>;
 
-  safeGetCvmList(request?: GetCvmListRequest): Promise<SafeResult<GetCvmListResponseForVersion<V>>>;
+  safeGetCvmList(request?: GetCvmListRequest): Promise<SafeResult<GetCvmListResponse<V>>>;
 
   getKmsList(request?: GetKmsListRequest): Promise<GetKmsListResponse>;
   getKmsList<T extends z.ZodTypeAny>(
@@ -525,9 +512,9 @@ export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseCl
   ): Promise<SafeResult<z.infer<T>>>;
   safeGetWorkspace(teamSlug: string, parameters: { schema: false }): Promise<SafeResult<unknown>>;
 
-  getCvmInfo(request: GetCvmInfoRequest): Promise<GetCvmInfoResponseForVersion<V>>;
+  getCvmInfo(request: GetCvmInfoRequest): Promise<GetCvmInfoResponse<V>>;
 
-  safeGetCvmInfo(request: GetCvmInfoRequest): Promise<SafeResult<GetCvmInfoResponseForVersion<V>>>;
+  safeGetCvmInfo(request: GetCvmInfoRequest): Promise<SafeResult<GetCvmInfoResponse<V>>>;
 
   getCvmComposeFile(request: GetCvmComposeFileRequest): Promise<GetCvmComposeFileResult>;
   getCvmComposeFile<T extends z.ZodTypeAny>(

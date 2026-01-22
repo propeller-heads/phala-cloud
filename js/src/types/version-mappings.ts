@@ -29,7 +29,7 @@ import type {
 /**
  * Maps API version to the paginated CVM list response type
  */
-export type GetCvmListResponseForVersion<V extends ApiVersion> = V extends "2026-01-21"
+export type GetCvmListResponse<V extends ApiVersion> = V extends "2026-01-21"
   ? PaginatedCvmInfosV20260121
   : V extends "2025-10-28"
     ? PaginatedCvmInfosV20251028
@@ -38,7 +38,7 @@ export type GetCvmListResponseForVersion<V extends ApiVersion> = V extends "2026
 /**
  * Maps API version to the CVM info detail response type
  */
-export type GetCvmInfoResponseForVersion<V extends ApiVersion> = V extends "2026-01-21"
+export type GetCvmInfoResponse<V extends ApiVersion> = V extends "2026-01-21"
   ? CvmInfoDetailV20260121
   : V extends "2025-10-28"
     ? CvmDetailV20251028
@@ -47,7 +47,7 @@ export type GetCvmInfoResponseForVersion<V extends ApiVersion> = V extends "2026
 /**
  * Maps API version to the app list response type
  */
-export type GetAppListResponseForVersion<V extends ApiVersion> = V extends "2026-01-21"
+export type GetAppListResponse<V extends ApiVersion> = V extends "2026-01-21"
   ? DstackAppListResponseV20260121
   : V extends "2025-10-28"
     ? DstackAppListResponseV20251028
@@ -56,7 +56,7 @@ export type GetAppListResponseForVersion<V extends ApiVersion> = V extends "2026
 /**
  * Maps API version to the app info response type
  */
-export type GetAppInfoResponseForVersion<V extends ApiVersion> = V extends "2026-01-21"
+export type GetAppInfoResponse<V extends ApiVersion> = V extends "2026-01-21"
   ? DstackAppWithCvmResponseV20260121
   : V extends "2025-10-28"
     ? DstackAppWithCvmResponseV20251028
@@ -65,7 +65,7 @@ export type GetAppInfoResponseForVersion<V extends ApiVersion> = V extends "2026
 /**
  * Maps API version to the app CVMs list response type
  */
-export type GetAppCvmsResponseForVersion<V extends ApiVersion> = V extends "2026-01-21"
+export type GetAppCvmsResponse<V extends ApiVersion> = V extends "2026-01-21"
   ? CvmInfoV20260121[]
   : V extends "2025-10-28"
     ? CvmInfoV20251028[]
