@@ -2,6 +2,9 @@ import { createClient } from "@phala/cloud";
 import { safeGetCvmInfo } from "@phala/cloud";
 import type { TestLogger } from "./logger";
 
+// Use legacy API version to match CLI behavior
+const API_VERSION = "2025-10-28" as const;
+
 /**
  * Format error with full HTTP response details
  */
@@ -59,7 +62,9 @@ export async function getCvmSerialLogs(
 	vmUuid: string,
 	apiKey?: string,
 ): Promise<string> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 
 	try {
 		// First get CVM info to find the syslog endpoint
@@ -152,7 +157,9 @@ export async function waitForOperationsComplete(
 	timeoutMs = 60000, // 1 minute default
 	apiKey?: string,
 ): Promise<void> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 	const startTime = Date.now();
 	const checkIntervalMs = 2000; // Check every 2 seconds
 
@@ -238,7 +245,9 @@ export async function waitForNewEvent(
 	timeoutMs = 180000, // 3 minutes default
 	apiKey?: string,
 ): Promise<void> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 	const startTime = Date.now();
 	const checkIntervalMs = 2000; // Check every 2 seconds
 
@@ -349,7 +358,9 @@ export async function waitForCvmStatus(
 	timeoutMs = 300000, // 5 minutes default
 	apiKey?: string,
 ): Promise<void> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 	const startTime = Date.now();
 	const checkIntervalMs = 5000; // Check every 5 seconds
 
@@ -400,7 +411,9 @@ export async function waitForCvmNetwork(
 	timeoutMs = 180000, // 3 minutes default
 	apiKey?: string,
 ): Promise<void> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 	const startTime = Date.now();
 	const checkIntervalMs = 5000;
 
@@ -452,7 +465,9 @@ export async function getCvmDetails(
 	appId: string,
 	apiKey?: string,
 ): Promise<unknown> {
-	const client = createClient(apiKey ? { apiKey } : undefined);
+	const client = createClient(
+		apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+	);
 	const result = await safeGetCvmInfo(client, { uuid: appId });
 
 	if (!result.success) {
@@ -474,7 +489,9 @@ export async function cleanupCvm(
 	try {
 		logger.info(`Cleaning up CVM: ${appId}`);
 
-		const client = createClient(apiKey ? { apiKey } : undefined);
+		const client = createClient(
+			apiKey ? { apiKey, version: API_VERSION } : { version: API_VERSION },
+		);
 
 		// First check if CVM exists
 		const checkResult = await safeGetCvmInfo(client, { uuid: appId });
