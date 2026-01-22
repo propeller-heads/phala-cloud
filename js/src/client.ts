@@ -173,9 +173,8 @@ export class Client {
 
       // Generic handlers for response error (similar to request.ts)
       onResponseError: ({ request, response, options }) => {
-        console.warn(`HTTP ${response.status}: ${response.url}`);
-
         if (logger.enabled) {
+          console.warn(`HTTP ${response.status}: ${response.url}`);
           const method = options.method || "GET";
           const url = typeof request === "string" ? request : request.url;
 

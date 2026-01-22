@@ -7,7 +7,8 @@ import {
 	createClient,
 	safeGetCurrentUser,
 	BusinessError,
-	type PhalaCloudError,
+	ResourceError,
+	formatStructuredError,
 } from "@phala/cloud";
 
 import type { UserInfoResponse } from "@/src/api/types";
@@ -18,6 +19,7 @@ import { removeApiKey, saveApiKey } from "@/src/utils/credentials";
 
 import { loginCommandMeta, loginCommandSchema } from "./command";
 import type { LoginCommandInput } from "./command";
+import { extractRfc8628Error } from "./error-handling";
 
 // Device auth response types
 interface DeviceCodeResponse {
@@ -32,37 +34,6 @@ interface DeviceCodeResponse {
 interface DeviceTokenResponse {
 	access_token: string;
 	token_type: string;
-}
-
-interface DeviceTokenError {
-	error: string;
-	error_description?: string;
-}
-
-/**
- * Extract device auth error from PhalaCloudError
- * Device auth errors have a specific structure in the detail field
- */
-function extractDeviceAuthError(
-	error: PhalaCloudError,
-): DeviceTokenError | null {
-	const { detail } = error;
-
-	// Device auth errors have detail as an object with 'error' field
-	if (detail && typeof detail === "object" && !Array.isArray(detail)) {
-		const detailObj = detail as Record<string, unknown>;
-		if (detailObj.error && typeof detailObj.error === "string") {
-			return {
-				error: detailObj.error,
-				error_description:
-					typeof detailObj.error_description === "string"
-						? detailObj.error_description
-						: undefined,
-			};
-		}
-	}
-
-	return null;
 }
 
 async function validateAndPersistApiKey(
@@ -181,28 +152,38 @@ async function runDeviceAuthFlow(options: {
 			spinner.succeed("Authorization successful!");
 			return tokenResponse.access_token;
 		} catch (error) {
-			// Handle device auth errors using proper SDK error types
-			if (error instanceof BusinessError) {
-				const deviceAuthError = extractDeviceAuthError(error);
+			// 1. Handle StructuredError (SDK converts to ResourceError)
+			if (error instanceof ResourceError) {
+				spinner.stop();
+				throw new Error(formatStructuredError(error));
+			}
 
-				if (deviceAuthError) {
-					// Handle known device auth error types
-					switch (deviceAuthError.error) {
+			// 2. Handle RFC 8628 device auth errors
+			if (error instanceof BusinessError) {
+				const rfc8628Err = extractRfc8628Error(error);
+
+				if (rfc8628Err) {
+					switch (rfc8628Err.error) {
 						case "authorization_pending":
 							// Keep polling - this is expected
+							continue;
+
+						case "slow_down":
+							// RFC 8628: increase polling interval
+							await new Promise((resolve) => setTimeout(resolve, 5000));
 							continue;
 
 						case "expired_token":
 							spinner.fail("Authorization expired");
 							throw new Error(
-								deviceAuthError.error_description ||
+								rfc8628Err.error_description ||
 									"Device authorization expired. Please try again.",
 							);
 
 						case "access_denied":
 							spinner.fail("Authorization denied");
 							throw new Error(
-								deviceAuthError.error_description ||
+								rfc8628Err.error_description ||
 									"You denied the authorization request.",
 							);
 
@@ -210,13 +191,13 @@ async function runDeviceAuthFlow(options: {
 							// Unknown device auth error
 							spinner.fail("Authorization failed");
 							throw new Error(
-								`Authorization failed: ${deviceAuthError.error_description || deviceAuthError.error}`,
+								`Authorization failed: ${rfc8628Err.error_description || rfc8628Err.error}`,
 							);
 					}
 				}
 			}
 
-			// Not a device auth error or unknown error type
+			// 3. Other errors
 			spinner.fail("Request failed");
 			throw error;
 		}
