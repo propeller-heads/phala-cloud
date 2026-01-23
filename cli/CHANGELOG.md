@@ -1,3 +1,16 @@
+## [1.1.5](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.4...cli-v1.1.5) (2026-01-23)
+
+### feat
+
+* **cli:** add -d/--data and @file syntax for api command ([93d6bb3](https://github.com/Phala-Network/phala-cloud/commit/93d6bb3670283e92fd15f8ba676d615b96b20e98))
+* **cli:** add privacy settings to deploy command ([edf9b40](https://github.com/Phala-Network/phala-cloud/commit/edf9b407d154f696ca2521af2bbc1d01971f3cd3)), closes [#148](https://github.com/Phala-Network/phala-cloud/issues/148)
+* **cli:** improve help output with option grouping ([e67faa8](https://github.com/Phala-Network/phala-cloud/commit/e67faa808b6fcbedd1e22b5fe40629a25f6de877))
+* **cli:** simplify KMS option to --kms [phala|ethereum|eth|base] ([35d1fcd](https://github.com/Phala-Network/phala-cloud/commit/35d1fcd090c4dceaa8b502297a26d552b3ca4195))
+
+### fix
+
+* **cli:** make --custom-app-id work correctly in deploy command ([ba64170](https://github.com/Phala-Network/phala-cloud/commit/ba64170adf5c6e26321290d7276a570e6d1329f3))
+* **cli:** use real Phala gateway domain in help examples ([0c6765d](https://github.com/Phala-Network/phala-cloud/commit/0c6765d0b422c647f228c6d67283d76fbf18d9d3)), closes [#139](https://github.com/Phala-Network/phala-cloud/issues/139)
 ## [1.1.4](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.4-beta.1...cli-v1.1.4) (2026-01-19)
 
 ### feat
