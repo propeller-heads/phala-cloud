@@ -131,9 +131,17 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "custom-app-id",
-			description: "Custom App ID to use.",
+			description: "Custom App ID to use. For PHALA KMS, requires --nonce.",
 			type: "string",
 			target: "customAppId",
+			group: "advanced",
+		},
+		{
+			name: "nonce",
+			description:
+				"Nonce for deterministic app_id generation (PHALA KMS only, requires --custom-app-id).",
+			type: "string",
+			target: "nonce",
 			group: "advanced",
 		},
 		{
@@ -196,8 +204,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "public-sysinfo",
-			description:
-				"Make CVM system info publicly accessible (default: true)",
+			description: "Make CVM system info publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicSysinfo",
 		},
@@ -288,6 +295,7 @@ export const deployCommandSchema = z.object({
 	kmsId: z.string().optional(),
 	cvmId: z.string().optional(),
 	customAppId: z.string().optional(),
+	nonce: z.string().optional(),
 	preLaunchScript: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),

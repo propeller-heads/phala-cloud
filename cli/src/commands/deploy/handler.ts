@@ -46,7 +46,10 @@ import inquirer from "inquirer";
 import type { DeployCommandInput } from "./command";
 import type { RuntimeProjectConfig } from "@/src/utils/project-config";
 
-type PrivacyConfig = Pick<RuntimeProjectConfig, "public_logs" | "public_sysinfo" | "listed">;
+type PrivacyConfig = Pick<
+	RuntimeProjectConfig,
+	"public_logs" | "public_sysinfo" | "listed"
+>;
 
 interface Options {
 	name?: string;
@@ -66,6 +69,7 @@ interface Options {
 	cvmId?: string;
 	uuid?: string;
 	customAppId?: string;
+	nonce?: string;
 	preLaunchScript?: string;
 	privateKey?: string;
 	rpcUrl?: string;
@@ -598,7 +602,8 @@ const resolvePrivacySettings = (
 
 	return {
 		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? isDevMode,
-		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		publicSysinfo:
+			options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
 		listed: options.listed ?? projectConfig?.listed ?? false,
 	};
 };
@@ -677,6 +682,32 @@ export const buildProvisionPayload = (
 	}
 	// If neither flag is set and not on-chain KMS, don't add prefer_dev (let backend auto-select)
 
+	// Add custom app_id if specified
+	if (options.customAppId) {
+		payload.app_id = options.customAppId;
+
+		// For PHALA KMS, nonce is required with custom app_id
+		if (kmsType === "PHALA") {
+			if (!options.nonce) {
+				throw new Error(
+					"--nonce is required when using --custom-app-id with PHALA KMS.",
+				);
+			}
+			const nonceNum = Number(options.nonce);
+			if (Number.isNaN(nonceNum)) {
+				throw new Error(
+					`Invalid nonce value: "${options.nonce}". Nonce must be a valid number.`,
+				);
+			}
+			payload.nonce = nonceNum;
+		}
+	}
+
+	// Validate nonce is not used alone
+	if (options.nonce && !options.customAppId) {
+		throw new Error("--nonce requires --custom-app-id to be specified.");
+	}
+
 	return payload;
 };
 
@@ -705,7 +736,10 @@ const deployNewCvm = async (
 	}
 
 	// Resolve privacy settings based on options, phala.toml, and dev mode
-	const privacySettings = resolvePrivacySettings(validatedOptions, projectConfig);
+	const privacySettings = resolvePrivacySettings(
+		validatedOptions,
+		projectConfig,
+	);
 
 	const payload = buildProvisionPayload(
 		validatedOptions,
