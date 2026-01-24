@@ -109,9 +109,12 @@ async function runDeviceAuthFlow(options: {
 		device_code,
 		user_code,
 		verification_uri_complete,
-		interval,
+		interval: initialInterval,
 		expires_in,
 	} = codeResponse;
+
+	// Polling interval - can be increased on slow_down per RFC 8628
+	let pollingInterval = initialInterval;
 
 	// Step 2: Display verification information
 	console.log();
@@ -138,7 +141,7 @@ async function runDeviceAuthFlow(options: {
 	const expiresAt = Date.now() + expires_in * 1000;
 
 	while (Date.now() < expiresAt) {
-		await new Promise((resolve) => setTimeout(resolve, interval * 1000));
+		await new Promise((resolve) => setTimeout(resolve, pollingInterval * 1000));
 
 		try {
 			const tokenResponse = await client.post<DeviceTokenResponse>(
@@ -169,8 +172,8 @@ async function runDeviceAuthFlow(options: {
 							continue;
 
 						case "slow_down":
-							// RFC 8628: increase polling interval
-							await new Promise((resolve) => setTimeout(resolve, 5000));
+							// RFC 8628: permanently increase polling interval by 5 seconds
+							pollingInterval += 5;
 							continue;
 
 						case "expired_token":
