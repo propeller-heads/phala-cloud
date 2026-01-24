@@ -1,10 +1,11 @@
 import prompts from "prompts";
 import { execa } from "execa";
 import semver from "semver";
+import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { logger, setJsonMode } from "@/src/utils/logger";
-import { getConfigValue } from "@/src/utils/config";
+import { getConfigValue, saveConfig } from "@/src/utils/config";
 import {
 	detectPackageManager,
 	detectRuntimeFromProcess,
@@ -21,6 +22,70 @@ import {
 
 function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.trim().length > 0;
+}
+
+function encodeNpmPackageName(packageName: string): string {
+	return packageName.startsWith("@")
+		? packageName.replace("/", "%2F")
+		: packageName;
+}
+
+interface VersionCheckResult {
+	latestVersion: string | null;
+	error?: string;
+}
+
+async function fetchLatestVersion(
+	packageName: string,
+	channel: string,
+): Promise<VersionCheckResult> {
+	const encodedName = encodeNpmPackageName(packageName);
+	const url = `https://registry.npmjs.org/${encodedName}`;
+
+	const controller = new AbortController();
+	const timeoutHandle = setTimeout(() => controller.abort(), 5000);
+
+	try {
+		const response = await fetch(url, {
+			signal: controller.signal,
+			headers: { accept: "application/json" },
+		});
+
+		if (!response.ok) {
+			return {
+				latestVersion: null,
+				error: `Registry returned ${response.status}`,
+			};
+		}
+
+		const body = (await response.json()) as { "dist-tags"?: unknown };
+		if (!body || typeof body !== "object") {
+			return { latestVersion: null, error: "Invalid registry response" };
+		}
+
+		const distTags = body["dist-tags"];
+		if (!distTags || typeof distTags !== "object") {
+			return { latestVersion: null, error: "No dist-tags in response" };
+		}
+
+		const selected =
+			(distTags as Record<string, unknown>)[channel] ??
+			(distTags as Record<string, unknown>).latest;
+
+		if (typeof selected !== "string") {
+			return { latestVersion: null, error: `Channel "${channel}" not found` };
+		}
+
+		const latestVersion = semver.valid(selected);
+		return { latestVersion };
+	} catch (error) {
+		if (error instanceof Error && error.name === "AbortError") {
+			return { latestVersion: null, error: "Request timed out" };
+		}
+		return { latestVersion: null, error: String(error) };
+	} finally {
+		clearTimeout(timeoutHandle);
+	}
 }
 
 function getErrorCode(error: unknown): string | undefined {
@@ -115,6 +180,63 @@ async function runSelfUpdate(
 	const currentVersion = context.cli?.packageVersion ?? "0.0.0";
 	const channel = resolveChannel(input.channel, currentVersion, context.env);
 
+	// Fetch latest version from npm registry
+	if (!input.json) {
+		context.stderr.write(chalk.gray("Checking for updates...\n"));
+	}
+
+	const { latestVersion, error: fetchError } = await fetchLatestVersion(
+		packageName,
+		channel,
+	);
+
+	// Update the cache with fresh data
+	if (latestVersion) {
+		const now = Date.now();
+		const channelKey = channel.replace(/[^a-zA-Z0-9_-]/g, "_");
+		saveConfig({
+			[`updateCheckLastAt_${channelKey}`]: now,
+			[`updateCheckLatest_${channelKey}`]: latestVersion,
+			...(channel === "latest"
+				? { updateCheckLastAt: now, updateCheckLatest: latestVersion }
+				: {}),
+		});
+	}
+
+	const currentValid = semver.valid(currentVersion);
+	const isUpToDate =
+		latestVersion && currentValid && !semver.gt(latestVersion, currentValid);
+
+	// Display version info
+	if (!input.json) {
+		if (fetchError) {
+			context.stderr.write(
+				chalk.yellow(
+					`Warning: Could not fetch latest version: ${fetchError}\n`,
+				),
+			);
+			context.stderr.write(chalk.gray(`Current version: v${currentVersion}\n`));
+		} else if (latestVersion) {
+			context.stderr.write(chalk.gray(`Current version: v${currentVersion}\n`));
+			context.stderr.write(
+				chalk.gray(
+					`Latest version:  v${latestVersion}${channel !== "latest" ? ` (${channel})` : ""}\n`,
+				),
+			);
+			if (isUpToDate) {
+				context.stderr.write(
+					chalk.green("You are already on the latest version.\n"),
+				);
+			} else {
+				context.stderr.write(
+					chalk.yellow(
+						`Update available: v${currentVersion} → v${latestVersion}\n`,
+					),
+				);
+			}
+		}
+	}
+
 	const spec =
 		channel === "latest"
 			? `${packageName}@latest`
@@ -123,12 +245,18 @@ async function runSelfUpdate(
 	const { command, args } = getGlobalInstallArgs(packageManager, spec);
 
 	if (input.json && input.dryRun) {
-		context.success({ command: commandString, dryRun: true });
+		context.success({
+			command: commandString,
+			dryRun: true,
+			currentVersion,
+			latestVersion,
+			isUpToDate,
+		});
 		return 0;
 	}
 
 	if (input.dryRun) {
-		context.stdout.write(`${commandString}\n`);
+		context.stderr.write(chalk.gray(`Command: ${commandString}\n`));
 		return 0;
 	}
 
@@ -141,6 +269,9 @@ async function runSelfUpdate(
 				command: commandString,
 				ran: false,
 				reason: "nonInteractive",
+				currentVersion,
+				latestVersion,
+				isUpToDate,
 			});
 			return 0;
 		}
@@ -148,18 +279,29 @@ async function runSelfUpdate(
 		return 1;
 	}
 
+	// If already up to date, ask if user still wants to reinstall
+	const promptMessage = isUpToDate
+		? `Already up to date. Reinstall anyway with "${commandString}"?`
+		: `Run "${commandString}"?`;
+
 	const shouldRun =
 		input.yes ||
 		(await prompts({
 			type: "confirm",
 			name: "ok",
-			message: `Run "${commandString}"?`,
-			initial: true,
+			message: promptMessage,
+			initial: !isUpToDate,
 		}).then((r) => r.ok === true));
 
 	if (!shouldRun) {
 		if (input.json) {
-			context.success({ command: commandString, ran: false });
+			context.success({
+				command: commandString,
+				ran: false,
+				currentVersion,
+				latestVersion,
+				isUpToDate,
+			});
 		}
 		return 0;
 	}
@@ -167,7 +309,13 @@ async function runSelfUpdate(
 	try {
 		await execa(command, args, { stdio: "inherit" });
 		if (input.json) {
-			context.success({ command: commandString, ran: true });
+			context.success({
+				command: commandString,
+				ran: true,
+				currentVersion,
+				latestVersion,
+				isUpToDate,
+			});
 			return 0;
 		}
 		logger.success("Update completed");

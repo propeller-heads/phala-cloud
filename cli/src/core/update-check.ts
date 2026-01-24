@@ -206,18 +206,6 @@ export async function checkForUpdates(
 		if (isTruthyEnv(env.PHALA_DISABLE_UPDATE_CHECK)) return null;
 		if (configStore.get("disableUpdateNotice") === true) return null;
 
-		const cached = getCachedUpdateNotice({
-			executableName,
-			packageName,
-			currentVersion,
-			runtime,
-			env,
-			isJson,
-			stderrIsTTY,
-			configStore,
-		});
-		if (cached) return cached;
-
 		const channel = resolveChannel(currentVersion, env, configStore);
 		const lastAtKey = getChannelConfigKey("updateCheckLastAt", channel);
 		const lastAt =
@@ -225,8 +213,19 @@ export async function checkForUpdates(
 			(channel === "latest"
 				? getNumberConfig(configStore, "updateCheckLastAt")
 				: undefined);
+
+		// If within TTL, return cached notice (if any) without fetching
 		if (lastAt && now - lastAt < ttlMs) {
-			return null;
+			return getCachedUpdateNotice({
+				executableName,
+				packageName,
+				currentVersion,
+				runtime,
+				env,
+				isJson,
+				stderrIsTTY,
+				configStore,
+			});
 		}
 
 		const encodedName = encodeNpmPackageName(packageName);
