@@ -105,19 +105,15 @@ export {
 export {
   getCvmInfo,
   safeGetCvmInfo,
-  CvmLegacyDetailSchema,
   GetCvmInfoRequestSchema,
   type GetCvmInfoRequest,
-  type GetCvmInfoResponse,
 } from "./cvms/get_cvm_info";
 
 export {
   getCvmList,
   safeGetCvmList,
-  GetCvmListSchema,
   GetCvmListRequestSchema,
   type GetCvmListRequest,
-  type GetCvmListResponse,
 } from "./cvms/get_cvm_list";
 
 export {
@@ -349,3 +345,39 @@ export {
   type GetCvmStatusBatchResponse,
   type GetCvmStatusBatchRequest,
 } from "./cvms/get_cvm_status_batch";
+
+// App Operations
+export {
+  getAppList,
+  safeGetAppList,
+  GetAppListRequestSchema,
+  type GetAppListRequest,
+} from "./apps/get_app_list";
+
+export {
+  getAppInfo,
+  safeGetAppInfo,
+  GetAppInfoRequestSchema,
+  type GetAppInfoRequest,
+} from "./apps/get_app_info";
+
+export {
+  getAppCvms,
+  safeGetAppCvms,
+  GetAppCvmsRequestSchema,
+  type GetAppCvmsRequest,
+} from "./apps/get_app_cvms";
+
+export {
+  getAppRevisions,
+  safeGetAppRevisions,
+  GetAppRevisionsRequestSchema,
+  type GetAppRevisionsRequest,
+} from "./apps/get_app_revisions";
+
+export {
+  getAppRevisionDetail,
+  safeGetAppRevisionDetail,
+  GetAppRevisionDetailRequestSchema,
+  type GetAppRevisionDetailRequest,
+} from "./apps/get_app_revision_detail";

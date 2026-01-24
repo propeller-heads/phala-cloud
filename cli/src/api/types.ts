@@ -287,7 +287,7 @@ export interface PubkeyResponse {
 }
 
 // CVM Info Response - re-export from SDK to avoid duplication
-export type { CvmLegacyDetail as CvmInfoResponse } from "@phala/cloud";
+export type { CvmDetailV20251028 as CvmInfoResponse } from "@phala/cloud";
 
 // Upgrade Response
 export interface UpgradeResponse {

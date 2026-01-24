@@ -4,14 +4,27 @@ import mitt, { type Emitter, type Handler } from "mitt";
 import {
   type SafeResult,
   type ClientConfig,
+  type ResolvedClientConfig,
   type FullResponse,
   type RequestOptions,
+  type ApiVersion,
+  type DefaultApiVersion,
 } from "./types/client";
 import type { Prettify } from "./types/common";
 import { parseApiError, PhalaCloudError, RequestError } from "./utils/errors";
-export type { SafeResult, FullResponse, RequestOptions } from "./types/client";
+export type {
+  SafeResult,
+  FullResponse,
+  RequestOptions,
+  ApiVersion,
+  DefaultApiVersion,
+} from "./types/client";
 
-export const SUPPORTED_API_VERSIONS = ["2025-05-31", "2025-10-28"] as const;
+export const SUPPORTED_API_VERSIONS = [
+  "2025-10-28",
+  "2026-01-21",
+] as const satisfies readonly ApiVersion[];
+export const DEFAULT_API_VERSION: DefaultApiVersion = "2026-01-21";
 const logger = debug("phala::api-client");
 
 /**
@@ -70,35 +83,37 @@ function formatResponse(
 /**
  * HTTP Client class with ofetch compatibility
  */
-export class Client {
+export class Client<V extends ApiVersion = DefaultApiVersion> {
   protected fetchInstance: typeof ofetch;
-  public readonly config: ClientConfig;
+  public readonly config: ResolvedClientConfig<V>;
   private emitter: Emitter<ClientEvents>;
 
-  constructor(config: ClientConfig = {}) {
+  constructor(config: ClientConfig<V> = {} as ClientConfig<V>) {
     // Initialize event emitter
     this.emitter = mitt<ClientEvents>();
     // Resolve configuration with environment variables
-    const resolvedConfig: ClientConfig = {
+    const resolvedApiKey = config.apiKey || process?.env?.PHALA_CLOUD_API_KEY;
+    const resolvedBaseURL =
+      config.baseURL ||
+      process?.env?.PHALA_CLOUD_API_PREFIX ||
+      "https://cloud-api.phala.network/api/v1";
+
+    const version = (
+      config.version && (SUPPORTED_API_VERSIONS as readonly string[]).includes(config.version)
+        ? config.version
+        : DEFAULT_API_VERSION
+    ) as V;
+
+    this.config = {
       ...config,
-      apiKey: config.apiKey || process?.env?.PHALA_CLOUD_API_KEY,
-      baseURL:
-        config.baseURL ||
-        process?.env?.PHALA_CLOUD_API_PREFIX ||
-        "https://cloud-api.phala.network/api/v1",
-    };
-
-    const version =
-      resolvedConfig.version &&
-      (SUPPORTED_API_VERSIONS as readonly string[]).includes(resolvedConfig.version)
-        ? resolvedConfig.version!
-        : SUPPORTED_API_VERSIONS[SUPPORTED_API_VERSIONS.length - 1]!; // Default to latest version
-
-    this.config = resolvedConfig;
+      apiKey: resolvedApiKey,
+      baseURL: resolvedBaseURL,
+      version,
+    } as ResolvedClientConfig<V>;
 
     // Extract our custom options and pass the rest to ofetch
     const { apiKey, baseURL, timeout, headers, useCookieAuth, onResponseError, ...fetchOptions } =
-      resolvedConfig;
+      this.config;
 
     const requestHeaders: Record<string, string> = {
       "X-Phala-Version": version,
@@ -271,6 +286,52 @@ export class Client {
   // ===== Direct methods (throw on error) =====
 
   /**
+   * Generic request method (throws PhalaCloudError on error)
+   */
+  async request<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
+    try {
+      const method = options?.method || "GET";
+      return await this.fetchInstance<T>(url, {
+        ...options,
+        method,
+      } as Parameters<typeof this.fetchInstance<T>>[1]);
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
+  }
+
+  /**
+   * Generic request method that returns the full response (status + headers + data)
+   *
+   * Unlike other direct methods, this does NOT throw for non-2xx HTTP statuses.
+   * It only throws for network/transport/unexpected errors.
+   */
+  async requestFull<T = unknown>(url: string, options?: RequestOptions): Promise<FullResponse<T>> {
+    try {
+      const method = options?.method || "GET";
+      const response = await this.fetchInstance.raw(url, {
+        ...options,
+        method,
+        ignoreResponseError: true,
+      } as Parameters<(typeof this.fetchInstance)["raw"]>[1]);
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: (response as unknown as { _data: T })._data,
+        ok: response.ok,
+      };
+    } catch (error) {
+      const requestError = this.convertToRequestError(error);
+      const phalaCloudError = this.emitError(requestError);
+      throw phalaCloudError;
+    }
+  }
+
+  /**
    * Perform GET request (throws PhalaCloudError on error)
    */
   async get<T = unknown>(
@@ -369,72 +430,6 @@ export class Client {
       const phalaCloudError = this.emitError(requestError);
       throw phalaCloudError;
     }
-  }
-
-  // ===== Generic request method =====
-
-  /**
-   * Perform a generic HTTP request with any method
-   * Returns only the response body (throws PhalaCloudError on error)
-   *
-   * @example
-   * ```typescript
-   * // Simple request
-   * const data = await client.request('/endpoint', { method: 'GET' });
-   *
-   * // With body
-   * const result = await client.request('/endpoint', {
-   *   method: 'POST',
-   *   body: { key: 'value' }
-   * });
-   * ```
-   */
-  async request<T = unknown>(url: FetchRequest, options?: RequestOptions): Promise<T> {
-    const { body, ...fetchOptions } = options || {};
-    try {
-      return await this.fetchInstance<T>(url, {
-        ...fetchOptions,
-        body,
-      } as Parameters<typeof this.fetchInstance<T>>[1]);
-    } catch (error) {
-      const requestError = this.convertToRequestError(error);
-      const phalaCloudError = this.emitError(requestError);
-      throw phalaCloudError;
-    }
-  }
-
-  /**
-   * Perform a generic HTTP request and return full response with status and headers
-   * Does NOT throw on HTTP errors (4xx, 5xx) - check response.ok instead
-   *
-   * @example
-   * ```typescript
-   * const response = await client.requestFull('/endpoint', { method: 'GET' });
-   * console.log(response.status);      // 200
-   * console.log(response.headers);     // Headers object
-   * console.log(response.data);        // Response body
-   * console.log(response.ok);          // true if 2xx
-   * ```
-   */
-  async requestFull<T = unknown>(
-    url: FetchRequest,
-    options?: RequestOptions,
-  ): Promise<FullResponse<T>> {
-    const { body, ...fetchOptions } = options || {};
-    // Use ofetch.raw to get full response, and ignoreResponseError to not throw on 4xx/5xx
-    const response = await this.fetchInstance.raw<T>(url, {
-      ...fetchOptions,
-      body,
-      ignoreResponseError: true,
-    } as Parameters<typeof this.fetchInstance.raw<T>>[1]);
-
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      data: response._data as T,
-      ok: response.ok,
-    };
   }
 
   // ===== Safe methods (return SafeResult) =====
@@ -544,23 +539,40 @@ export class Client {
   }
 
   /**
-   * Safe generic request (returns SafeResult)
+   * Safe wrapper around the generic request method (returns SafeResult)
    */
   async safeRequestMethod<T = unknown>(
-    url: FetchRequest,
+    url: string,
     options?: RequestOptions,
   ): Promise<SafeResult<T, PhalaCloudError>> {
     return this.safeRequest(() => this.request<T>(url, options));
   }
 
   /**
-   * Safe generic request with full response (returns SafeResult)
+   * Safe wrapper around requestFull (returns SafeResult)
    */
   async safeRequestFull<T = unknown>(
-    url: FetchRequest,
+    url: string,
     options?: RequestOptions,
   ): Promise<SafeResult<FullResponse<T>, PhalaCloudError>> {
     return this.safeRequest(() => this.requestFull<T>(url, options));
+  }
+
+  /**
+   * Create a new client with a different API version
+   *
+   * @example
+   * ```typescript
+   * const client = createClient(); // defaults to 2026-01-21
+   * const legacyClient = client.withVersion("2025-10-28");
+   * const data = await getCvmInfo(legacyClient, { id: "xxx" });
+   * ```
+   */
+  withVersion<NewV extends ApiVersion>(version: NewV): Client<NewV> {
+    return new Client<NewV>({
+      ...this.config,
+      version,
+    } as ClientConfig<NewV>);
   }
 
   /**
@@ -576,12 +588,12 @@ export class Client {
    * ```
    */
   extend<TActions extends Record<string, unknown>>(
-    actions: TActions | ((client: Client) => TActions),
+    actions: TActions | ((client: Client<V>) => TActions),
   ): Prettify<
     this & {
-      [K in keyof TActions]: TActions[K] extends (client: Client) => infer R
+      [K in keyof TActions]: TActions[K] extends (client: Client<V>) => infer R
         ? () => R
-        : TActions[K] extends (client: Client, ...args: infer P) => infer R
+        : TActions[K] extends (client: Client<V>, ...args: infer P) => infer R
           ? (...args: P) => R
           : never;
     }
@@ -589,9 +601,9 @@ export class Client {
     const actionsObj = (typeof actions === "function" ? actions(this) : actions) as TActions;
 
     const extended = Object.create(this) as this & {
-      [K in keyof TActions]: TActions[K] extends (client: Client) => infer R
+      [K in keyof TActions]: TActions[K] extends (client: Client<V>) => infer R
         ? () => R
-        : TActions[K] extends (client: Client, ...args: infer P) => infer R
+        : TActions[K] extends (client: Client<V>, ...args: infer P) => infer R
           ? (...args: P) => R
           : never;
     };
@@ -629,10 +641,22 @@ export class Client {
  * // Using environment variables (set PHALA_CLOUD_API_KEY)
  * const client = createClient()
  *
+ * // Using a specific API version
+ * const client = createClient({ version: '2025-10-28' })
+ *
  * // To enable debug logging:
  * // DEBUG=phala::api-client node your-script.js
  * ```
  */
-export function createClient(config: ClientConfig = {}): Client {
-  return new Client(config);
+export function createClient(
+  config: ClientConfig<"2026-01-21"> & { version: "2026-01-21" },
+): Client<"2026-01-21">;
+export function createClient(
+  config: ClientConfig<"2025-10-28"> & { version: "2025-10-28" },
+): Client<"2025-10-28">;
+export function createClient(config?: ClientConfig): Client<DefaultApiVersion>;
+export function createClient<V extends ApiVersion>(
+  config: ClientConfig<V> = {} as ClientConfig<V>,
+): Client<V> {
+  return new Client<V>(config);
 }

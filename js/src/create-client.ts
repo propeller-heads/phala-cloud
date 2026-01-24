@@ -1,6 +1,7 @@
 import { createClient as createBaseClient, Client as BaseClient } from "./client";
-import type { ClientConfig } from "./types/client";
+import type { ClientConfig, ApiVersion, DefaultApiVersion } from "./types/client";
 import type { z } from "zod";
+import type { GetCvmListResponse, GetCvmInfoResponse } from "./types/version-mappings";
 
 import { getCurrentUser, safeGetCurrentUser, type CurrentUser } from "./actions/get_current_user";
 import {
@@ -26,18 +27,8 @@ import {
   type WorkspaceResponse,
 } from "./actions/workspaces/list_workspaces";
 import { getWorkspace, safeGetWorkspace } from "./actions/workspaces/get_workspace";
-import {
-  getCvmInfo,
-  safeGetCvmInfo,
-  type GetCvmInfoRequest,
-  type GetCvmInfoResponse,
-} from "./actions/cvms/get_cvm_info";
-import {
-  getCvmList,
-  safeGetCvmList,
-  type GetCvmListRequest,
-  type GetCvmListResponse,
-} from "./actions/cvms/get_cvm_list";
+import { getCvmInfo, safeGetCvmInfo, type GetCvmInfoRequest } from "./actions/cvms/get_cvm_info";
+import { getCvmList, safeGetCvmList, type GetCvmListRequest } from "./actions/cvms/get_cvm_list";
 import {
   provisionCvm,
   safeProvisionCvm,
@@ -193,6 +184,10 @@ import type { SafeResult } from "./types/client";
  * const user = await client.getCurrentUser()
  * const cvms = await client.getCvmList()
  * const result = await client.provisionCvm({...})
+ *
+ * // With specific API version
+ * const clientV20251028 = createClient({ apiKey: 'your-api-key', version: '2025-10-28' })
+ * const cvms = await clientV20251028.getCvmList() // Returns PaginatedCvmInfosV20251028
  * ```
  *
  * For tree-shaking optimization, use `createBaseClient` with individual action imports:
@@ -206,8 +201,17 @@ import type { SafeResult } from "./types/client";
  * @param config - Client configuration
  * @returns Client extended with all available actions
  */
-export function createClient(config: ClientConfig = {}): Client {
-  const client = createBaseClient(config);
+export function createClient(
+  config: ClientConfig<"2026-01-21"> & { version: "2026-01-21" },
+): Client<"2026-01-21">;
+export function createClient(
+  config: ClientConfig<"2025-10-28"> & { version: "2025-10-28" },
+): Client<"2025-10-28">;
+export function createClient(config?: ClientConfig): Client<DefaultApiVersion>;
+export function createClient<V extends ApiVersion = DefaultApiVersion>(
+  config: ClientConfig<V> = {} as ClientConfig<V>,
+): Client<V> {
+  const client = createBaseClient(config) as BaseClient<V>;
 
   // Type annotation ensures proper type inference for extend()
   const allActions: {
@@ -358,7 +362,7 @@ export function createClient(config: ClientConfig = {}): Client {
     safeGetCvmState,
   };
 
-  return client.extend(allActions) as unknown as Client;
+  return client.extend(allActions) as unknown as Client<V>;
 }
 
 /**
@@ -367,7 +371,10 @@ export function createClient(config: ClientConfig = {}): Client {
  * This type definition ensures proper type inference for all action methods,
  * including their overload signatures for schema parameters.
  */
-export interface Client extends BaseClient {
+export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseClient<V> {
+  // Version switching
+  withVersion<NewV extends ApiVersion>(version: NewV): Client<NewV>;
+
   // Generic request methods (inherited from BaseClient, re-declared for visibility)
   request<T = unknown>(url: string, options?: import("./types/client").RequestOptions): Promise<T>;
 
@@ -466,25 +473,9 @@ export interface Client extends BaseClient {
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
 
-  getCvmList(request?: GetCvmListRequest): Promise<GetCvmListResponse>;
-  getCvmList<T extends z.ZodTypeAny>(
-    request: GetCvmListRequest | undefined,
-    parameters: { schema: T },
-  ): Promise<z.infer<T>>;
-  getCvmList(
-    request: GetCvmListRequest | undefined,
-    parameters: { schema: false },
-  ): Promise<unknown>;
+  getCvmList(request?: GetCvmListRequest): Promise<GetCvmListResponse<V>>;
 
-  safeGetCvmList(request?: GetCvmListRequest): Promise<SafeResult<GetCvmListResponse>>;
-  safeGetCvmList<T extends z.ZodTypeAny>(
-    request: GetCvmListRequest | undefined,
-    parameters: { schema: T },
-  ): Promise<SafeResult<z.infer<T>>>;
-  safeGetCvmList(
-    request: GetCvmListRequest | undefined,
-    parameters: { schema: false },
-  ): Promise<SafeResult<unknown>>;
+  safeGetCvmList(request?: GetCvmListRequest): Promise<SafeResult<GetCvmListResponse<V>>>;
 
   getKmsList(request?: GetKmsListRequest): Promise<GetKmsListResponse>;
   getKmsList<T extends z.ZodTypeAny>(
@@ -521,22 +512,9 @@ export interface Client extends BaseClient {
   ): Promise<SafeResult<z.infer<T>>>;
   safeGetWorkspace(teamSlug: string, parameters: { schema: false }): Promise<SafeResult<unknown>>;
 
-  getCvmInfo(request: GetCvmInfoRequest): Promise<GetCvmInfoResponse>;
-  getCvmInfo<T extends z.ZodTypeAny>(
-    request: GetCvmInfoRequest,
-    parameters: { schema: T },
-  ): Promise<z.infer<T>>;
-  getCvmInfo(request: GetCvmInfoRequest, parameters: { schema: false }): Promise<unknown>;
+  getCvmInfo(request: GetCvmInfoRequest): Promise<GetCvmInfoResponse<V>>;
 
-  safeGetCvmInfo(request: GetCvmInfoRequest): Promise<SafeResult<GetCvmInfoResponse>>;
-  safeGetCvmInfo<T extends z.ZodTypeAny>(
-    request: GetCvmInfoRequest,
-    parameters: { schema: T },
-  ): Promise<SafeResult<z.infer<T>>>;
-  safeGetCvmInfo(
-    request: GetCvmInfoRequest,
-    parameters: { schema: false },
-  ): Promise<SafeResult<unknown>>;
+  safeGetCvmInfo(request: GetCvmInfoRequest): Promise<SafeResult<GetCvmInfoResponse<V>>>;
 
   getCvmComposeFile(request: GetCvmComposeFileRequest): Promise<GetCvmComposeFileResult>;
   getCvmComposeFile<T extends z.ZodTypeAny>(

@@ -186,24 +186,32 @@ function handleProvisionError(
 		: `\nError: ${message}\n`;
 }
 
+// Use legacy API version until CLI types are updated for the new format
+const API_VERSION = "2025-10-28" as const;
+
 async function getApiClient({
 	apiToken,
 	interactive,
-}: Readonly<Pick<Options, "apiToken" | "interactive">>): Promise<Client> {
+}: Readonly<Pick<Options, "apiToken" | "interactive">>): Promise<
+	Client<typeof API_VERSION>
+> {
 	// Priority 1: Command-line provided API key
 	if (apiToken) {
-		return createClient({ apiKey: apiToken });
+		return createClient({ apiKey: apiToken, version: API_VERSION });
 	}
 
 	// Priority 2: Environment variable
 	if (process.env.PHALA_CLOUD_API_KEY) {
-		return createClient({ apiKey: process.env.PHALA_CLOUD_API_KEY });
+		return createClient({
+			apiKey: process.env.PHALA_CLOUD_API_KEY,
+			version: API_VERSION,
+		});
 	}
 
 	// Priority 3: Saved API key from config file
 	const savedApiKey = getApiKey();
 	if (savedApiKey) {
-		return createClient({ apiKey: savedApiKey });
+		return createClient({ apiKey: savedApiKey, version: API_VERSION });
 	}
 
 	// Priority 4: Interactive prompt (only if no API key found)
@@ -217,7 +225,7 @@ async function getApiClient({
 					input.trim() ? true : "API token is required",
 			},
 		]);
-		return createClient({ apiKey: promptedToken });
+		return createClient({ apiKey: promptedToken, version: API_VERSION });
 	}
 
 	// No API key available
@@ -715,7 +723,7 @@ const deployNewCvm = async (
 	validatedOptions: Options,
 	docker_compose_yml: string,
 	envs: EnvVar[],
-	client: Client,
+	client: Client<typeof API_VERSION>,
 	stdout: NodeJS.WriteStream,
 	stderr: NodeJS.WriteStream,
 	projectConfig?: PrivacyConfig,
@@ -901,7 +909,7 @@ const updateCvm = async (
 	validatedOptions: Options,
 	docker_compose_yml: string,
 	envs: EnvVar[] | undefined,
-	client: Client,
+	client: Client<typeof API_VERSION>,
 	stdout: NodeJS.WriteStream,
 ) => {
 	const [cvm_result, app_compose_result] = await Promise.all([

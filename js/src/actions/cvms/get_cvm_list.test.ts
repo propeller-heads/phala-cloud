@@ -5,10 +5,10 @@ import {
   safeGetCvmList,
   type GetCvmListResponse,
 } from "./get_cvm_list";
-import type { CvmInfo } from "../../types/cvm_info";
+import type { CvmInfoV20251028 } from "../../types/cvm_info_v20251028";
 
 // Mock response data matching the API structure
-const mockCvmData: CvmInfo = {
+const mockCvmData: CvmInfoV20251028 = {
   hosted: {
     id: "vm-123",
     name: "test-vm",
@@ -110,9 +110,11 @@ describe("getCvmList", () => {
   let mockGet: any;
 
   beforeEach(() => {
+    // Use v20251028 version since mock data is in that format
     client = createClient({
       apiKey: "test-api-key",
       baseURL: "https://api.test.com",
+      version: "2025-10-28",
     });
     mockSafeGet = vi.spyOn(client, "safeGet");
     mockGet = vi.spyOn(client, "get");

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CvmIdSchema, CvmIdObjectSchema, refineCvmId } from "../../types/cvm_id";
 import { defineAction } from "../../utils/define-action";
-import { CvmLegacyDetailSchema } from "../../types/cvm_info";
+import { CvmDetailV20251028Schema } from "../../types/cvm_info_v20251028";
 
 /**
  * Update CVM visibility settings
@@ -33,8 +33,8 @@ export type UpdateCvmVisibilityRequest = z.infer<typeof UpdateCvmVisibilityReque
 
 const { action: updateCvmVisibility, safeAction: safeUpdateCvmVisibility } = defineAction<
   UpdateCvmVisibilityRequest,
-  typeof CvmLegacyDetailSchema
->(CvmLegacyDetailSchema, async (client, request) => {
+  typeof CvmDetailV20251028Schema
+>(CvmDetailV20251028Schema, async (client, request) => {
   const parsed = UpdateCvmVisibilityRequestSchema.parse(request);
   const { cvmId } = CvmIdSchema.parse(parsed);
   const { public_sysinfo, public_logs } = parsed;

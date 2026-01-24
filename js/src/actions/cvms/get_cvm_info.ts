@@ -1,17 +1,18 @@
-import { z } from "zod";
-import { type Client } from "../../client";
-import { CvmLegacyDetailSchema } from "../../types/cvm_info";
-import { type KmsInfo } from "../../types/kms_info";
-import { defineAction } from "../../utils/define-action";
+import { type Client, type SafeResult } from "../../client";
+import type { ApiVersion } from "../../types/client";
+import { CvmDetailV20251028Schema } from "../../types/cvm_info_v20251028";
+import type { CvmDetailV20251028 } from "../../types/cvm_info_v20251028";
+import { CvmInfoDetailV20260121Schema } from "../../types/cvm_info_v20260121";
+import type { CvmInfoDetailV20260121 } from "../../types/cvm_info_v20260121";
 import { CvmIdSchema, type CvmIdInput } from "../../types/cvm_id";
-
-export { CvmLegacyDetailSchema };
-
-export type GetCvmInfoResponse = z.infer<typeof CvmLegacyDetailSchema> & { kms_info: KmsInfo };
+import type { GetCvmInfoResponse } from "../../types/version-mappings";
 
 export const GetCvmInfoRequestSchema = CvmIdSchema;
-
 export type GetCvmInfoRequest = CvmIdInput;
+
+function getSchemaForVersion(version: ApiVersion) {
+  return version === "2025-10-28" ? CvmDetailV20251028Schema : CvmInfoDetailV20260121Schema;
+}
 
 /**
  * Get information about a specific CVM
@@ -19,21 +20,51 @@ export type GetCvmInfoRequest = CvmIdInput;
  * @param client - The API client
  * @param request - Request parameters
  * @param request.cvmId - ID of the CVM to get information for
- * @param parameters - Optional behavior parameters
- * @returns CVM information
+ * @returns CVM information with type based on client API version
  *
  * @example
  * ```typescript
  * const info = await getCvmInfo(client, { cvmId: "cvm-123" })
  * ```
  */
-const { action: getCvmInfo, safeAction: safeGetCvmInfo } = defineAction<
-  GetCvmInfoRequest,
-  typeof CvmLegacyDetailSchema,
-  GetCvmInfoResponse
->(CvmLegacyDetailSchema, async (client, request) => {
+export function getCvmInfo<V extends ApiVersion>(
+  client: Client<V>,
+  request: GetCvmInfoRequest,
+): Promise<GetCvmInfoResponse<V>>;
+export async function getCvmInfo<V extends ApiVersion>(
+  client: Client<V>,
+  request: GetCvmInfoRequest,
+): Promise<GetCvmInfoResponse<V>> {
   const { cvmId } = GetCvmInfoRequestSchema.parse(request);
-  return await client.get(`/cvms/${cvmId}`);
-});
+  const response = await client.get(`/cvms/${cvmId}`);
+  const schema = getSchemaForVersion(client.config.version);
+  return schema.parse(response) as GetCvmInfoResponse<V>;
+}
 
-export { getCvmInfo, safeGetCvmInfo };
+/**
+ * Safe version of getCvmInfo that returns a SafeResult instead of throwing
+ */
+export function safeGetCvmInfo<V extends ApiVersion>(
+  client: Client<V>,
+  request: GetCvmInfoRequest,
+): Promise<SafeResult<GetCvmInfoResponse<V>>>;
+export async function safeGetCvmInfo<V extends ApiVersion>(
+  client: Client<V>,
+  request: GetCvmInfoRequest,
+): Promise<SafeResult<GetCvmInfoResponse<V>>> {
+  try {
+    const data = await getCvmInfo(client, request);
+    return { success: true, data };
+  } catch (error) {
+    if (error && typeof error === "object" && ("status" in error || "issues" in error)) {
+      return { success: false, error } as SafeResult<GetCvmInfoResponse<V>>;
+    }
+    return {
+      success: false,
+      error: {
+        name: "Error",
+        message: error instanceof Error ? error.message : String(error),
+      },
+    } as SafeResult<GetCvmInfoResponse<V>>;
+  }
+}

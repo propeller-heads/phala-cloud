@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { basename, join } from "node:path";
-import type { Client } from "@phala/cloud";
+import type { ApiVersion, Client } from "@phala/cloud";
 import chalk from "chalk";
 import { logger } from "./logger";
 
@@ -103,15 +103,100 @@ export function isDevImage(baseImage: string | null | undefined): boolean {
 	return baseImage.toLowerCase().includes("dev");
 }
 
+function resolveGatewayDomain(cvm: unknown): string | undefined {
+	if (!cvm || typeof cvm !== "object") {
+		return undefined;
+	}
+
+	// Legacy: gateway_domain: string | null
+	if ("gateway_domain" in cvm) {
+		const legacy = (cvm as { gateway_domain?: unknown }).gateway_domain;
+		return typeof legacy === "string" && legacy.length > 0 ? legacy : undefined;
+	}
+
+	// New: gateway: { cname?: string | null; base_domain?: string | null }
+	const gateway = (cvm as { gateway?: unknown }).gateway;
+	if (gateway && typeof gateway === "object") {
+		const cname = (gateway as { cname?: unknown }).cname;
+		if (typeof cname === "string" && cname.length > 0) {
+			return cname;
+		}
+		const baseDomain = (gateway as { base_domain?: unknown }).base_domain;
+		if (typeof baseDomain === "string" && baseDomain.length > 0) {
+			return baseDomain;
+		}
+	}
+
+	return undefined;
+}
+
+function resolveBaseImageAndDevFlag(cvm: unknown): {
+	baseImage?: string;
+	isDev?: boolean;
+} {
+	if (!cvm || typeof cvm !== "object") {
+		return {};
+	}
+
+	// Legacy: base_image: string | null
+	if ("base_image" in cvm) {
+		const baseImage = (cvm as { base_image?: unknown }).base_image;
+		return {
+			baseImage: typeof baseImage === "string" ? baseImage : undefined,
+			isDev: typeof baseImage === "string" ? isDevImage(baseImage) : undefined,
+		};
+	}
+
+	// New: os: { name?: string | null; is_dev?: boolean | null }
+	const os = (cvm as { os?: unknown }).os;
+	if (os && typeof os === "object") {
+		const name = (os as { name?: unknown }).name;
+		const isDev = (os as { is_dev?: unknown }).is_dev;
+		return {
+			baseImage: typeof name === "string" ? name : undefined,
+			isDev: typeof isDev === "boolean" ? isDev : undefined,
+		};
+	}
+
+	return {};
+}
+
+function resolveInstanceId(
+	cvm: unknown,
+	fallbackCvmId: string,
+): string | undefined {
+	if (cvm && typeof cvm === "object" && "app_id" in cvm) {
+		const appId = (cvm as { app_id?: unknown }).app_id;
+		if (typeof appId === "string" && appId.length > 0) {
+			return appId.startsWith("app_") ? appId.slice(4) : appId;
+		}
+	}
+
+	if (fallbackCvmId.startsWith("app_")) {
+		return fallbackCvmId.slice(4);
+	}
+
+	// 40-char hex (unprefixed app_id)
+	if (/^[0-9a-f]{40}$/i.test(fallbackCvmId)) {
+		return fallbackCvmId;
+	}
+
+	return undefined;
+}
+
 /**
  * Fetch CVM info from API and validate it's ready for connection
  * @throws {NoGatewayError} if CVM has no gateway
  * @throws {CvmNotRunningError} if CVM is not running
  */
-export async function fetchCvmInfo(client: Client, cvmId: string) {
+export async function fetchCvmInfo<V extends ApiVersion>(
+	client: Client<V>,
+	cvmId: string,
+) {
 	const cvm = await client.getCvmInfo({ id: cvmId });
 
-	if (!cvm.gateway_domain) {
+	const gatewayDomain = resolveGatewayDomain(cvm);
+	if (!gatewayDomain) {
 		throw new NoGatewayError(cvmId);
 	}
 
@@ -119,11 +204,18 @@ export async function fetchCvmInfo(client: Client, cvmId: string) {
 		throw new CvmNotRunningError(cvm.status, cvmId);
 	}
 
+	const { baseImage, isDev } = resolveBaseImageAndDevFlag(cvm);
+	const instanceId = resolveInstanceId(cvm, cvmId);
+	if (!instanceId) {
+		throw new Error("CVM does not have an app_id usable for gateway SSH/SCP.");
+	}
+
 	return {
-		appId: cvm.app_id,
-		gatewayDomain: cvm.gateway_domain,
+		appId: instanceId,
+		gatewayDomain,
 		status: cvm.status,
-		baseImage: cvm.base_image,
+		baseImage,
+		isDevImage: isDev,
 	};
 }
 
