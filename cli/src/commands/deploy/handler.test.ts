@@ -469,6 +469,151 @@ describe("buildProvisionPayload", () => {
 		});
 	});
 
+	describe("customAppId and nonce handling", () => {
+		test("should include app_id and nonce in payload for PHALA KMS", () => {
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				nonce: "12345",
+				kms: "phala",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.app_id).toBe("af457f534bb2154fcb9da3a0f29254659b504768");
+			expect(payload.nonce).toBe(12345);
+		});
+
+		test("should include app_id without nonce for ETHEREUM KMS", () => {
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				kms: "ethereum",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.app_id).toBe("af457f534bb2154fcb9da3a0f29254659b504768");
+			expect("nonce" in payload).toBe(false);
+		});
+
+		test("should include app_id without nonce for BASE KMS", () => {
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				kms: "base",
+			};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(payload.app_id).toBe("af457f534bb2154fcb9da3a0f29254659b504768");
+			expect("nonce" in payload).toBe(false);
+		});
+
+		test("should not include app_id or nonce in payload when neither is specified", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect("app_id" in payload).toBe(false);
+			expect("nonce" in payload).toBe(false);
+		});
+
+		test("should throw error when customAppId specified without nonce for PHALA KMS", () => {
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				kms: "phala",
+			};
+
+			expect(() =>
+				buildProvisionPayload(
+					options,
+					defaultName,
+					defaultDockerCompose,
+					defaultEnvs,
+					defaultPrivacySettings,
+				),
+			).toThrow(
+				"--nonce is required when using --custom-app-id with PHALA KMS",
+			);
+		});
+
+		test("should throw error when customAppId specified without nonce for default KMS (PHALA)", () => {
+			// When kms is not specified, it defaults to PHALA
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				// kms not specified - defaults to PHALA
+			};
+
+			expect(() =>
+				buildProvisionPayload(
+					options,
+					defaultName,
+					defaultDockerCompose,
+					defaultEnvs,
+					defaultPrivacySettings,
+				),
+			).toThrow(
+				"--nonce is required when using --custom-app-id with PHALA KMS",
+			);
+		});
+
+		test("should throw error when only nonce is specified without customAppId", () => {
+			const options = {
+				nonce: "12345",
+			};
+
+			expect(() =>
+				buildProvisionPayload(
+					options,
+					defaultName,
+					defaultDockerCompose,
+					defaultEnvs,
+					defaultPrivacySettings,
+				),
+			).toThrow("--nonce requires --custom-app-id to be specified");
+		});
+
+		test("should throw error when nonce is not a valid number", () => {
+			const options = {
+				customAppId: "af457f534bb2154fcb9da3a0f29254659b504768",
+				nonce: "abc",
+				kms: "phala",
+			};
+
+			expect(() =>
+				buildProvisionPayload(
+					options,
+					defaultName,
+					defaultDockerCompose,
+					defaultEnvs,
+					defaultPrivacySettings,
+				),
+			).toThrow('Invalid nonce value: "abc". Nonce must be a valid number.');
+		});
+	});
+
 	describe("privacy settings", () => {
 		test("should include public_logs and public_sysinfo in compose_file", () => {
 			const options = {};
