@@ -2,7 +2,7 @@
  * Deploy Handler Tests
  *
  * Tests for the buildProvisionPayload function to ensure
- * proper handling of --dev-os and --non-dev-os flags.
+ * proper handling of --dev-os / --no-dev-os flags.
  */
 
 import { describe, test, expect } from "bun:test";
@@ -19,11 +19,10 @@ describe("buildProvisionPayload", () => {
 		listed: false,
 	};
 
-	describe("prefer_dev flag handling (--dev-os / --non-dev-os)", () => {
-		test("should set prefer_dev to true when devOs is true", () => {
+	describe("prefer_dev flag handling (--dev-os / --no-dev-os)", () => {
+		test("should set prefer_dev to true when devOs is true (--dev-os)", () => {
 			const options = {
 				devOs: true,
-				nonDevOs: false,
 			};
 
 			const payload = buildProvisionPayload(
@@ -37,10 +36,9 @@ describe("buildProvisionPayload", () => {
 			expect(payload.prefer_dev).toBe(true);
 		});
 
-		test("should set prefer_dev to false when nonDevOs is true", () => {
+		test("should set prefer_dev to false when devOs is false (--no-dev-os)", () => {
 			const options = {
 				devOs: false,
-				nonDevOs: true,
 			};
 
 			const payload = buildProvisionPayload(
@@ -54,24 +52,7 @@ describe("buildProvisionPayload", () => {
 			expect(payload.prefer_dev).toBe(false);
 		});
 
-		test("should not include prefer_dev when neither flag is set", () => {
-			const options = {
-				devOs: false,
-				nonDevOs: false,
-			};
-
-			const payload = buildProvisionPayload(
-				options,
-				defaultName,
-				defaultDockerCompose,
-				defaultEnvs,
-				defaultPrivacySettings,
-			);
-
-			expect("prefer_dev" in payload).toBe(false);
-		});
-
-		test("should not include prefer_dev when both flags are undefined", () => {
+		test("should not include prefer_dev when devOs is undefined", () => {
 			const options = {};
 
 			const payload = buildProvisionPayload(
@@ -83,26 +64,6 @@ describe("buildProvisionPayload", () => {
 			);
 
 			expect("prefer_dev" in payload).toBe(false);
-		});
-
-		test("devOs takes precedence when both are true (edge case)", () => {
-			// This is an edge case that shouldn't happen in practice
-			// due to CLI validation, but we test the code behavior
-			const options = {
-				devOs: true,
-				nonDevOs: true,
-			};
-
-			const payload = buildProvisionPayload(
-				options,
-				defaultName,
-				defaultDockerCompose,
-				defaultEnvs,
-				defaultPrivacySettings,
-			);
-
-			// devOs is checked first in if-else chain
-			expect(payload.prefer_dev).toBe(true);
 		});
 	});
 
