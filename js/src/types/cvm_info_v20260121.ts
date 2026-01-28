@@ -70,6 +70,7 @@ export const CvmNodeInfoV20260121Schema = z.object({
   name: z.string().nullable().optional(),
   region: z.string().nullable().optional(),
   device_id: z.string().nullable().optional(),
+  ppid: z.string().nullable().optional(),
   status: z.string().nullable().optional(),
   version: z.string().nullable().optional(),
 });
