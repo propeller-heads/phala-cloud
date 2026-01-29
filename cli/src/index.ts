@@ -17,6 +17,7 @@ import { logoutCommand } from "./commands/logout";
 import { nodesCommands } from "./commands/nodes";
 import { simulatorCommands } from "./commands/simulator";
 import { statusCommand } from "./commands/status";
+import { switchCommand } from "./commands/switch";
 import { completionCommand } from "./commands/completion";
 import { sshCommand } from "./commands/ssh";
 import { cpCommand } from "./commands/cp";
@@ -45,6 +46,7 @@ registry.registerCommand(logoutCommand);
 registry.registerCommand(completionCommand);
 registry.registerCommand(sshCommand);
 registry.registerCommand(cpCommand);
+registry.registerCommand(switchCommand);
 registry.registerGroup(selfCommands.group);
 for (const command of selfCommands.commands) {
 	registry.registerCommand(command);

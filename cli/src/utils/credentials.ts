@@ -246,6 +246,49 @@ export function removeProfile(profileName?: string): void {
 	saveCredentialsFile(next);
 }
 
+export function listProfiles(): string[] {
+	const current = loadCredentialsFile();
+	if (!current) return [];
+	return Object.keys(current.profiles);
+}
+
+export function switchProfile(profileName: string): void {
+	const normalized = normalizeProfileName(profileName);
+	const current = loadCredentialsFile();
+
+	if (!current) {
+		throw new Error("No credentials file found. Please login first.");
+	}
+
+	if (!current.profiles[normalized]) {
+		throw new Error(`Profile "${normalized}" not found`);
+	}
+
+	if (current.current_profile === normalized) {
+		return;
+	}
+
+	saveCredentialsFile({
+		...current,
+		current_profile: normalized,
+	});
+}
+
+export function getCurrentProfile(): {
+	name: string;
+	info: CredentialsProfileV1;
+} | null {
+	const current = loadCredentialsFile();
+	if (!current) return null;
+
+	const profileName = current.current_profile;
+	const profileInfo = current.profiles[profileName];
+
+	if (!profileInfo) return null;
+
+	return { name: profileName, info: profileInfo };
+}
+
 // Backward-compatible helper (used in a few places)
 export function getApiKey(): string | null {
 	return resolveAuth({ env: process.env }).apiKey;
