@@ -1,6 +1,6 @@
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { removeApiKey } from "@/src/utils/credentials";
+import { loadCredentialsFile, removeProfile } from "@/src/utils/credentials";
 
 import { logger } from "@/src/utils/logger";
 import {
@@ -21,11 +21,17 @@ async function runLogoutCommand(
 	logger.break();
 
 	try {
-		await removeApiKey();
-		logger.success("API key removed successfully");
+		const current = loadCredentialsFile();
+		const profile = current?.current_profile;
+		removeProfile();
+		logger.success(
+			profile
+				? `Credentials removed successfully (profile: ${profile})`
+				: "Credentials removed successfully",
+		);
 		return 0;
 	} catch (error) {
-		logger.error("Failed to remove API key");
+		logger.error("Failed to remove credentials");
 		logger.logDetailedError(error);
 		return 1;
 	}

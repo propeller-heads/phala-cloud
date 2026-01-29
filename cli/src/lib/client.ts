@@ -1,25 +1,81 @@
 import { createClient, type Client } from "@phala/cloud";
-import { getApiKey } from "@/src/utils/credentials";
+import type { CommandContext } from "@/src/core/types";
+import { getProjectConfig } from "@/src/utils/project-config";
+import { resolveAuth, type ResolvedAuth } from "@/src/utils/credentials";
 
 // Use legacy API version until CLI types are updated for the new format
 const API_VERSION = "2025-10-28" as const;
 
-/**
- * Get a configured API client with automatic API key resolution
- * @returns Promise resolving to configured Client instance
- */
-export async function getClient(): Promise<Client<typeof API_VERSION>> {
-	const apiKey = getApiKey();
-	return createClient({ apiKey, version: API_VERSION });
+export type CliApiClient = Client<typeof API_VERSION>;
+
+export interface ClientWithAuth {
+	readonly client: CliApiClient;
+	readonly auth: ResolvedAuth;
 }
 
-/**
- * Get a configured API client with custom API key
- * @param apiKey - Custom API key to use
- * @returns Promise resolving to configured Client instance
- */
+type AuthContextLike = Pick<CommandContext, "env" | "projectConfig">;
+
+function getDefaultContext(): AuthContextLike {
+	return {
+		env: process.env,
+		projectConfig: getProjectConfig(),
+	};
+}
+
+export function resolveAuthForContext(
+	context?: AuthContextLike,
+	options?: {
+		apiToken?: string;
+		profile?: string;
+	},
+): ResolvedAuth {
+	const ctx = context ?? getDefaultContext();
+	return resolveAuth({
+		env: ctx.env,
+		apiToken: options?.apiToken,
+		profile: options?.profile,
+		projectProfile: ctx.projectConfig.profile,
+	});
+}
+
+export async function getClient(
+	context?: AuthContextLike,
+	options?: {
+		apiToken?: string;
+		profile?: string;
+	},
+): Promise<CliApiClient> {
+	const auth = resolveAuthForContext(context, options);
+	return createClient({
+		apiKey: auth.apiKey ?? undefined,
+		baseURL: auth.baseURL,
+		version: API_VERSION,
+	});
+}
+
+export async function getClientWithAuth(
+	context?: AuthContextLike,
+	options?: {
+		apiToken?: string;
+		profile?: string;
+	},
+): Promise<ClientWithAuth> {
+	const auth = resolveAuthForContext(context, options);
+	return {
+		client: await getClient(context, options),
+		auth,
+	};
+}
+
 export async function getClientWithKey(
 	apiKey: string,
-): Promise<Client<typeof API_VERSION>> {
-	return createClient({ apiKey, version: API_VERSION });
+	options?: {
+		baseURL?: string;
+	},
+): Promise<CliApiClient> {
+	return createClient({
+		apiKey,
+		baseURL: options?.baseURL,
+		version: API_VERSION,
+	});
 }

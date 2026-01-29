@@ -1,5 +1,5 @@
-import { createClient, safeGetCvmInfo } from "@phala/cloud";
-import { getApiKey } from "./credentials";
+import { safeGetCvmInfo } from "@phala/cloud";
+import { getClient } from "@/src/lib/client";
 import { logger } from "./logger";
 
 /**
@@ -14,8 +14,7 @@ export async function waitForCvmReady(
 	uuid: string,
 	timeoutMs = 300000, // 5 minutes default
 ): Promise<void> {
-	const apiKey = getApiKey();
-	const client = createClient({ apiKey });
+	const client = await getClient();
 	const startTime = Date.now();
 	const checkIntervalMs = 2000; // Check every 2 seconds
 

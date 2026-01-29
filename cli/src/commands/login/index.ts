@@ -11,11 +11,10 @@ import {
 	formatStructuredError,
 } from "@phala/cloud";
 
-import type { UserInfoResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClientWithKey } from "@/src/lib/client";
-import { removeApiKey, saveApiKey } from "@/src/utils/credentials";
+import { DEFAULT_API_PREFIX, upsertProfile } from "@/src/utils/credentials";
 
 import { loginCommandMeta, loginCommandSchema } from "./command";
 import type { LoginCommandInput } from "./command";
@@ -36,32 +35,37 @@ interface DeviceTokenResponse {
 	token_type: string;
 }
 
-async function validateAndPersistApiKey(
-	apiKey: string,
-): Promise<UserInfoResponse> {
-	try {
-		await saveApiKey(apiKey);
-		const client = await getClientWithKey(apiKey);
-		const result = await safeGetCurrentUser(client);
-		const userData = result.data as UserInfoResponse;
+type CurrentUserInfo = {
+	username: string;
+	email?: string;
+	team_name?: string;
+};
 
-		if (!result.success || !userData?.username) {
-			await removeApiKey();
-			throw new Error("Invalid API key");
-		}
-
-		return userData;
-	} catch (error) {
-		await removeApiKey();
-		throw error instanceof Error ? error : new Error(String(error));
-	}
+function writeLine(stream: NodeJS.WriteStream, message = ""): void {
+	stream.write(`${message}\n`);
 }
 
-async function promptForApiKey(): Promise<{
+async function validateApiKey(options: {
 	apiKey: string;
-	user: UserInfoResponse;
-}> {
-	let cachedUser: UserInfoResponse | undefined;
+	baseURL: string;
+}): Promise<CurrentUserInfo> {
+	const client = await getClientWithKey(options.apiKey, {
+		baseURL: options.baseURL,
+	});
+	const result = await safeGetCurrentUser(client);
+	const userData = result.data as CurrentUserInfo;
+
+	if (!result.success || !userData?.username) {
+		throw new Error("Invalid API key");
+	}
+
+	return userData;
+}
+
+async function promptForApiKey(options: {
+	baseURL: string;
+}): Promise<{ apiKey: string; user: CurrentUserInfo }> {
+	let cachedUser: CurrentUserInfo | undefined;
 	const response = await prompts({
 		type: "password",
 		name: "apiKey",
@@ -71,7 +75,10 @@ async function promptForApiKey(): Promise<{
 				return "API key cannot be empty";
 			}
 			try {
-				cachedUser = await validateAndPersistApiKey(value);
+				cachedUser = await validateApiKey({
+					apiKey: value,
+					baseURL: options.baseURL,
+				});
 				return true;
 			} catch (error) {
 				return error instanceof Error ? error.message : "Invalid API key";
@@ -84,15 +91,22 @@ async function promptForApiKey(): Promise<{
 	}
 
 	if (!cachedUser) {
-		cachedUser = await validateAndPersistApiKey(response.apiKey);
+		cachedUser = await validateApiKey({
+			apiKey: response.apiKey,
+			baseURL: options.baseURL,
+		});
 	}
 
 	return { apiKey: response.apiKey, user: cachedUser };
 }
 
-async function runDeviceAuthFlow(options: {
-	noOpen?: boolean;
-}): Promise<string> {
+async function runDeviceAuthFlow(
+	context: CommandContext,
+	options: {
+		noOpen?: boolean;
+		printToken?: boolean;
+	},
+): Promise<string> {
 	// Create client without API key - SDK will read PHALA_CLOUD_API_PREFIX from env
 	const client = createClient({ useCookieAuth: true });
 
@@ -117,20 +131,25 @@ async function runDeviceAuthFlow(options: {
 	let pollingInterval = initialInterval;
 
 	// Step 2: Display verification information
-	console.log();
-	console.log(chalk.bold("To authenticate, visit:"));
-	console.log(chalk.cyan(verification_uri_complete));
-	console.log();
-	console.log(chalk.bold("And enter code:"), chalk.yellow(user_code));
-	console.log();
+	const infoStream = options.printToken ? context.stderr : context.stdout;
+	writeLine(infoStream);
+	writeLine(infoStream, chalk.bold("To authenticate, visit:"));
+	writeLine(infoStream, chalk.cyan(verification_uri_complete));
+	writeLine(infoStream);
+	writeLine(
+		infoStream,
+		`${chalk.bold("And enter code:")} ${chalk.yellow(user_code)}`,
+	);
+	writeLine(infoStream);
 
 	// Step 3: Open browser (optional)
 	if (!options.noOpen) {
 		try {
 			await open(verification_uri_complete);
-			console.log("Opening browser automatically...");
-		} catch (error) {
-			console.warn(
+			writeLine(infoStream, "Opening browser automatically...");
+		} catch {
+			writeLine(
+				infoStream,
 				"Could not open browser automatically. Please visit the URL above.",
 			);
 		}
@@ -168,11 +187,9 @@ async function runDeviceAuthFlow(options: {
 				if (rfc8628Err) {
 					switch (rfc8628Err.error) {
 						case "authorization_pending":
-							// Keep polling - this is expected
 							continue;
 
 						case "slow_down":
-							// RFC 8628: permanently increase polling interval by 5 seconds
 							pollingInterval += 5;
 							continue;
 
@@ -191,7 +208,6 @@ async function runDeviceAuthFlow(options: {
 							);
 
 						default:
-							// Unknown device auth error
 							spinner.fail("Authorization failed");
 							throw new Error(
 								`Authorization failed: ${rfc8628Err.error_description || rfc8628Err.error}`,
@@ -200,7 +216,6 @@ async function runDeviceAuthFlow(options: {
 				}
 			}
 
-			// 3. Other errors
 			spinner.fail("Request failed");
 			throw error;
 		}
@@ -212,49 +227,66 @@ async function runDeviceAuthFlow(options: {
 
 export async function runLoginCommand(
 	input: LoginCommandInput,
-	_context: CommandContext,
+	context: CommandContext,
 ): Promise<number> {
 	try {
+		if (input.printToken && input.manual) {
+			throw new Error("--print-token is not compatible with --manual");
+		}
+
+		const baseURL = context.env.PHALA_CLOUD_API_PREFIX || DEFAULT_API_PREFIX;
+
 		let apiKey: string;
-		let user: UserInfoResponse | undefined;
+		let user: CurrentUserInfo | undefined;
 
 		// Decide authentication method
 		if (input.apiKey) {
-			// Method 1: Direct API key as argument
 			apiKey = input.apiKey;
+			user = await validateApiKey({ apiKey, baseURL });
 		} else if (input.manual) {
-			// Method 2: Manual interactive input
-			const result = await promptForApiKey();
+			const result = await promptForApiKey({ baseURL });
 			apiKey = result.apiKey;
 			user = result.user;
 		} else {
-			// Method 3: Device authorization flow (default)
-			apiKey = await runDeviceAuthFlow({
+			apiKey = await runDeviceAuthFlow(context, {
 				noOpen: input.noOpen,
+				printToken: input.printToken,
 			});
+			user = await validateApiKey({ apiKey, baseURL });
 		}
 
-		// Validate and persist API key if not already done
-		if (!user) {
-			user = await validateAndPersistApiKey(apiKey);
+		if (!user) throw new Error("Failed to validate API key");
+
+		if (input.printToken) {
+			// Machine-readable stdout output
+			context.stdout.write(`${apiKey}\n`);
+			return 0;
 		}
 
-		if (!user) {
-			throw new Error("Failed to validate API key");
-		}
+		const workspaceName = user.team_name || "default";
+		const profileName = input.profile || workspaceName;
 
-		console.log(
+		upsertProfile({
+			profileName,
+			token: apiKey,
+			apiPrefix: baseURL,
+			workspaceName,
+			user: {
+				username: user.username,
+				email: user.email,
+			},
+			setCurrent: true,
+		});
+
+		context.stdout.write(
 			chalk.green(
-				`Welcome ${user.username}! API key validated and saved successfully`,
+				`Welcome ${user.username}! Credentials saved successfully (profile: ${profileName})\n`,
 			),
 		);
 		return 0;
 	} catch (error) {
-		console.error(
-			chalk.red(
-				`Failed to authenticate: ${error instanceof Error ? error.message : String(error)}`,
-			),
-		);
+		const message = error instanceof Error ? error.message : String(error);
+		context.stderr.write(chalk.red(`Failed to authenticate: ${message}\n`));
 		return 1;
 	}
 }

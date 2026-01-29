@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dispatchCommand } from "./core/dispatcher";
+import { migrateStorage } from "./core/migrate-storage";
 import { CommandRegistry } from "./core/registry";
 import { apiCommand } from "./commands/api";
 import { authCommands } from "./commands/auth";
@@ -77,6 +78,8 @@ process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
 
 async function main(): Promise<void> {
+	await migrateStorage({ env: process.env, stderr: process.stderr });
+
 	const exitCode = await dispatchCommand({
 		registry,
 		argv: process.argv.slice(2),

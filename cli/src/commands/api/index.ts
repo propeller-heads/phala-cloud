@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getApiKey } from "@/src/utils/credentials";
+import { resolveAuthForContext } from "@/src/lib/client";
 import { applyJqFilter, formatJqOutput } from "./jq-filter";
 import { apiCommandMeta, apiCommandSchema } from "./command";
 import type { ApiCommandInput } from "./command";
@@ -234,9 +234,9 @@ export async function runApiCommand(
 	input: ApiCommandInput,
 	context: CommandContext,
 ): Promise<number | undefined> {
-	const apiKey = input.apiToken || getApiKey();
+	const auth = resolveAuthForContext(context, { apiToken: input.apiToken });
 
-	if (!apiKey) {
+	if (!auth.apiKey) {
 		context.stderr.write(
 			'Error: Not authenticated. Run "phala login" first.\n',
 		);
@@ -245,7 +245,8 @@ export async function runApiCommand(
 
 	// Create client with User-Agent header
 	const client = createClient({
-		apiKey,
+		apiKey: auth.apiKey,
+		baseURL: auth.baseURL,
 		headers: {
 			"User-Agent": `phala-cli/${CLI_VERSION}`,
 		},

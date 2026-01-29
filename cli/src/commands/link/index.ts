@@ -3,7 +3,6 @@ import fs from "fs-extra";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import {
-	createClient,
 	safeGetCvmList,
 	safeGetCvmInfo,
 	safeGetCurrentUser,
@@ -11,7 +10,7 @@ import {
 
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getApiKey } from "@/src/utils/credentials";
+import { getClient, resolveAuthForContext } from "@/src/lib/client";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	projectConfigExists,
@@ -78,8 +77,8 @@ function detectEnvFile(): string | undefined {
  */
 async function ensureAuthenticated(
 	context: CommandContext,
-): Promise<string | null> {
-	let apiKey = getApiKey();
+): Promise<{ apiKey: string; workspaceName: string } | null> {
+	let apiKey = resolveAuthForContext(context).apiKey;
 
 	if (!apiKey) {
 		logger.info("Not authenticated. Starting login flow...\n");
@@ -90,16 +89,16 @@ async function ensureAuthenticated(
 		if (loginResult !== 0) {
 			return null;
 		}
-		apiKey = getApiKey();
+		apiKey = resolveAuthForContext(context).apiKey;
 		if (!apiKey) {
 			return null;
 		}
 		console.log();
 	}
 
-	// Verify the API key is valid
-	const client = createClient({ apiKey });
-	const userResult = await safeGetCurrentUser(client);
+	// Verify the API key is valid and discover current workspace
+	const apiClient = await getClient(context);
+	const userResult = await safeGetCurrentUser(apiClient);
 
 	if (!userResult.success) {
 		logger.info("API key expired or invalid. Starting login flow...\n");
@@ -110,37 +109,51 @@ async function ensureAuthenticated(
 		if (loginResult !== 0) {
 			return null;
 		}
-		apiKey = getApiKey();
+		apiKey = resolveAuthForContext(context).apiKey;
 		if (!apiKey) {
 			return null;
 		}
-		console.log();
-	} else {
-		const userData = userResult.data as { username?: string };
+
+		const refreshedClient = await getClient(context);
+		const refreshedUser = await safeGetCurrentUser(refreshedClient);
+		if (!refreshedUser.success) {
+			return null;
+		}
+		const userData = refreshedUser.data as {
+			username?: string;
+			team_name?: string;
+		};
 		logger.success(`Authenticated as ${userData.username}`);
 		console.log();
+		return { apiKey, workspaceName: userData.team_name || "default" };
 	}
 
-	return apiKey;
+	const userData = userResult.data as { username?: string; team_name?: string };
+	logger.success(`Authenticated as ${userData.username}`);
+	console.log();
+
+	return { apiKey, workspaceName: userData.team_name || "default" };
 }
 
 /**
  * Save project configuration and show summary
  */
-function saveAndShowSummary(
-	cvmName: string,
-	composeFile: string | undefined,
-	envFile: string | undefined,
-): void {
+function saveAndShowSummary(options: {
+	cvmName: string;
+	composeFile: string | undefined;
+	envFile: string | undefined;
+	profile: string;
+}): void {
 	const config: Record<string, string> = {
-		name: cvmName,
+		name: options.cvmName,
+		profile: options.profile,
 	};
 
-	if (composeFile) {
-		config.compose_file = composeFile;
+	if (options.composeFile) {
+		config.compose_file = options.composeFile;
 	}
-	if (envFile) {
-		config.env_file = envFile;
+	if (options.envFile) {
+		config.env_file = options.envFile;
 	}
 
 	saveProjectConfig(config);
@@ -148,12 +161,13 @@ function saveAndShowSummary(
 	// Show summary
 	console.log();
 	console.log(chalk.bold("Created phala.toml:"));
-	console.log(chalk.dim(`  name = "${cvmName}"`));
-	if (composeFile) {
-		console.log(chalk.dim(`  compose_file = "${composeFile}"`));
+	console.log(chalk.dim(`  name = "${options.cvmName}"`));
+	console.log(chalk.dim(`  profile = "${options.profile}"`)); // TODO: switch to workspace slug when available
+	if (options.composeFile) {
+		console.log(chalk.dim(`  compose_file = "${options.composeFile}"`));
 	}
-	if (envFile) {
-		console.log(chalk.dim(`  env_file = "${envFile}"`));
+	if (options.envFile) {
+		console.log(chalk.dim(`  env_file = "${options.envFile}"`));
 	}
 	console.log();
 
@@ -194,14 +208,16 @@ async function runDirectLink(
 	context: CommandContext,
 ): Promise<number> {
 	// Step 1: Ensure authenticated
-	const apiKey = await ensureAuthenticated(context);
-	if (!apiKey) {
+	const auth = await ensureAuthenticated(context);
+	if (!auth) {
 		context.fail("Authentication failed.");
 		return 1;
 	}
 
+	const { workspaceName } = auth;
+
 	// Step 2: Verify CVM exists
-	const client = createClient({ apiKey });
+	const client = await getClient(context);
 	const cvmResult = await safeGetCvmInfo(client, { id: cvmId });
 
 	if (!cvmResult.success) {
@@ -245,7 +261,12 @@ async function runDirectLink(
 		}
 	}
 
-	saveAndShowSummary(cvmName, composeFile, envFile);
+	saveAndShowSummary({
+		cvmName,
+		composeFile,
+		envFile,
+		profile: workspaceName,
+	});
 	return 0;
 }
 
@@ -254,15 +275,17 @@ async function runDirectLink(
  */
 async function runInteractiveLink(context: CommandContext): Promise<number> {
 	// Step 1: Ensure authenticated
-	const apiKey = await ensureAuthenticated(context);
-	if (!apiKey) {
+	const auth = await ensureAuthenticated(context);
+	if (!auth) {
 		context.fail("Authentication failed.");
 		return 1;
 	}
 
+	const { workspaceName } = auth;
+
 	// Step 2: Fetch CVM list
 	const listSpinner = logger.startSpinner("Fetching your CVMs...");
-	const client = createClient({ apiKey });
+	const client = await getClient(context);
 	const cvmResult = await safeGetCvmList(client);
 	listSpinner.stop(true);
 
@@ -348,7 +371,12 @@ async function runInteractiveLink(context: CommandContext): Promise<number> {
 		console.log();
 	}
 
-	saveAndShowSummary(selectedCvm, composeFile, envFile);
+	saveAndShowSummary({
+		cvmName: selectedCvm,
+		composeFile,
+		envFile,
+		profile: workspaceName,
+	});
 	return 0;
 }
 

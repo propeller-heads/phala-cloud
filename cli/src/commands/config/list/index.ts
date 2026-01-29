@@ -1,5 +1,5 @@
 import { defineCommand } from "@/src/core/define-command";
-import { listConfigValues } from "@/src/utils/config";
+import { listStateValues } from "@/src/utils/state";
 
 import { logger, setJsonMode } from "@/src/utils/logger";
 import type { CommandContext } from "@/src/core/types";
@@ -16,8 +16,11 @@ async function runConfigList(
 	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
+	logger.warn(
+		'The "phala config" commands are deprecated and will be removed in a future version.',
+	);
 	try {
-		const config = listConfigValues();
+		const config = listStateValues();
 
 		if (input.json) {
 			context.success(config);

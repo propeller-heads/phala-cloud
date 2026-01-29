@@ -1,5 +1,5 @@
 import { defineCommand } from "@/src/core/define-command";
-import { setConfigValue } from "@/src/utils/config";
+import { setStateValue } from "@/src/utils/state";
 import { logger } from "@/src/utils/logger";
 
 import type { CommandContext } from "@/src/core/types";
@@ -30,7 +30,10 @@ async function runConfigSet(
 			}
 		}
 
-		setConfigValue(input.key, parsedValue as string | number | boolean);
+		logger.warn(
+			'The "phala config" commands are deprecated and will be removed in a future version.',
+		);
+		setStateValue(input.key, parsedValue as string | number | boolean);
 		context.stdout.write(
 			`Configuration value for '${input.key}' set successfully\n`,
 		);

@@ -1,135 +1,268 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+
 import { logger } from "./logger";
 
-// Define the directory and file for storing credentials
-const PHALA_CLOUD_DIR = path.join(os.homedir(), ".phala-cloud");
-const API_KEY_FILE = path.join(PHALA_CLOUD_DIR, "api-key");
-const DOCKER_CREDENTIALS_FILE = path.join(
-	PHALA_CLOUD_DIR,
-	"docker-credentials.json",
-);
+export const DEFAULT_API_PREFIX = "https://cloud-api.phala.network/api/v1";
 
-// Ensure the .phala-cloud directory exists
+function getPhalaCloudDir(): string {
+	// NOTE: This is intentionally undocumented. It's used for testing and
+	// controlled environments.
+	const overridden = process.env.PHALA_CLOUD_DIR;
+	if (typeof overridden === "string" && overridden.trim().length > 0) {
+		return overridden;
+	}
+	return path.join(os.homedir(), ".phala-cloud");
+}
+
+export function getCredentialsFilePath(): string {
+	return path.join(getPhalaCloudDir(), "credentials.json");
+}
+
+export function getLegacyApiKeyFilePath(): string {
+	return path.join(getPhalaCloudDir(), "api-key");
+}
+
+function getDockerCredentialsFilePath(): string {
+	return path.join(getPhalaCloudDir(), "docker-credentials.json");
+}
+
 function ensureDirectoryExists(): void {
-	if (!fs.existsSync(PHALA_CLOUD_DIR)) {
-		try {
-			fs.mkdirSync(PHALA_CLOUD_DIR, { recursive: true });
-		} catch (error) {
-			logger.error(`Failed to create directory ${PHALA_CLOUD_DIR}:`, error);
-			throw error;
-		}
+	const dir = getPhalaCloudDir();
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
 	}
 }
 
-// Generate a machine-specific encryption key
-function getMachineKey(): Buffer {
-	// Create a deterministic but machine-specific key
-	const machineParts = [
-		os.hostname(),
-		os.platform(),
-		os.arch(),
-		os.cpus()[0]?.model || "",
-		os.userInfo().username,
-	];
-
-	// Create a hash of the machine parts
-	const hash = crypto.createHash("sha256");
-	hash.update(machineParts.join("|"));
-	return hash.digest();
+function isNonEmptyString(value: unknown): value is string {
+	return typeof value === "string" && value.trim().length > 0;
 }
 
-// Encrypt data
-function encrypt(text: string): string {
+function normalizeProfileName(name: string): string {
+	// Keep it conservative for file keys.
+	// TODO: revisit once workspace slug is available.
+	const trimmed = name.trim();
+	if (trimmed.length === 0) return "default";
+	return trimmed;
+}
+
+export interface CredentialsWorkspaceInfo {
+	/**
+	 * Workspace identifier.
+	 *
+	 * TODO: switch to a stable slug field once API provides it.
+	 */
+	readonly name: string;
+}
+
+export interface CredentialsUserInfo {
+	readonly username: string;
+	readonly email?: string;
+}
+
+export interface CredentialsProfileV1 {
+	readonly token: string;
+	readonly api_prefix: string;
+	readonly workspace: CredentialsWorkspaceInfo;
+	readonly user: CredentialsUserInfo;
+	readonly updated_at: string;
+}
+
+export interface CredentialsFileV1 {
+	readonly schema_version: 1;
+	readonly current_profile: string;
+	readonly profiles: Record<string, CredentialsProfileV1>;
+}
+
+export function loadCredentialsFile(): CredentialsFileV1 | null {
 	try {
-		const key = getMachineKey();
-		const iv = crypto.randomBytes(16);
-		const cipher = crypto.createCipheriv("aes-256-cbc", key.slice(0, 32), iv);
-
-		let encrypted = cipher.update(text, "utf8", "hex");
-		encrypted += cipher.final("hex");
-
-		// Return IV + encrypted data
-		return `${iv.toString("hex")}:${encrypted}`;
+		const filePath = getCredentialsFilePath();
+		if (!fs.existsSync(filePath)) return null;
+		const raw = fs.readFileSync(filePath, "utf8");
+		const parsed = JSON.parse(raw) as unknown;
+		if (!parsed || typeof parsed !== "object") return null;
+		const obj = parsed as Partial<CredentialsFileV1>;
+		if (obj.schema_version !== 1) return null;
+		if (!isNonEmptyString(obj.current_profile)) return null;
+		if (!obj.profiles || typeof obj.profiles !== "object") return null;
+		return obj as CredentialsFileV1;
 	} catch (error) {
-		logger.error("Encryption failed:", error);
-		throw new Error("Failed to encrypt data");
+		logger.error("Failed to read credentials file:", error);
+		return null;
 	}
 }
 
-// Decrypt data
-function decrypt(encryptedText: string): string {
-	try {
-		const key = getMachineKey();
-		const parts = encryptedText.split(":");
-
-		if (parts.length !== 2) {
-			throw new Error("Invalid encrypted format");
-		}
-
-		const iv = Buffer.from(parts[0], "hex");
-		const encrypted = parts[1];
-
-		const decipher = crypto.createDecipheriv(
-			"aes-256-cbc",
-			key.slice(0, 32),
-			iv,
-		);
-
-		let decrypted = decipher.update(encrypted, "hex", "utf8");
-		decrypted += decipher.final("utf8");
-
-		return decrypted;
-	} catch (error) {
-		logger.error("Decryption failed:", error);
-		throw new Error("Failed to decrypt data");
-	}
-}
-
-// API Key Management
-export async function saveApiKey(apiKey: string): Promise<void> {
+export function saveCredentialsFile(file: CredentialsFileV1): void {
 	ensureDirectoryExists();
-	try {
-		// Encrypt the API key before saving
-		const encryptedApiKey = encrypt(apiKey);
-		fs.writeFileSync(API_KEY_FILE, encryptedApiKey, { mode: 0o600 }); // Restrict permissions to user only
-	} catch (error) {
-		logger.error("Failed to save API key:", error);
-		throw error;
-	}
+	fs.writeFileSync(getCredentialsFilePath(), JSON.stringify(file, null, 2), {
+		mode: 0o600,
+		encoding: "utf8",
+	});
 }
 
-export function getApiKey(): string | null {
-	try {
-		if (process.env.PHALA_CLOUD_API_KEY) {
-			return process.env.PHALA_CLOUD_API_KEY;
-		}
-		if (fs.existsSync(API_KEY_FILE)) {
-			const encryptedApiKey = fs.readFileSync(API_KEY_FILE, "utf8").trim();
-			// Decrypt the API key
-			return decrypt(encryptedApiKey);
-		}
-		return null;
-	} catch (error) {
-		logger.error("Failed to read API key:", error);
-		return null;
+export type TokenSource = "flag" | "env" | "file" | "none";
+export type ApiPrefixSource = "env" | "file" | "default";
+
+export interface ResolvedAuth {
+	readonly apiKey: string | null;
+	readonly baseURL: string;
+	readonly profileName: string;
+	readonly tokenSource: TokenSource;
+	readonly apiPrefixSource: ApiPrefixSource;
+}
+
+export function resolveAuth(options: {
+	env: NodeJS.ProcessEnv;
+	apiToken?: string;
+	profile?: string;
+	projectProfile?: string;
+}): ResolvedAuth {
+	const credentials = loadCredentialsFile();
+	const selectedProfile = normalizeProfileName(
+		options.profile ||
+			options.projectProfile ||
+			credentials?.current_profile ||
+			"default",
+	);
+
+	// API prefix resolution: env > profile > default
+	const baseURLFromEnv = options.env.PHALA_CLOUD_API_PREFIX;
+	const baseURLFromFile = credentials?.profiles?.[selectedProfile]?.api_prefix;
+	const baseURL =
+		(baseURLFromEnv && baseURLFromEnv.trim().length > 0
+			? baseURLFromEnv
+			: baseURLFromFile && baseURLFromFile.trim().length > 0
+				? baseURLFromFile
+				: DEFAULT_API_PREFIX) ?? DEFAULT_API_PREFIX;
+
+	const apiPrefixSource: ApiPrefixSource = baseURLFromEnv
+		? "env"
+		: baseURLFromFile
+			? "file"
+			: "default";
+
+	// Token resolution: flag > env > profile
+	if (isNonEmptyString(options.apiToken)) {
+		return {
+			apiKey: options.apiToken,
+			baseURL,
+			profileName: selectedProfile,
+			tokenSource: "flag",
+			apiPrefixSource,
+		};
 	}
+
+	if (isNonEmptyString(options.env.PHALA_CLOUD_API_KEY)) {
+		return {
+			apiKey: options.env.PHALA_CLOUD_API_KEY,
+			baseURL,
+			profileName: selectedProfile,
+			tokenSource: "env",
+			apiPrefixSource,
+		};
+	}
+
+	const tokenFromFile = credentials?.profiles?.[selectedProfile]?.token;
+	if (isNonEmptyString(tokenFromFile)) {
+		return {
+			apiKey: tokenFromFile,
+			baseURL,
+			profileName: selectedProfile,
+			tokenSource: "file",
+			apiPrefixSource,
+		};
+	}
+
+	return {
+		apiKey: null,
+		baseURL,
+		profileName: selectedProfile,
+		tokenSource: "none",
+		apiPrefixSource,
+	};
+}
+
+export function upsertProfile(options: {
+	profileName: string;
+	token: string;
+	apiPrefix?: string;
+	workspaceName: string;
+	user: CredentialsUserInfo;
+	setCurrent?: boolean;
+}): void {
+	const profileName = normalizeProfileName(options.profileName);
+	const apiPrefix = (options.apiPrefix || DEFAULT_API_PREFIX).trim();
+
+	const current = loadCredentialsFile();
+	const shouldSetCurrent = options.setCurrent ?? true;
+	const nextCurrentProfile = shouldSetCurrent
+		? profileName
+		: current?.current_profile || profileName;
+
+	const next: CredentialsFileV1 = {
+		schema_version: 1,
+		current_profile: nextCurrentProfile,
+		profiles: {
+			...(current?.profiles || {}),
+			[profileName]: {
+				token: options.token,
+				api_prefix: apiPrefix.length > 0 ? apiPrefix : DEFAULT_API_PREFIX,
+				workspace: { name: options.workspaceName },
+				user: options.user,
+				updated_at: new Date().toISOString(),
+			},
+		},
+	};
+
+	saveCredentialsFile(next);
+}
+
+export function removeProfile(profileName?: string): void {
+	const current = loadCredentialsFile();
+	if (!current) return;
+
+	const target = normalizeProfileName(profileName || current.current_profile);
+	const nextProfiles = { ...current.profiles };
+	delete nextProfiles[target];
+
+	const remaining = Object.keys(nextProfiles);
+	if (remaining.length === 0) {
+		try {
+			fs.unlinkSync(getCredentialsFilePath());
+		} catch (error) {
+			logger.error("Failed to remove credentials file:", error);
+		}
+		return;
+	}
+
+	const nextCurrent =
+		current.current_profile === target ? remaining[0] : current.current_profile;
+	const next: CredentialsFileV1 = {
+		schema_version: 1,
+		current_profile: nextCurrent,
+		profiles: nextProfiles,
+	};
+	saveCredentialsFile(next);
+}
+
+// Backward-compatible helper (used in a few places)
+export function getApiKey(): string | null {
+	return resolveAuth({ env: process.env }).apiKey;
+}
+
+// Deprecated: compatibility only.
+export async function saveApiKey(apiKey: string): Promise<void> {
+	upsertProfile({
+		profileName: "default",
+		token: apiKey,
+		workspaceName: "default",
+		user: { username: "unknown" },
+	});
 }
 
 export async function removeApiKey(): Promise<void> {
-	try {
-		if (fs.existsSync(API_KEY_FILE)) {
-			fs.unlinkSync(API_KEY_FILE);
-			logger.success("API key removed successfully.");
-		} else {
-			logger.warn("No API key found to remove.");
-		}
-	} catch (error) {
-		logger.error("Failed to remove API key:", error);
-		throw error;
-	}
+	removeProfile();
 }
 
 // Docker Credentials Management
@@ -144,9 +277,9 @@ export async function saveDockerCredentials(
 	ensureDirectoryExists();
 	try {
 		fs.writeFileSync(
-			DOCKER_CREDENTIALS_FILE,
+			getDockerCredentialsFilePath(),
 			JSON.stringify(credentials, null, 2),
-			{ mode: 0o600 }, // Restrict permissions to user only
+			{ mode: 0o600 },
 		);
 		logger.success("Docker information saved successfully.");
 	} catch (error) {
@@ -157,10 +290,10 @@ export async function saveDockerCredentials(
 
 export async function getDockerCredentials(): Promise<DockerCredentials | null> {
 	try {
-		if (fs.existsSync(DOCKER_CREDENTIALS_FILE)) {
-			const data = fs.readFileSync(DOCKER_CREDENTIALS_FILE, "utf8");
+		const filePath = getDockerCredentialsFilePath();
+		if (fs.existsSync(filePath)) {
+			const data = fs.readFileSync(filePath, "utf8");
 			const credentials = JSON.parse(data) as DockerCredentials;
-
 			return credentials;
 		}
 		return null;
@@ -172,8 +305,9 @@ export async function getDockerCredentials(): Promise<DockerCredentials | null> 
 
 export async function removeDockerCredentials(): Promise<void> {
 	try {
-		if (fs.existsSync(DOCKER_CREDENTIALS_FILE)) {
-			fs.unlinkSync(DOCKER_CREDENTIALS_FILE);
+		const filePath = getDockerCredentialsFilePath();
+		if (fs.existsSync(filePath)) {
+			fs.unlinkSync(filePath);
 			logger.success("Docker credentials removed successfully.");
 		} else {
 			logger.warn("No Docker credentials found to remove.");
