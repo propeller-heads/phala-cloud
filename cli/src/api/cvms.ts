@@ -370,12 +370,13 @@ async function streamResponse(
 
 /** Get serial log endpoint URL */
 async function getSerialLogEndpoint(appId: string): Promise<string> {
-	// syslog_endpoint is not available in the v20260121 API response.
-	// Fall back to fetching the raw CVM detail which may include it for older backends.
+	// syslog_endpoint is not in the v20260121 schema. Force the legacy version
+	// header so the backend returns CvmBasicInfo which includes the field.
 	const client = await getClient();
 	const cleanAppId = appId.replace(/^app_/, "");
 	const rawInfo = await client.get<{ syslog_endpoint?: string | null }>(
 		`cvms/app_${cleanAppId}`,
+		{ headers: { "X-Phala-Version": "2025-10-28" } },
 	);
 	if (!rawInfo.syslog_endpoint) {
 		throw new Error(`No syslog endpoint available for CVM '${appId}'`);
