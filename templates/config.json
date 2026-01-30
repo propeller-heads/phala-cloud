@@ -549,5 +549,21 @@
       "TEE",
       "PrimusLabs"
     ]
+  },
+  {
+    "id": "erc-8004-tee-agent",
+    "name": "ERC-8004 TEE Agent",
+    "description": "An ERC-8004 Compliant TEE Agent with a TEE Registry Extension for Secure & Verifiable Trustless Agents in a CVM on Phala Cloud. Combines on-chain identity verification, Intel TDX attestation, and AI chat interface for autonomous blockchain agents.",
+    "repo": "https://github.com/Phala-Network/erc-8004-tee-agent",
+    "author": "Phala-Network",
+    "envs": [
+      { "key": "AGENT_SALT", "required": true, "description": "Unique secret salt for key derivation" },
+      { "key": "REDPILL_API_KEY", "required": true, "description": "API key for confidential AI inference" },
+      { "key": "SUBGRAPH_API_KEY", "required": true, "description": "Access token for blockchain data queries" },
+      { "key": "CHAIN_NAME", "required": true, "description": "Target blockchain (e.g., eth-sepolia)" },
+      { "key": "RPC_URL", "required": true, "description": "Blockchain node endpoint" },
+      { "key": "ANTHROPIC_MODEL", "required": false, "description": "AI model selection", "default": "moonshotai/kimi-k2.5" }
+    ],
+    "tags": ["Agent", "TEE", "ERC-8004", "AI"]
   }
 ]
