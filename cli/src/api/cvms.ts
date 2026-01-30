@@ -373,9 +373,8 @@ async function getSerialLogEndpoint(appId: string): Promise<string> {
 	// syslog_endpoint is not in the v20260121 schema. Force the legacy version
 	// header so the backend returns CvmBasicInfo which includes the field.
 	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
 	const rawInfo = await client.get<{ syslog_endpoint?: string | null }>(
-		`cvms/app_${cleanAppId}`,
+		`cvms/${appId}`,
 		{ headers: { "X-Phala-Version": "2025-10-28" } },
 	);
 	if (!rawInfo.syslog_endpoint) {
