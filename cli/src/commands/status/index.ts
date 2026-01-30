@@ -1,7 +1,7 @@
 import { safeGetCurrentUser } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getClientWithAuth } from "@/src/lib/client";
+import { getClientWithAuth, type CliApiClient } from "@/src/lib/client";
 
 import { logger, setJsonMode } from "@/src/utils/logger";
 import { statusCommandMeta, statusCommandSchema } from "./command";
@@ -48,19 +48,23 @@ export async function runStatusCommand(
 		const userInfo = result.data;
 		const apiUrl = auth.baseURL;
 
+		const apiVersion = client.config.version;
+
 		if (input.json) {
 			context.success({
 				apiUrl,
-				username: userInfo.username,
-				team_name: userInfo.team_name,
+				apiVersion,
+				username: userInfo.user.username,
+				team_name: userInfo.workspace.name,
 				profile: auth.profileName,
 			});
 			return 0;
 		}
 
 		context.stdout.write(`Integrated API: ${apiUrl}\n`);
-		context.stdout.write(`Logged in as: ${userInfo.username}\n`);
-		context.stdout.write(`Current Workspace: ${userInfo.team_name}\n`);
+		context.stdout.write(`API Version: ${apiVersion}\n`);
+		context.stdout.write(`Logged in as: ${userInfo.user.username}\n`);
+		context.stdout.write(`Current Workspace: ${userInfo.workspace.name}\n`);
 		context.stdout.write(`Current Profile: ${auth.profileName}\n`);
 		return 0;
 	} catch (error) {

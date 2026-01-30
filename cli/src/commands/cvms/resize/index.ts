@@ -118,17 +118,25 @@ async function runCvmsResizeCommand(
 		// Prompt for missing values in interactive mode
 		if (isInteractive()) {
 			if (vcpu === undefined) {
-				vcpu = await promptForNumber("Enter number of vCPUs:", cvm.vcpu);
+				vcpu = await promptForNumber(
+					"Enter number of vCPUs:",
+					cvm.resource.vcpu ?? undefined,
+				);
 			}
 
 			if (memory === undefined) {
-				memory = await promptForNumber("Enter memory in MB:", cvm.memory);
+				memory = await promptForNumber(
+					"Enter memory in MB:",
+					cvm.resource.memory_in_gb
+						? cvm.resource.memory_in_gb * 1024
+						: undefined,
+				);
 			}
 
 			if (diskSize === undefined) {
 				diskSize = await promptForNumber(
 					"Enter disk size in GB:",
-					cvm.disk_size,
+					cvm.resource.disk_in_gb ?? undefined,
 				);
 			}
 
@@ -145,9 +153,13 @@ async function runCvmsResizeCommand(
 			}
 		} else {
 			// In non-interactive mode (--json), use current values as defaults if not specified
-			if (vcpu === undefined) vcpu = cvm.vcpu;
-			if (memory === undefined) memory = cvm.memory;
-			if (diskSize === undefined) diskSize = cvm.disk_size;
+			if (vcpu === undefined) vcpu = cvm.resource.vcpu ?? undefined;
+			if (memory === undefined)
+				memory = cvm.resource.memory_in_gb
+					? cvm.resource.memory_in_gb * 1024
+					: undefined;
+			if (diskSize === undefined)
+				diskSize = cvm.resource.disk_in_gb ?? undefined;
 			// Default to allowing restart in non-interactive mode to ensure resize can complete
 			// (vCPU changes typically require restart)
 			if (allowRestart === undefined) allowRestart = true;
@@ -155,19 +167,25 @@ async function runCvmsResizeCommand(
 
 		// Show preview and confirmation in interactive mode
 		if (isInteractive()) {
+			const currentVcpu = cvm.resource.vcpu;
+			const currentMemoryMB = cvm.resource.memory_in_gb
+				? cvm.resource.memory_in_gb * 1024
+				: undefined;
+			const currentDiskGB = cvm.resource.disk_in_gb;
+
 			logger.keyValueTable({
 				vCPUs:
-					cvm.vcpu !== vcpu
-						? `${chalk.red(cvm.vcpu)} -> ${chalk.green(vcpu)}`
-						: cvm.vcpu,
+					currentVcpu !== vcpu
+						? `${chalk.red(currentVcpu)} -> ${chalk.green(vcpu)}`
+						: currentVcpu,
 				Memory:
-					cvm.memory !== memory
-						? `${chalk.red(cvm.memory)} MB -> ${chalk.green(memory)} MB`
-						: cvm.memory,
+					currentMemoryMB !== memory
+						? `${chalk.red(currentMemoryMB)} MB -> ${chalk.green(memory)} MB`
+						: currentMemoryMB,
 				"Disk Size":
-					cvm.disk_size !== diskSize
-						? `${chalk.red(cvm.disk_size)} GB -> ${chalk.green(diskSize)} GB`
-						: cvm.disk_size,
+					currentDiskGB !== diskSize
+						? `${chalk.red(currentDiskGB)} GB -> ${chalk.green(diskSize)} GB`
+						: currentDiskGB,
 				"Allow Restart": allowRestart ? chalk.green("Yes") : chalk.red("No"),
 			});
 

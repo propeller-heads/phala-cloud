@@ -4,7 +4,6 @@ import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import type { CvmInfoResponse } from "@/src/api/types";
 import {
 	cvmsDeleteCommandMeta,
 	cvmsDeleteCommandSchema,
@@ -33,7 +32,7 @@ async function runCvmsDeleteCommand(
 			return 1;
 		}
 
-		const cvm = infoResult.data as CvmInfoResponse | undefined;
+		const cvm = infoResult.data;
 
 		if (!cvm) {
 			context.fail("CVM not found");

@@ -9,7 +9,7 @@ import {
 	BusinessError,
 	ResourceError,
 	formatStructuredError,
-	type CurrentUser,
+	type AuthResponse,
 } from "@phala/cloud";
 
 import { defineCommand } from "@/src/core/define-command";
@@ -43,13 +43,13 @@ function writeLine(stream: NodeJS.WriteStream, message = ""): void {
 async function validateApiKey(options: {
 	apiKey: string;
 	baseURL: string;
-}): Promise<CurrentUser> {
+}): Promise<AuthResponse> {
 	const client = await getClientWithKey(options.apiKey, {
 		baseURL: options.baseURL,
 	});
 	const result = await safeGetCurrentUser(client);
 
-	if (!result.success || !result.data?.username) {
+	if (!result.success || !result.data?.user.username) {
 		throw new Error("Invalid API key");
 	}
 
@@ -58,8 +58,8 @@ async function validateApiKey(options: {
 
 async function promptForApiKey(options: {
 	baseURL: string;
-}): Promise<{ apiKey: string; user: CurrentUser }> {
-	let cachedUser: CurrentUser | undefined;
+}): Promise<{ apiKey: string; user: AuthResponse }> {
+	let cachedUser: AuthResponse | undefined;
 	const response = await prompts({
 		type: "password",
 		name: "apiKey",
@@ -231,7 +231,7 @@ export async function runLoginCommand(
 		const baseURL = context.env.PHALA_CLOUD_API_PREFIX || DEFAULT_API_PREFIX;
 
 		let apiKey: string;
-		let user: CurrentUser | undefined;
+		let user: AuthResponse | undefined;
 
 		// Decide authentication method
 		if (input.apiKey) {
@@ -257,7 +257,7 @@ export async function runLoginCommand(
 			return 0;
 		}
 
-		const workspaceName = user.team_name || "default";
+		const workspaceName = user.workspace.name || "default";
 		const profileName = input.profile || workspaceName;
 
 		upsertProfile({
@@ -266,15 +266,15 @@ export async function runLoginCommand(
 			apiPrefix: baseURL,
 			workspaceName,
 			user: {
-				username: user.username,
-				email: user.email,
+				username: user.user.username,
+				email: user.user.email,
 			},
 			setCurrent: true,
 		});
 
 		context.stdout.write(
 			chalk.green(
-				`Welcome ${user.username}! Credentials saved successfully (profile: ${profileName})\n`,
+				`Welcome ${user.user.username}! Credentials saved successfully (profile: ${profileName})\n`,
 			),
 		);
 		return 0;

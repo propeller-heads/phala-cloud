@@ -54,7 +54,8 @@ describe("Client.extend()", () => {
         avatar: "",
         email_verified: true,
         totp_enabled: false,
-        backup_codes_count: 0,
+        has_backup_codes: false,
+        flag_has_password: true,
       },
       workspace: {
         id: "ws-test",
@@ -128,7 +129,8 @@ describe("Type safety", () => {
         avatar: "",
         email_verified: true,
         totp_enabled: false,
-        backup_codes_count: 0,
+        has_backup_codes: false,
+        flag_has_password: true,
       },
       workspace: {
         id: "ws-test",
