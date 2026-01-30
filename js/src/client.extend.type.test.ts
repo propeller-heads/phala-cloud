@@ -9,13 +9,13 @@ import { describe, it, expectTypeOf } from "vitest";
 import { z } from "zod";
 import { createClient, type Client } from "./client";
 import { defineSimpleAction, defineAction } from "./utils/define-action";
-import { getCurrentUser, type CurrentUser } from "./actions/get_current_user";
+import { getCurrentUser, type AuthResponse } from "./actions/get_current_user";
 import { getCvmList, type GetCvmListResponse } from "./actions/cvms/get_cvm_list";
 
 describe("client.extend() type inference", () => {
   it("should correctly infer action types", () => {
     const testActions: {
-      readonly getCurrentUser: (client: Client) => Promise<CurrentUser>;
+      readonly getCurrentUser: (client: Client) => Promise<AuthResponse>;
       readonly getCvmList: (client: Client) => Promise<GetCvmListResponse>;
      } = {
       getCurrentUser,
@@ -24,10 +24,10 @@ describe("client.extend() type inference", () => {
 
     const client = createClient({ apiKey: "test" }).extend(testActions);
 
-    // getCurrentUser should return Promise<CurrentUser>
+    // getCurrentUser should return Promise<AuthResponse> (v20260121 default)
     expectTypeOf(client.getCurrentUser).toBeFunction();
     expectTypeOf(client.getCurrentUser).parameters.toEqualTypeOf<[]>();
-    expectTypeOf(client.getCurrentUser).returns.toEqualTypeOf<Promise<CurrentUser>>();
+    expectTypeOf(client.getCurrentUser).returns.toEqualTypeOf<Promise<AuthResponse>>();
   });
 
   it("should correctly infer defineSimpleAction types", () => {

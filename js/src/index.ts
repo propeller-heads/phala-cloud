@@ -9,6 +9,9 @@ export { createClient, type Client } from "./create-client";
 // Types
 export * from "./types";
 
+// Credentials (versioned auth response schemas)
+export * from "./credentials";
+
 // Actions
 export * from "./actions";
 

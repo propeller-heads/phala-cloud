@@ -1,7 +1,7 @@
-import { createClient, safeGetCurrentUser } from "@phala/cloud";
+import { safeGetCurrentUser } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getApiKey } from "@/src/utils/credentials";
+import { getClientWithAuth } from "@/src/lib/client";
 
 import { logger, setJsonMode } from "@/src/utils/logger";
 import { statusCommandMeta, statusCommandSchema } from "./command";
@@ -11,24 +11,30 @@ export async function runStatusCommand(
 	input: StatusCommandInput,
 	context: CommandContext,
 ): Promise<number | undefined> {
-	// Enable JSON mode if --json flag is set
 	setJsonMode(input.json);
 
 	const debug = input.debug || context.env.DEBUG?.toLowerCase() === "true";
-	const apiKey = input.apiToken || getApiKey();
 
-	if (!apiKey) {
+	const { client, auth } = await getClientWithAuth(context, {
+		apiToken: input.apiToken,
+	});
+
+	if (!auth.apiKey) {
 		logger.warn('Not authenticated. Please set an API key with "phala login"');
 		return 0;
 	}
 
 	if (debug) {
-		logger.debug(`Using API key: ${apiKey.substring(0, 5)}...`);
+		logger.debug(
+			`Using API key: ${auth.apiKey.substring(0, 5)}... (source=${auth.tokenSource}, profile=${auth.profileName})`,
+		);
+		logger.debug(
+			`Using API prefix: ${auth.baseURL} (source=${auth.apiPrefixSource})`,
+		);
 	}
 
 	try {
-		const apiClient = createClient({ apiKey });
-		const result = await safeGetCurrentUser(apiClient);
+		const result = await safeGetCurrentUser(client);
 
 		if (!result.success) {
 			logger.error("Failed to get user information");
@@ -39,16 +45,15 @@ export async function runStatusCommand(
 			return 1;
 		}
 
-		const userInfo = result.data as { username?: string; team_name?: string };
-		const apiUrl =
-			context.env.PHALA_CLOUD_API_PREFIX ||
-			"https://cloud-api.phala.network/api/v1";
+		const userInfo = result.data;
+		const apiUrl = auth.baseURL;
 
 		if (input.json) {
 			context.success({
 				apiUrl,
 				username: userInfo.username,
 				team_name: userInfo.team_name,
+				profile: auth.profileName,
 			});
 			return 0;
 		}
@@ -56,6 +61,7 @@ export async function runStatusCommand(
 		context.stdout.write(`Integrated API: ${apiUrl}\n`);
 		context.stdout.write(`Logged in as: ${userInfo.username}\n`);
 		context.stdout.write(`Current Workspace: ${userInfo.team_name}\n`);
+		context.stdout.write(`Current Profile: ${auth.profileName}\n`);
 		return 0;
 	} catch (error) {
 		logger.error(

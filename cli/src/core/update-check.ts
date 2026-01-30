@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import semver from "semver";
-import { getConfigValue, saveConfig } from "@/src/utils/config";
+import { getStateValue, saveState } from "@/src/utils/state";
 import {
 	detectPackageManager,
 	formatGlobalInstallCommand,
@@ -104,10 +104,10 @@ function getNumberConfig(
 function defaultConfigStore(): UpdateCheckConfigStore {
 	return {
 		get(key) {
-			return getConfigValue(key) as ConfigValue;
+			return getStateValue(key) as ConfigValue;
 		},
 		save(values) {
-			saveConfig(values);
+			saveState(values);
 		},
 	};
 }

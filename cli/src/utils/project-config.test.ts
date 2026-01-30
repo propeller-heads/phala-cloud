@@ -111,6 +111,16 @@ name = "name-field"
 		expect(config.cvm_id).toBe("id-field");
 	});
 
+	test("should load profile", () => {
+		fs.writeFileSync(
+			path.join(tmpDir, "phala.toml"),
+			'profile = "teamA"\nid = "test-id"',
+			"utf8",
+		);
+		const config = loadProjectConfig();
+		expect(config.profile).toBe("teamA");
+	});
+
 	test("should load gateway_domain", () => {
 		fs.writeFileSync(
 			path.join(tmpDir, "phala.toml"),

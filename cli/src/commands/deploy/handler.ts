@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import type { CommandContext } from "@/src/core/types";
-import { getApiKey } from "@/src/utils/credentials";
+import { resolveAuthForContext } from "@/src/lib/client";
 import { logger, setJsonMode } from "@/src/utils/logger";
 import {
 	CLOUD_URL,
@@ -194,26 +194,15 @@ async function getApiClient({
 }: Readonly<Pick<Options, "apiToken" | "interactive">>): Promise<
 	Client<typeof API_VERSION>
 > {
-	// Priority 1: Command-line provided API key
-	if (apiToken) {
-		return createClient({ apiKey: apiToken, version: API_VERSION });
-	}
-
-	// Priority 2: Environment variable
-	if (process.env.PHALA_CLOUD_API_KEY) {
+	const resolved = resolveAuthForContext(undefined, { apiToken });
+	if (resolved.apiKey) {
 		return createClient({
-			apiKey: process.env.PHALA_CLOUD_API_KEY,
+			apiKey: resolved.apiKey,
+			baseURL: resolved.baseURL,
 			version: API_VERSION,
 		});
 	}
 
-	// Priority 3: Saved API key from config file
-	const savedApiKey = getApiKey();
-	if (savedApiKey) {
-		return createClient({ apiKey: savedApiKey, version: API_VERSION });
-	}
-
-	// Priority 4: Interactive prompt (only if no API key found)
 	if (interactive) {
 		const { apiToken: promptedToken } = await inquirer.prompt([
 			{
@@ -224,12 +213,15 @@ async function getApiClient({
 					input.trim() ? true : "API token is required",
 			},
 		]);
-		return createClient({ apiKey: promptedToken, version: API_VERSION });
+		return createClient({
+			apiKey: promptedToken,
+			baseURL: resolved.baseURL,
+			version: API_VERSION,
+		});
 	}
 
-	// No API key available
 	throw new Error(
-		"API token is required. Please run 'phala auth login' or set PHALA_CLOUD_API_KEY environment variable",
+		"API token is required. Please run 'phala login' or set PHALA_CLOUD_API_KEY environment variable",
 	);
 }
 

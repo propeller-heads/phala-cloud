@@ -1,14 +1,14 @@
 /**
  * Integration tests for getCurrentUser
- * 
+ *
  * These tests are designed to run against a real API server in development environment.
  * They are NOT included in automated CI to avoid external dependencies.
- * 
+ *
  * To run these tests:
  * 1. Set PHALA_CLOUD_API_KEY environment variable
  * 2. Optionally set PHALA_CLOUD_API_PREFIX (defaults to production server)
  * 3. Run: npm run test:integration or vitest getCurrentUser.integration.test.ts
- * 
+ *
  * Example:
  * ```bash
  * export PHALA_CLOUD_API_KEY="your-api-key"
@@ -43,29 +43,43 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
     console.log(`Running integration tests against: ${client.config.baseURL}`);
   });
 
-  describe("getCurrentUser - Real API", () => {
-    it("should fetch real user data successfully", async () => {
+  describe("getCurrentUser - Real API (v20260121)", () => {
+    it("should fetch real user data in three-layer format", async () => {
       const result = await getCurrentUser(client);
 
-      // Validate that we get expected structure
+      // Validate three-layer structure
       expect(result).toBeDefined();
-      expect(typeof result.username).toBe("string");
-      expect(typeof result.email).toBe("string");
-      expect(typeof result.credits).toBe("number");
-      expect(typeof result.granted_credits).toBe("number");
-      expect(typeof result.role).toBe("string");
-      expect(typeof result.avatar).toBe("string");
-      expect(typeof result.flag_reset_password).toBe("boolean");
-      expect(typeof result.team_name).toBe("string");
-      expect(typeof result.team_tier).toBe("string");
-      expect(typeof result.email_verified).toBe("boolean");
+      expect(result.user).toBeDefined();
+      expect(result.workspace).toBeDefined();
+      expect(result.credits).toBeDefined();
+
+      // User layer
+      expect(typeof result.user.username).toBe("string");
+      expect(typeof result.user.email).toBe("string");
+      expect(typeof result.user.role).toBe("string");
+      expect(typeof result.user.avatar).toBe("string");
+      expect(typeof result.user.email_verified).toBe("boolean");
+      expect(typeof result.user.totp_enabled).toBe("boolean");
+      expect(typeof result.user.backup_codes_count).toBe("number");
+
+      // Workspace layer
+      expect(typeof result.workspace.id).toBe("string");
+      expect(typeof result.workspace.name).toBe("string");
+      expect(typeof result.workspace.tier).toBe("string");
+      expect(typeof result.workspace.role).toBe("string");
+
+      // Credits layer
+      expect(typeof result.credits.balance).toBe("number");
+      expect(typeof result.credits.granted_balance).toBe("number");
+      expect(typeof result.credits.is_post_paid).toBe("boolean");
 
       // Log results for debugging
       console.log("✅ User data fetched successfully:", {
-        username: result.username,
-        email: result.email,
-        team_name: result.team_name,
-        role: result.role,
+        username: result.user.username,
+        email: result.user.email,
+        workspace: result.workspace.name,
+        tier: result.workspace.tier,
+        balance: result.credits.balance,
       });
     }, 30000); // 30 second timeout
 
@@ -83,15 +97,18 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
       const result = await safeGetCurrentUser(client);
 
       expect(result.success).toBe(true);
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
-        expect(typeof result.data.username).toBe("string");
-        expect(typeof result.data.email).toBe("string");
-        
+        expect(typeof result.data.user.username).toBe("string");
+        expect(typeof result.data.user.email).toBe("string");
+        expect(typeof result.data.workspace.name).toBe("string");
+        expect(typeof result.data.credits.balance).toBe("number");
+
         console.log("✅ Safe user data fetched successfully:", {
-          username: result.data.username,
-          email: result.data.email,
+          username: result.data.user.username,
+          email: result.data.user.email,
+          workspace: result.data.workspace.name,
         });
       }
     }, 30000);
@@ -104,11 +121,11 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
       const result = await safeGetCurrentUser(invalidClient);
 
       expect(result.success).toBe(false);
-      
+
       if (!result.success) {
         expect(result.error).toBeDefined();
         expect(result.error.message).toBeDefined();
-        
+
         console.log("✅ Error handled correctly:", result.error.message);
       }
     }, 15000);
@@ -118,11 +135,11 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
     it("should validate API token correctly", async () => {
       // This is the primary use case - validating if API token is valid
       const result = await safeGetCurrentUser(client);
-      
+
       if (result.success) {
-        console.log("✅ API Token is valid for user:", result.data.username);
-        expect(result.data.username).toBeDefined();
-        expect(result.data.username.length).toBeGreaterThan(0);
+        console.log("✅ API Token is valid for user:", result.data.user.username);
+        expect(result.data.user.username).toBeDefined();
+        expect(result.data.user.username.length).toBeGreaterThan(0);
       } else {
         console.log("❌ API Token validation failed:", result.error.message);
         throw new Error(`API Token validation failed: ${result.error.message}`);
@@ -135,7 +152,7 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
 if (skipIntegrationTests) {
   console.log(`
 ⚠️  Integration tests skipped!
-   
+
 To run integration tests:
 1. Set PHALA_CLOUD_API_KEY environment variable with a valid API key
 2. Optionally set PHALA_CLOUD_API_PREFIX (defaults to production)
@@ -146,4 +163,4 @@ export PHALA_CLOUD_API_KEY="your-api-key"
 export PHALA_CLOUD_API_PREFIX="https://staging-api.phala.network/v1"
 vitest getCurrentUser.integration.test.ts
   `);
-} 
+}

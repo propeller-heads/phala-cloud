@@ -5,7 +5,7 @@ import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { logger, setJsonMode } from "@/src/utils/logger";
-import { getConfigValue, saveConfig } from "@/src/utils/config";
+import { getStateValue, saveState } from "@/src/utils/state";
 import {
 	detectPackageManager,
 	detectRuntimeFromProcess,
@@ -160,7 +160,7 @@ function resolveChannel(
 	if (isNonEmptyString(inputChannel)) return inputChannel.trim();
 	if (isNonEmptyString(env.PHALA_UPDATE_CHANNEL))
 		return env.PHALA_UPDATE_CHANNEL;
-	const configChannel = getConfigValue("updateCheckChannel");
+	const configChannel = getStateValue("updateCheckChannel");
 	if (isNonEmptyString(configChannel)) return configChannel;
 	return getCurrentChannel(currentVersion) ?? "latest";
 }
@@ -194,7 +194,7 @@ async function runSelfUpdate(
 	if (latestVersion) {
 		const now = Date.now();
 		const channelKey = channel.replace(/[^a-zA-Z0-9_-]/g, "_");
-		saveConfig({
+		saveState({
 			[`updateCheckLastAt_${channelKey}`]: now,
 			[`updateCheckLatest_${channelKey}`]: latestVersion,
 			...(channel === "latest"

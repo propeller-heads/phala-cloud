@@ -188,8 +188,18 @@ export async function dispatchCommand(
 			);
 		}
 
-		// Priority 1: Interactive mode (if enabled)
-		if (isInteractive) {
+		// Priority 1: Interactive mode (if enabled AND command accepts cvmId)
+		const commandAcceptsCvmId = [
+			...(definition.meta.arguments ?? []),
+			...(definition.meta.options ?? []),
+		].some(
+			(arg) =>
+				arg.target === "cvmId" ||
+				arg.name === "cvm-id" ||
+				arg.name === "cvm_id",
+		);
+
+		if (isInteractive && commandAcceptsCvmId) {
 			const selected = await selectCvm();
 			if (selected) {
 				cvmId = { app_id: selected };

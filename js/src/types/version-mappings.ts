@@ -6,6 +6,8 @@
  * types based on the client's API version.
  */
 
+import type { CurrentUserV20260121 } from "../credentials/current_user_v20260121";
+import type { CurrentUserV20251028 } from "../credentials/current_user_v20251028";
 import type {
   DstackAppListResponseV20251028,
   DstackAppWithCvmResponseV20251028,
@@ -25,6 +27,15 @@ import type {
   CvmInfoV20260121,
   PaginatedCvmInfosV20260121,
 } from "./cvm_info_v20260121";
+
+/**
+ * Maps API version to the auth/me response type
+ */
+export type GetCurrentUserResponse<V extends ApiVersion> = V extends "2026-01-21"
+  ? CurrentUserV20260121
+  : V extends "2025-10-28"
+    ? CurrentUserV20251028
+    : CurrentUserV20260121;
 
 /**
  * Maps API version to the paginated CVM list response type

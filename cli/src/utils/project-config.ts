@@ -12,6 +12,7 @@ import { logger } from "./logger";
 // Project configuration schema - for validating phala.toml file content
 // Extends CvmIdObjectSchema but does NOT require CVM ID fields (allows gateway-only config)
 export const ProjectConfigSchema: z.ZodTypeAny = CvmIdObjectSchema.extend({
+	profile: z.string().optional(),
 	api_version: z.enum(SUPPORTED_API_VERSIONS).optional(),
 	gateway_domain: z.string().optional(),
 	gateway_port: z.number().int().positive().optional(),

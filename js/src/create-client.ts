@@ -1,9 +1,18 @@
 import { createClient as createBaseClient, Client as BaseClient } from "./client";
 import type { ClientConfig, ApiVersion, DefaultApiVersion } from "./types/client";
 import type { z } from "zod";
-import type { GetCvmListResponse, GetCvmInfoResponse } from "./types/version-mappings";
+import type {
+  GetCurrentUserResponse,
+  GetCvmListResponse,
+  GetCvmInfoResponse,
+} from "./types/version-mappings";
 
-import { getCurrentUser, safeGetCurrentUser, type CurrentUser } from "./actions/get_current_user";
+import {
+  getCurrentUser,
+  safeGetCurrentUser,
+  type AuthResponse,
+  type CurrentUser,
+} from "./actions/get_current_user";
 import {
   getAvailableNodes,
   safeGetAvailableNodes,
@@ -396,11 +405,11 @@ export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseCl
   >;
 
   // Simple actions (no request parameters, optional schema parameter)
-  getCurrentUser(): Promise<CurrentUser>;
+  getCurrentUser(): Promise<GetCurrentUserResponse<V>>;
   getCurrentUser<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<z.infer<T>>;
   getCurrentUser(parameters: { schema: false }): Promise<unknown>;
 
-  safeGetCurrentUser(): Promise<SafeResult<CurrentUser>>;
+  safeGetCurrentUser(): Promise<SafeResult<GetCurrentUserResponse<V>>>;
   safeGetCurrentUser<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<
     SafeResult<z.infer<T>>
   >;
