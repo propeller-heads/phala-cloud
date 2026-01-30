@@ -1,55 +1,163 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { type Client } from "../client";
-import { getCurrentUser, safeGetCurrentUser, type CurrentUser } from "./get_current_user";
+import {
+  getCurrentUser,
+  safeGetCurrentUser,
+  type AuthResponse,
+  type CurrentUser,
+  CurrentUserSchema,
+} from "./get_current_user";
 
-// Mock response data matching the API structure
-const mockUserData: CurrentUser = {
+// Mock v20260121 three-layer response
+const mockAuthResponse: AuthResponse = {
+  user: {
+    username: "testuser",
+    email: "testuser@phala.network",
+    role: "user",
+    avatar: "/default-avatar.png",
+    email_verified: true,
+    totp_enabled: false,
+    backup_codes_count: 0,
+    flag_reset_password: false,
+    flag_has_password: true,
+  },
+  workspace: {
+    id: "ws-abc123",
+    name: "Test Team",
+    slug: "test-team",
+    tier: "PRO",
+    role: "OWNER",
+  },
+  credits: {
+    balance: 1000,
+    granted_balance: 500,
+    is_post_paid: false,
+    outstanding_amount: null,
+  },
+};
+
+// Mock v20251028 flat response
+const mockLegacyResponse: CurrentUser = {
   username: "testuser",
   email: "testuser@phala.network",
   credits: 1000,
   granted_credits: 500,
   avatar: "/default-avatar.png",
   team_name: "Test Team",
-  team_tier: "pro",
+  team_tier: "PRO",
 };
+
+function createMockClient(version: string = "2026-01-21"): Partial<Client> {
+  return {
+    get: vi.fn(),
+    safeGet: vi.fn(),
+    config: { version } as Client["config"],
+  };
+}
 
 describe("getCurrentUser", () => {
   let mockClient: Partial<Client>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mockClient = {
-      get: vi.fn(),
-      safeGet: vi.fn(),
-    };
+    mockClient = createMockClient("2026-01-21");
   });
 
-  describe("API routing & basic success", () => {
-    it("should call correct endpoint and return user data", async () => {
-      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
+  describe("v20260121 (default) - three-layer response", () => {
+    it("should call correct endpoint and return auth response", async () => {
+      (mockClient.get as jest.Mock).mockResolvedValue(mockAuthResponse);
 
       const result = await getCurrentUser(mockClient as Client);
 
       expect(mockClient.get).toHaveBeenCalledWith("/auth/me");
-      expect(result).toEqual(mockUserData);
-      expect((result as CurrentUser).username).toBe("testuser");
-      expect((result as CurrentUser).credits).toBe(1000);
+      expect(result).toEqual(mockAuthResponse);
+      expect(result.user.username).toBe("testuser");
+      expect(result.workspace.name).toBe("Test Team");
+      expect(result.credits.balance).toBe(1000);
     });
-  });
 
-  describe("request validation", () => {
     it("should validate response data with zod schema", async () => {
       const invalidData = {
-        username: "testuser",
-        email: "testuser@phala.network",
-        credits: "invalid", // should be number
-        // missing required fields
+        user: {
+          username: "testuser",
+          // missing required fields
+        },
       };
 
       (mockClient.get as jest.Mock).mockResolvedValue(invalidData);
 
       await expect(getCurrentUser(mockClient as Client)).rejects.toThrow();
+    });
+
+    it("should allow extra fields in API response for forward compatibility", async () => {
+      const responseWithExtraFields = {
+        ...mockAuthResponse,
+        new_feature: "some_value",
+        user: {
+          ...mockAuthResponse.user,
+          some_future_field: true,
+        },
+      };
+
+      (mockClient.get as jest.Mock).mockResolvedValue(responseWithExtraFields);
+
+      const result = await getCurrentUser(mockClient as Client);
+
+      expect(result.user.username).toBe(mockAuthResponse.user.username);
+      expect(result.workspace.name).toBe(mockAuthResponse.workspace.name);
+      expect(result.credits.balance).toBe(mockAuthResponse.credits.balance);
+
+      // Should also include the extra fields (due to passthrough())
+      expect((result as Record<string, unknown>).new_feature).toBe("some_value");
+    });
+  });
+
+  describe("v20251028 (legacy) - flat response", () => {
+    let legacyClient: Partial<Client>;
+
+    beforeEach(() => {
+      legacyClient = createMockClient("2025-10-28");
+    });
+
+    it("should use CurrentUserSchema for v20251028 client", async () => {
+      (legacyClient.get as jest.Mock).mockResolvedValue(mockLegacyResponse);
+
+      const result = await getCurrentUser(legacyClient as Client<"2025-10-28">);
+
+      expect(legacyClient.get).toHaveBeenCalledWith("/auth/me");
+      expect(result.username).toBe("testuser");
+      expect(result.credits).toBe(1000);
+      expect(result.team_name).toBe("Test Team");
+    });
+
+    it("should reject three-layer response when using v20251028 client", async () => {
+      (legacyClient.get as jest.Mock).mockResolvedValue(mockAuthResponse);
+
+      // Three-layer response should fail flat schema validation
+      await expect(getCurrentUser(legacyClient as Client<"2025-10-28">)).rejects.toThrow();
+    });
+  });
+
+  describe("schema override", () => {
+    it("should use explicit schema when provided", async () => {
+      (mockClient.get as jest.Mock).mockResolvedValue(mockLegacyResponse);
+
+      const result = await getCurrentUser(mockClient as Client, {
+        schema: CurrentUserSchema,
+      });
+
+      expect(result.username).toBe("testuser");
+      expect(result.credits).toBe(1000);
+      expect(result.team_name).toBe("Test Team");
+    });
+
+    it("should return raw data when schema is false", async () => {
+      const rawData = { arbitrary: "data" };
+      (mockClient.get as jest.Mock).mockResolvedValue(rawData);
+
+      const result = await getCurrentUser(mockClient as Client, { schema: false });
+
+      expect(result).toEqual(rawData);
     });
   });
 
@@ -78,61 +186,19 @@ describe("getCurrentUser", () => {
     });
   });
 
-  describe("edge cases", () => {
-    it("should allow extra fields in API response for forward compatibility", async () => {
-      const responseWithExtraFields = {
-        ...mockUserData,
-        // Extra fields that might be added in future API versions
-        new_feature: "some_value",
-        premium_features: {
-          enabled: true,
-          plan: "pro",
-        },
-        metadata: {
-          last_login: "2024-01-01T00:00:00Z",
-          preferences: {
-            theme: "dark",
-            language: "en",
-          },
-        },
-      };
-
-      (mockClient.get as jest.Mock).mockResolvedValue(responseWithExtraFields);
-
-      const result = await getCurrentUser(mockClient as Client);
-
-      // Should include the core fields
-      expect((result as CurrentUser).username).toBe(mockUserData.username);
-      expect((result as CurrentUser).email).toBe(mockUserData.email);
-      expect((result as CurrentUser).credits).toBe(mockUserData.credits);
-
-      // Should also include the extra fields (due to passthrough())
-      expect((result as any).new_feature).toBe("some_value");
-      expect((result as any).premium_features).toEqual({
-        enabled: true,
-        plan: "pro",
-      });
-    });
-
-    it("should work without parameters", async () => {
-      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
-
-      const result = await getCurrentUser(mockClient as Client);
-      expect(result).toEqual(mockUserData);
-    });
-  });
-
   describe("safeGetCurrentUser", () => {
     it("should return SafeResult on success", async () => {
-      (mockClient.get as jest.Mock).mockResolvedValue(mockUserData);
+      (mockClient.get as jest.Mock).mockResolvedValue(mockAuthResponse);
 
       const result = await safeGetCurrentUser(mockClient as Client);
 
       expect(mockClient.get).toHaveBeenCalledWith("/auth/me");
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toEqual(mockUserData);
-        expect((result.data as CurrentUser).username).toBe("testuser");
+        expect(result.data).toEqual(mockAuthResponse);
+        expect(result.data.user.username).toBe("testuser");
+        expect(result.data.workspace.name).toBe("Test Team");
+        expect(result.data.credits.balance).toBe(1000);
       }
     });
 
@@ -161,8 +227,7 @@ describe("getCurrentUser", () => {
 
     it("should handle zod validation errors", async () => {
       const invalidData = {
-        username: 123, // should be string
-        email: "testuser@phala.network",
+        user: { username: 123 }, // should be string
       };
 
       (mockClient.get as jest.Mock).mockResolvedValue(invalidData);
@@ -171,14 +236,25 @@ describe("getCurrentUser", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        // If it doesn't have isRequestError, it's a ZodError
         if (!("isRequestError" in result.error)) {
           expect(result.error.name).toBe("ZodError");
           expect(result.error.issues).toBeDefined();
           expect(result.error.issues.length).toBeGreaterThan(0);
-          expect(result.error.issues[0].path).toEqual(["username"]);
-          expect(result.error.issues[0].code).toBe("invalid_type");
         }
+      }
+    });
+
+    it("should work with v20251028 client", async () => {
+      const legacyClient = createMockClient("2025-10-28");
+      (legacyClient.get as jest.Mock).mockResolvedValue(mockLegacyResponse);
+
+      const result = await safeGetCurrentUser(legacyClient as Client<"2025-10-28">);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as CurrentUser;
+        expect(data.username).toBe("testuser");
+        expect(data.credits).toBe(1000);
       }
     });
   });

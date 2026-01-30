@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createClient, type Client } from "./client";
-import { getCurrentUser, CurrentUser } from "./actions/get_current_user";
+import { getCurrentUser, type AuthResponse } from "./actions/get_current_user";
 import { getCvmList } from "./actions/cvms/get_cvm_list";
 
 describe("Client.extend()", () => {
@@ -47,13 +47,28 @@ describe("Client.extend()", () => {
 
     // Mock the HTTP get method
     const mockGet = vi.spyOn(client, "get").mockResolvedValue({
-      username: "test-user",
-      email: "test@example.com",
-      credits: 100,
-      granted_credits: 0,
-      avatar: "",
-      team_name: "test-team",
-      team_tier: "free",
+      user: {
+        username: "test-user",
+        email: "test@example.com",
+        role: "user",
+        avatar: "",
+        email_verified: true,
+        totp_enabled: false,
+        backup_codes_count: 0,
+      },
+      workspace: {
+        id: "ws-test",
+        name: "test-team",
+        slug: "test-team",
+        tier: "free",
+        role: "OWNER",
+      },
+      credits: {
+        balance: 100,
+        granted_balance: 0,
+        is_post_paid: false,
+        outstanding_amount: null,
+      },
     });
 
     const testActions = {
@@ -106,29 +121,44 @@ describe("Type safety", () => {
     });
 
     const mockResponse = {
-      username: "test-user",
-      email: "test@example.com",
-      credits: 100,
-      granted_credits: 0,
-      avatar: "",
-      team_name: "test-team",
-      team_tier: "free",
+      user: {
+        username: "test-user",
+        email: "test@example.com",
+        role: "user" as const,
+        avatar: "",
+        email_verified: true,
+        totp_enabled: false,
+        backup_codes_count: 0,
+      },
+      workspace: {
+        id: "ws-test",
+        name: "test-team",
+        slug: "test-team",
+        tier: "free",
+        role: "OWNER",
+      },
+      credits: {
+        balance: 100,
+        granted_balance: 0,
+        is_post_paid: false,
+        outstanding_amount: null,
+      },
     };
 
     vi.spyOn(client, "get").mockResolvedValue(mockResponse);
 
     const testActions: {
-      readonly getCurrentUser: (client: Client) => Promise<CurrentUser>;
+      readonly getCurrentUser: (client: Client) => Promise<AuthResponse>;
     } = {
       getCurrentUser,
     };
 
     const extended = client.extend(testActions);
 
-    const user = await extended.getCurrentUser();
+    const auth = await extended.getCurrentUser();
 
     // Type inference should work
-    expect(user.username).toBe("test-user");
-    expect(user.credits).toBe(100);
+    expect(auth.user.username).toBe("test-user");
+    expect(auth.credits.balance).toBe(100);
   });
 });

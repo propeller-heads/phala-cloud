@@ -119,20 +119,15 @@ async function ensureAuthenticated(
 		if (!refreshedUser.success) {
 			return null;
 		}
-		const userData = refreshedUser.data as {
-			username?: string;
-			team_name?: string;
-		};
-		logger.success(`Authenticated as ${userData.username}`);
+		logger.success(`Authenticated as ${refreshedUser.data.username}`);
 		console.log();
-		return { apiKey, workspaceName: userData.team_name || "default" };
+		return { apiKey, workspaceName: refreshedUser.data.team_name || "default" };
 	}
 
-	const userData = userResult.data as { username?: string; team_name?: string };
-	logger.success(`Authenticated as ${userData.username}`);
+	logger.success(`Authenticated as ${userResult.data.username}`);
 	console.log();
 
-	return { apiKey, workspaceName: userData.team_name || "default" };
+	return { apiKey, workspaceName: userResult.data.team_name || "default" };
 }
 
 /**

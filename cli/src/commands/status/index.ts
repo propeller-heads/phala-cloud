@@ -45,7 +45,7 @@ export async function runStatusCommand(
 			return 1;
 		}
 
-		const userInfo = result.data as { username?: string; team_name?: string };
+		const userInfo = result.data;
 		const apiUrl = auth.baseURL;
 
 		if (input.json) {

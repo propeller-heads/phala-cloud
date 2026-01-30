@@ -9,6 +9,7 @@ import {
 	BusinessError,
 	ResourceError,
 	formatStructuredError,
+	type CurrentUser,
 } from "@phala/cloud";
 
 import { defineCommand } from "@/src/core/define-command";
@@ -35,12 +36,6 @@ interface DeviceTokenResponse {
 	token_type: string;
 }
 
-type CurrentUserInfo = {
-	username: string;
-	email?: string;
-	team_name?: string;
-};
-
 function writeLine(stream: NodeJS.WriteStream, message = ""): void {
 	stream.write(`${message}\n`);
 }
@@ -48,24 +43,23 @@ function writeLine(stream: NodeJS.WriteStream, message = ""): void {
 async function validateApiKey(options: {
 	apiKey: string;
 	baseURL: string;
-}): Promise<CurrentUserInfo> {
+}): Promise<CurrentUser> {
 	const client = await getClientWithKey(options.apiKey, {
 		baseURL: options.baseURL,
 	});
 	const result = await safeGetCurrentUser(client);
-	const userData = result.data as CurrentUserInfo;
 
-	if (!result.success || !userData?.username) {
+	if (!result.success || !result.data?.username) {
 		throw new Error("Invalid API key");
 	}
 
-	return userData;
+	return result.data;
 }
 
 async function promptForApiKey(options: {
 	baseURL: string;
-}): Promise<{ apiKey: string; user: CurrentUserInfo }> {
-	let cachedUser: CurrentUserInfo | undefined;
+}): Promise<{ apiKey: string; user: CurrentUser }> {
+	let cachedUser: CurrentUser | undefined;
 	const response = await prompts({
 		type: "password",
 		name: "apiKey",
@@ -237,7 +231,7 @@ export async function runLoginCommand(
 		const baseURL = context.env.PHALA_CLOUD_API_PREFIX || DEFAULT_API_PREFIX;
 
 		let apiKey: string;
-		let user: CurrentUserInfo | undefined;
+		let user: CurrentUser | undefined;
 
 		// Decide authentication method
 		if (input.apiKey) {

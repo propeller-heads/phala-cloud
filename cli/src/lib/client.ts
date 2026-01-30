@@ -3,7 +3,7 @@ import type { CommandContext } from "@/src/core/types";
 import { getProjectConfig } from "@/src/utils/project-config";
 import { resolveAuth, type ResolvedAuth } from "@/src/utils/credentials";
 
-// Use legacy API version until CLI types are updated for the new format
+// Use legacy API version for CVM operations (CLI types not yet updated for v20260121)
 const API_VERSION = "2025-10-28" as const;
 
 export type CliApiClient = Client<typeof API_VERSION>;
