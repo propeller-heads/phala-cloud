@@ -21,6 +21,7 @@ import { switchCommand } from "./commands/switch";
 import { completionCommand } from "./commands/completion";
 import { sshCommand } from "./commands/ssh";
 import { cpCommand } from "./commands/cp";
+import { psCommand } from "./commands/ps";
 import { selfCommands } from "./commands/self";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
@@ -47,6 +48,7 @@ registry.registerCommand(completionCommand);
 registry.registerCommand(sshCommand);
 registry.registerCommand(cpCommand);
 registry.registerCommand(switchCommand);
+registry.registerCommand(psCommand);
 registry.registerGroup(selfCommands.group);
 for (const command of selfCommands.commands) {
 	registry.registerCommand(command);
