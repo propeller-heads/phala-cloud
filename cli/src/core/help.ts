@@ -36,15 +36,90 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 
 	lines.push(`Usage: ${executableName} <command> [options]`);
 	lines.push("");
-	lines.push("Available commands:");
+	const nodes = registry.getChildren();
 
-	for (const node of registry.getChildren()) {
+	const categoryTitle = (
+		category:
+			| "deploy"
+			| "manage"
+			| "cvm-ops"
+			| "profile"
+			| "advanced"
+			| "deprecated",
+	): string => {
+		switch (category) {
+			case "deploy":
+				return "Deploy:";
+			case "manage":
+				return "Manage:";
+			case "cvm-ops":
+				return "CVM operations:";
+			case "profile":
+				return "Profile / auth:";
+			case "advanced":
+				return "Advanced:";
+			case "deprecated":
+				return "Deprecated:";
+		}
+	};
+
+	const categories: readonly (
+		| "deploy"
+		| "manage"
+		| "cvm-ops"
+		| "profile"
+		| "advanced"
+		| "deprecated"
+	)[] = ["deploy", "manage", "cvm-ops", "profile", "advanced", "deprecated"];
+
+	const getCategory = (
+		node: (typeof nodes)[number],
+	):
+		| "deploy"
+		| "manage"
+		| "cvm-ops"
+		| "profile"
+		| "advanced"
+		| "deprecated" => {
 		const meta = node.command?.meta ?? node.group?.meta;
-		const description = (meta?.description ?? "").split("\n")[0];
-		const stability = meta?.stability;
-		const indicator = stability ? formatStabilityIndicator(stability) : "";
+		if (meta?.category) return meta.category;
+
 		const name = node.name ?? "";
-		lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
+
+		// fallback: deprecated stability implies deprecated category
+		if (meta?.stability === "deprecated") return "deprecated";
+
+		// hard-coded defaults for uncategorized top-level commands
+		if (name === "nodes" || name === "deploy") return "deploy";
+		if (name === "apps" || name === "cvms" || name === "link" || name === "simulator")
+			return "manage";
+		if (name === "ssh" || name === "cp" || name === "ps" || name === "logs")
+			return "cvm-ops";
+		if (name === "login" || name === "logout" || name === "switch" || name === "status")
+			return "profile";
+		if (name === "api" || name === "self") return "advanced";
+		if (name === "auth" || name === "config" || name === "docker") return "deprecated";
+
+		// default bucket
+		return "advanced";
+	};
+
+	for (const category of categories) {
+		const groupNodes = nodes
+			.filter((n) => getCategory(n) === category)
+			.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+		if (groupNodes.length === 0) continue;
+
+		lines.push(categoryTitle(category));
+		for (const node of groupNodes) {
+			const meta = node.command?.meta ?? node.group?.meta;
+			const description = (meta?.description ?? "").split("\n")[0];
+			const stability = meta?.stability;
+			const indicator = stability ? formatStabilityIndicator(stability) : "";
+			const name = node.name ?? "";
+			lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
+		}
+		lines.push("");
 	}
 
 	lines.push("");

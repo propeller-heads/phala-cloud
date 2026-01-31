@@ -5,6 +5,7 @@ import { jsonOption } from "@/src/commands/status/command";
 
 export const logsCommandMeta: CommandMeta = {
 	name: "logs",
+	category: "cvm-ops",
 	description: "Fetch container logs from a CVM",
 	stability: "unstable",
 	arguments: [
@@ -19,28 +20,28 @@ export const logsCommandMeta: CommandMeta = {
 		{
 			name: "tail",
 			shorthand: "n",
-			description: "Number of lines to show from the end of the logs",
+			description: "Lines from end",
 			type: "number",
 			target: "tail",
 		},
 		{
 			name: "follow",
 			shorthand: "f",
-			description: "Follow log output (stream logs in real-time)",
+			description: "Stream logs in real-time",
 			type: "boolean",
 			target: "follow",
 		},
 		{
 			name: "timestamps",
 			shorthand: "t",
-			description: "Show timestamps with log entries",
+			description: "Show timestamps",
 			type: "boolean",
 			target: "timestamps",
 		},
 		{
 			name: "since",
 			description:
-				"Show logs since timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g. 42m)",
+				"Logs since timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
 			type: "string",
 			target: "since",
 			argumentName: "since",
@@ -48,23 +49,21 @@ export const logsCommandMeta: CommandMeta = {
 		{
 			name: "until",
 			description:
-				"Show logs before a timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g. 42m)",
+				"Logs before timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
 			type: "string",
 			target: "until",
 			argumentName: "until",
 		},
 		{
 			name: "stdout",
-			description:
-				"Include stdout logs (default: true). Use --no-stdout to disable.",
+			description: "Include stdout (default: true)",
 			type: "boolean",
 			target: "stdout",
 			negatedName: "no-stdout",
 		},
 		{
 			name: "stderr",
-			description:
-				"Include stderr logs and route them to stderr. Default: stderr is not shown.",
+			description: "Include stderr and route to stderr",
 			type: "boolean",
 			target: "stderr",
 		},
@@ -74,31 +73,31 @@ export const logsCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "Show stdout logs for a container (uses cvm_id from phala.toml)",
+			name: "Show container logs",
 			value: "phala logs my-service",
 		},
 		{
-			name: "Include stderr logs (routed to stderr)",
+			name: "Include stderr",
 			value: "phala logs my-service --stderr",
 		},
 		{
-			name: "Show only stderr logs",
+			name: "Show only stderr",
 			value: "phala logs my-service --no-stdout --stderr",
 		},
 		{
-			name: "Show last 100 lines of logs",
+			name: "Last 100 lines",
 			value: "phala logs my-service --tail 100",
 		},
 		{
-			name: "Follow logs in real-time",
+			name: "Follow logs",
 			value: "phala logs my-service --follow",
 		},
 		{
-			name: "Specify CVM explicitly",
+			name: "Specify CVM",
 			value: "phala logs my-service --cvm-id app_abc123",
 		},
 		{
-			name: "Show logs with timestamps",
+			name: "With timestamps",
 			value: "phala logs my-service --timestamps",
 		},
 	],

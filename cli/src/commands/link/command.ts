@@ -12,13 +12,13 @@ export const jsonOption = {
 
 export const linkCommandMeta: CommandMeta = {
 	name: "link",
+	category: "manage",
 	description: "Link a local directory to a CVM",
 	stability: "unstable",
 	arguments: [
 		{
 			name: "cvm-id",
-			description:
-				"CVM ID or name to link (optional, interactive if not provided)",
+			description: "CVM ID or name (interactive if omitted)",
 			required: false,
 			target: "cvmId",
 		},
@@ -26,11 +26,11 @@ export const linkCommandMeta: CommandMeta = {
 	options: [jsonOption],
 	examples: [
 		{
-			name: "Link to a CVM by name or ID",
+			name: "Link by name or ID",
 			value: "phala link my-cvm-name",
 		},
 		{
-			name: "Link to an existing CVM interactively",
+			name: "Link interactively",
 			value: "phala link",
 		},
 	],

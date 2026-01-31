@@ -11,19 +11,19 @@ export const cvmsGetCommandMeta: CommandMeta = {
 	options: [jsonOption, interactiveOption],
 	examples: [
 		{
-			name: "Show CVM details interactively",
+			name: "Get CVM interactively",
 			value: "phala cvms get",
 		},
 		{
-			name: "Get CVM by app_id",
+			name: "By app_id",
 			value: "phala cvms get app_abc123",
 		},
 		{
-			name: "Get CVM by UUID",
+			name: "By UUID",
 			value: "phala cvms get 550e8400-e29b-41d4-a716-446655440000",
 		},
 		{
-			name: "Get CVM by name",
+			name: "By name",
 			value: "phala cvms get my-app",
 		},
 	],

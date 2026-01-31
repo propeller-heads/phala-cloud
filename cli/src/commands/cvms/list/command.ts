@@ -5,7 +5,7 @@ import { jsonOption } from "@/src/core/common-flags";
 export const cvmsListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
-	description: "List CVMs (from apps)",
+	description: "List CVMs",
 	stability: "unstable",
 	options: [
 		{
@@ -26,11 +26,11 @@ export const cvmsListCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "List CVMs (page 1)",
+			name: "List CVMs",
 			value: "phala cvms ls",
 		},
 		{
-			name: "List CVMs (page 2)",
+			name: "Second page",
 			value: "phala cvms ls --page 2",
 		},
 		{

@@ -3,20 +3,21 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const cpCommandMeta: CommandMeta = {
 	name: "cp",
+	category: "cvm-ops",
 	description: "Copy files to/from a CVM via SCP",
 	stability: "unstable",
 	arguments: [
 		{
 			name: "source",
 			description:
-				"Source path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
+				"Source path (local or cvm-name:path, use :path for phala.toml cvm_id)",
 			required: true,
 			target: "source",
 		},
 		{
 			name: "destination",
 			description:
-				"Destination path. Local file or remote in format 'cvm-name:path'. Use ':path' to read cvm_id from phala.toml",
+				"Destination path (local or cvm-name:path, use :path for phala.toml cvm_id)",
 			required: true,
 			target: "destination",
 		},
@@ -32,16 +33,14 @@ export const cpCommandMeta: CommandMeta = {
 		{
 			name: "port",
 			shorthand: "p",
-			description:
-				"SSH port. Priority: CLI option > phala.toml gateway_port > 443",
+			description: "SSH port (priority: CLI > phala.toml > 443)",
 			type: "string",
 			target: "port",
 		},
 		{
 			name: "gateway",
 			shorthand: "g",
-			description:
-				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
+			description: "Gateway domain (priority: CLI > phala.toml > API)",
 			type: "string",
 			target: "gatewayDomain",
 		},
@@ -61,18 +60,18 @@ export const cpCommandMeta: CommandMeta = {
 		},
 		{
 			name: "dry-run",
-			description: "Print the SCP command without executing it",
+			description: "Print SCP command without executing",
 			type: "boolean",
 			target: "dryRun",
 		},
 	],
 	examples: [
 		{
-			name: "Upload using phala.toml cvm_id",
+			name: "Upload from phala.toml",
 			value: "phala cp ./local.txt :/root/remote.txt",
 		},
 		{
-			name: "Upload to a specific CVM (queries API for gateway)",
+			name: "Upload to CVM",
 			value: "phala cp ./local.txt app_123:/root/remote.txt",
 		},
 		{
@@ -80,7 +79,7 @@ export const cpCommandMeta: CommandMeta = {
 			value: "phala cp app_123:/root/remote.txt ./local.txt",
 		},
 		{
-			name: "Offline mode: copy without API (using phala.toml gateway)",
+			name: "Offline mode",
 			value:
 				"phala cp -g dstack-pha-prod7.phala.network -p 16185 ./file.txt app_123:/root/",
 		},

@@ -4,7 +4,8 @@ export const selfGroup: CommandGroup = {
 	path: ["self"],
 	meta: {
 		name: "self",
-		description: "Self management commands",
+		category: "advanced",
+		description: "CLI self-management",
 		stability: "unstable",
 	},
 };

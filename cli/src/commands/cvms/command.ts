@@ -4,7 +4,8 @@ export const cvmsGroup: CommandGroup = {
 	path: ["cvms"],
 	meta: {
 		name: "cvms",
-		description: "Manage Phala Confidential Virtual Machines (CVMs)",
+		category: "manage",
+		description: "Manage CVMs",
 		stability: "unstable",
 	},
 };

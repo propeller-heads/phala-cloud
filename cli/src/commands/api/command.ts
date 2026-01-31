@@ -14,6 +14,7 @@ const HTTP_METHODS = [
 
 export const apiCommandMeta: CommandMeta = {
 	name: "api",
+	category: "advanced",
 	description: `Make an authenticated HTTP request to Phala Cloud API.
 
 The endpoint should be an API path like "/cvms" or "/users/me".

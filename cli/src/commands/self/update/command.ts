@@ -20,7 +20,7 @@ export const yesOption = {
 
 export const dryRunOption = {
 	name: "dry-run",
-	description: "Print the update command without executing it",
+	description: "Print update command without executing",
 	type: "boolean" as const,
 	target: "dryRun",
 };
@@ -55,8 +55,8 @@ export const selfUpdateCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{ name: "Update CLI", value: "phala self update" },
-		{ name: "Dry run (print command)", value: "phala self update --dry-run" },
-		{ name: "Use beta channel", value: "phala self update --channel beta" },
+		{ name: "Dry run", value: "phala self update --dry-run" },
+		{ name: "Beta channel", value: "phala self update --channel beta" },
 	],
 };
 

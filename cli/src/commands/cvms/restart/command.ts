@@ -10,15 +10,15 @@ export const cvmsRestartCommandMeta: CommandMeta = {
 	options: [interactiveOption],
 	examples: [
 		{
-			name: "Restart CVM by app_id",
+			name: "By app_id",
 			value: "phala cvms restart app_123",
 		},
 		{
-			name: "Restart CVM by UUID",
+			name: "By UUID",
 			value: "phala cvms restart 550e8400-e29b-41d4-a716-446655440000",
 		},
 		{
-			name: "Restart CVM by name",
+			name: "By name",
 			value: "phala cvms restart my-app",
 		},
 	],

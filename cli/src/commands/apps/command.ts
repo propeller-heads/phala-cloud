@@ -4,7 +4,8 @@ import { jsonOption } from "@/src/core/common-flags";
 
 export const appsCommandMeta: CommandMeta = {
 	name: "apps",
-	description: "List apps (current CVM status)",
+	category: "manage",
+	description: "List dstack apps",
 	stability: "unstable",
 	options: [
 		{
@@ -25,11 +26,11 @@ export const appsCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "List apps (page 1)",
+			name: "List apps",
 			value: "phala apps",
 		},
 		{
-			name: "List apps (page 2)",
+			name: "Second page",
 			value: "phala apps --page 2",
 		},
 		{

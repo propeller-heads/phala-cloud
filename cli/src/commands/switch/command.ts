@@ -3,12 +3,13 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const switchCommandMeta: CommandMeta = {
 	name: "switch",
-	description: "Switch between authentication profiles",
+	category: "profile",
+	description: "Switch auth profiles",
 	stability: "unstable",
 	arguments: [
 		{
 			name: "profile-name",
-			description: "Name of the profile to switch to",
+			description: "Profile name",
 			required: true,
 			target: "profileName",
 		},

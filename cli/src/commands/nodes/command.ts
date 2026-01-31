@@ -4,7 +4,8 @@ export const nodesGroup: CommandGroup = {
 	path: ["nodes"],
 	meta: {
 		name: "nodes",
-		description: "List and manage TEE nodes",
+		category: "deploy",
+		description: "Manage TEE nodes",
 		stability: "unstable",
 	},
 };

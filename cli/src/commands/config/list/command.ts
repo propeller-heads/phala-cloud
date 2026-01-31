@@ -4,7 +4,7 @@ import type { CommandMeta } from "@/src/core/types";
 export const configListCommandMeta: CommandMeta = {
 	name: "list",
 	aliases: ["ls"],
-	description: "List all configuration values",
+	description: "List config values",
 	stability: "stable",
 	options: [
 		{

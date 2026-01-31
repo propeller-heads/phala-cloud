@@ -3,12 +3,13 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const sshCommandMeta: CommandMeta = {
 	name: "ssh",
+	category: "cvm-ops",
 	description: "Connect to a CVM via SSH",
 	stability: "unstable",
 	arguments: [
 		{
 			name: "cvm-name",
-			description: "CVM name. If not provided, reads from phala.toml",
+			description: "CVM name (reads from phala.toml if omitted)",
 			required: false,
 			target: "cvmId",
 		},
@@ -17,16 +18,14 @@ export const sshCommandMeta: CommandMeta = {
 		{
 			name: "port",
 			shorthand: "p",
-			description:
-				"Gateway port. Priority: CLI option > phala.toml gateway_port > 443",
+			description: "Gateway port (priority: CLI > phala.toml > 443)",
 			type: "string",
 			target: "port",
 		},
 		{
 			name: "gateway",
 			shorthand: "g",
-			description:
-				"Gateway domain. Priority: CLI option > phala.toml gateway_domain > API. When specified, skips API call for offline usage",
+			description: "Gateway domain (priority: CLI > phala.toml > API)",
 			type: "string",
 			target: "gatewayDomain",
 		},
@@ -46,7 +45,7 @@ export const sshCommandMeta: CommandMeta = {
 		},
 		{
 			name: "dry-run",
-			description: "Print the SSH command without executing it",
+			description: "Print SSH command without executing",
 			type: "boolean",
 			target: "dryRun",
 		},
@@ -62,15 +61,15 @@ export const sshCommandMeta: CommandMeta = {
 	},
 	examples: [
 		{
-			name: "Connect using configuration from phala.toml",
+			name: "Connect from phala.toml",
 			value: "phala ssh",
 		},
 		{
-			name: "Connect to a specific CVM (queries API for gateway)",
+			name: "Connect to CVM",
 			value: "phala ssh app_123",
 		},
 		{
-			name: "Offline mode: connect without API (using phala.toml gateway)",
+			name: "Offline mode",
 			value: "phala ssh app_123 -g dstack-pha-prod7.phala.network -p 16185",
 		},
 		{

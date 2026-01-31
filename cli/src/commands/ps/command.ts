@@ -9,6 +9,7 @@ import {
 
 export const psCommandMeta: CommandMeta = {
 	name: "ps",
+	category: "cvm-ops",
 	description: "List containers of a CVM",
 	stability: "stable",
 	arguments: [cvmIdArgument],
