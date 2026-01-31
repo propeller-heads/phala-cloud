@@ -114,13 +114,9 @@ function resolveGatewayDomain(cvm: unknown): string | undefined {
 		return typeof legacy === "string" && legacy.length > 0 ? legacy : undefined;
 	}
 
-	// New: gateway: { cname?: string | null; base_domain?: string | null }
+	// New: gateway: { base_domain?: string | null }
 	const gateway = (cvm as { gateway?: unknown }).gateway;
 	if (gateway && typeof gateway === "object") {
-		const cname = (gateway as { cname?: unknown }).cname;
-		if (typeof cname === "string" && cname.length > 0) {
-			return cname;
-		}
 		const baseDomain = (gateway as { base_domain?: unknown }).base_domain;
 		if (typeof baseDomain === "string" && baseDomain.length > 0) {
 			return baseDomain;
