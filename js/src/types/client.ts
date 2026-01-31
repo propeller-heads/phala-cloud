@@ -69,7 +69,7 @@ export interface ClientConfig<V extends ApiVersion = ApiVersion> extends FetchOp
   /**
    * Base URL for the API (overrides FetchOptions baseURL)
    * If not provided, will read from PHALA_CLOUD_API_PREFIX environment variable
-   * Defaults to "https://cloud-api.phala.network/v1"
+   * Defaults to "https://cloud-api.phala.com/api/v1"
    */
   baseURL?: string;
 

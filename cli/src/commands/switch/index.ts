@@ -29,10 +29,6 @@ async function runSwitchCommand(
 	_context: CommandContext,
 ): Promise<number> {
 	try {
-		if (input.list) {
-			return listAvailableProfiles();
-		}
-
 		if (input.interactive) {
 			return await interactiveSwitch();
 		}
@@ -40,7 +36,6 @@ async function runSwitchCommand(
 		if (!input.profileName) {
 			logger.error("Missing required argument: profile-name");
 			logger.info("Usage: phala switch <profile-name>");
-			logger.info("       phala switch --list");
 			logger.info("       phala switch -i");
 			return 1;
 		}
@@ -72,34 +67,6 @@ async function runSwitchCommand(
 		}
 		return 1;
 	}
-}
-
-function listAvailableProfiles(): number {
-	const profiles = listProfiles();
-	const currentProfile = getCurrentProfile();
-
-	if (profiles.length === 0) {
-		logger.warn("No profiles found. Please login first.");
-		return 0;
-	}
-
-	logger.info("Available profiles:");
-	const credentials = loadCredentialsFile();
-	for (const profile of profiles) {
-		const isCurrent = currentProfile?.name === profile;
-		const profileInfo = credentials?.profiles[profile];
-		const workspace = profileInfo?.workspace?.name || "unknown";
-
-		if (isCurrent) {
-			console.log(
-				chalk.green(`  * ${profile}`) +
-					chalk.gray(` (workspace: ${workspace})`),
-			);
-		} else {
-			console.log(chalk.gray(`    ${profile} (workspace: ${workspace})`));
-		}
-	}
-	return 0;
 }
 
 async function interactiveSwitch(): Promise<number> {

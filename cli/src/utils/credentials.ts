@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { logger } from "./logger";
 
-export const DEFAULT_API_PREFIX = "https://cloud-api.phala.network/api/v1";
+export const DEFAULT_API_PREFIX = "https://cloud-api.phala.com/api/v1";
 
 function getPhalaCloudDir(): string {
 	// NOTE: This is intentionally undocumented. It's used for testing and

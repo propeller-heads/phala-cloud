@@ -96,7 +96,7 @@ export class Client<V extends ApiVersion = DefaultApiVersion> {
     const resolvedBaseURL =
       config.baseURL ||
       process?.env?.PHALA_CLOUD_API_PREFIX ||
-      "https://cloud-api.phala.network/api/v1";
+      "https://cloud-api.phala.com/api/v1";
 
     const version = (
       config.version && (SUPPORTED_API_VERSIONS as readonly string[]).includes(config.version)

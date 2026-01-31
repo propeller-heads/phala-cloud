@@ -69,10 +69,7 @@ describe("switch command", () => {
 	});
 
 	test("returns 1 when no profile name provided", async () => {
-		const code = await switchCommand.run(
-			{ list: false, interactive: false },
-			makeContext(),
-		);
+		const code = await switchCommand.run({ interactive: false }, makeContext());
 		expect(code).toBe(1);
 	});
 
@@ -95,7 +92,7 @@ describe("switch command", () => {
 		expect(getCurrentProfile()?.name).toBe("alpha");
 
 		const code = await switchCommand.run(
-			{ profileName: "beta", list: false, interactive: false },
+			{ profileName: "beta", interactive: false },
 			makeContext(),
 		);
 		expect(code).toBe(0);
@@ -112,7 +109,7 @@ describe("switch command", () => {
 		});
 
 		const code = await switchCommand.run(
-			{ profileName: "only", list: false, interactive: false },
+			{ profileName: "only", interactive: false },
 			makeContext(),
 		);
 		expect(code).toBe(0);
@@ -129,7 +126,7 @@ describe("switch command", () => {
 		});
 
 		const code = await switchCommand.run(
-			{ profileName: "ghost", list: false, interactive: false },
+			{ profileName: "ghost", interactive: false },
 			makeContext(),
 		);
 		expect(code).toBe(1);
@@ -137,50 +134,16 @@ describe("switch command", () => {
 
 	test("returns 1 when no credentials file and profile specified", async () => {
 		const code = await switchCommand.run(
-			{ profileName: "any", list: false, interactive: false },
+			{ profileName: "any", interactive: false },
 			makeContext(),
 		);
 		expect(code).toBe(1);
 	});
 
-	describe("--list", () => {
-		test("returns 0 with no profiles", async () => {
-			const code = await switchCommand.run(
-				{ list: true, interactive: false },
-				makeContext(),
-			);
-			expect(code).toBe(0);
-		});
-
-		test("returns 0 and does not change profile", async () => {
-			upsertProfile({
-				profileName: "a",
-				token: "t-a",
-				workspaceName: "ws-a",
-				user: { username: "u" },
-				setCurrent: true,
-			});
-			upsertProfile({
-				profileName: "b",
-				token: "t-b",
-				workspaceName: "ws-b",
-				user: { username: "u" },
-				setCurrent: false,
-			});
-
-			const code = await switchCommand.run(
-				{ list: true, interactive: false },
-				makeContext(),
-			);
-			expect(code).toBe(0);
-			expect(getCurrentProfile()?.name).toBe("a");
-		});
-	});
-
 	describe("--interactive", () => {
 		test("returns 1 when no profiles", async () => {
 			const code = await switchCommand.run(
-				{ list: false, interactive: true },
+				{ interactive: true },
 				makeContext(),
 			);
 			expect(code).toBe(1);
@@ -196,7 +159,7 @@ describe("switch command", () => {
 			});
 
 			const code = await switchCommand.run(
-				{ list: false, interactive: true },
+				{ interactive: true },
 				makeContext(),
 			);
 			expect(code).toBe(0);
