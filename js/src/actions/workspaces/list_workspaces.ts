@@ -71,6 +71,7 @@ export const WorkspaceResponseSchema = z
     slug: z.string().nullable(),
     tier: z.string(),
     role: z.string(),
+    is_default: z.boolean(),
     created_at: z.string(),
   })
   .passthrough();
