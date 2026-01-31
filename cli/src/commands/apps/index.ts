@@ -2,25 +2,26 @@ import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
-import { listAppsWithCvmStatus } from "@/src/lib/apps/list-apps-with-cvm-status";
 import { printTable } from "@/src/lib/table";
 import { logger, setJsonMode } from "@/src/utils/logger";
+import { listAppsWithCvmStatus } from "@/src/lib/apps/list-apps-with-cvm-status";
 
 import {
-	cvmsListCommandMeta,
-	cvmsListCommandSchema,
-	type CvmsListCommandInput,
+	appsCommandMeta,
+	appsCommandSchema,
+	type AppsCommandInput,
 } from "./command";
 
 function formatStatus(status: string): string {
+	// per requirement: statuses ending with "ing" mean in progress
 	if (status.toLowerCase().endsWith("ing")) return chalk.yellow(status);
 	if (status === "running") return chalk.green(status);
 	if (status === "stopped") return chalk.red(status);
 	return chalk.yellow(status);
 }
 
-async function runCvmsListCommand(
-	input: CvmsListCommandInput,
+async function runAppsCommand(
+	input: AppsCommandInput,
 	context: CommandContext,
 ): Promise<number> {
 	setJsonMode(input.json);
@@ -63,7 +64,7 @@ async function runCvmsListCommand(
 	} catch (error) {
 		logger.logDetailedError(error);
 		context.fail(
-			`Failed to list CVMs: ${
+			`Failed to list apps: ${
 				error instanceof Error ? error.message : String(error)
 			}`,
 		);
@@ -71,11 +72,11 @@ async function runCvmsListCommand(
 	}
 }
 
-export const cvmsListCommand = defineCommand({
-	path: ["cvms", "list"],
-	meta: cvmsListCommandMeta,
-	schema: cvmsListCommandSchema,
-	handler: runCvmsListCommand,
+export const appsCommand = defineCommand({
+	path: ["apps"],
+	meta: appsCommandMeta,
+	schema: appsCommandSchema,
+	handler: runAppsCommand,
 });
 
-export default cvmsListCommand;
+export default appsCommand;

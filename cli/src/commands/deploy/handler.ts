@@ -599,7 +599,8 @@ const resolvePrivacySettings = (
 ): PrivacySettings => {
 	return {
 		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? true,
-		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		publicSysinfo:
+			options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
 		listed: options.listed ?? projectConfig?.listed ?? false,
 	};
 };

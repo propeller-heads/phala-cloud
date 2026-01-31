@@ -7,7 +7,9 @@ import { getClient } from "@/src/lib/client";
  * Check if logs are disabled for a CVM and warn the user if so.
  * @returns true if logs are disabled, false otherwise
  */
-export async function checkAndWarnIfLogsDisabled(appId: string): Promise<boolean> {
+export async function checkAndWarnIfLogsDisabled(
+	appId: string,
+): Promise<boolean> {
 	try {
 		const client = await getClient();
 		const result = await safeGetCvmInfo(client, { id: appId });

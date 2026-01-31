@@ -100,7 +100,9 @@ async function runLogsCommand(
 
 		const entries = await fetchContainerLogsEntries(appId, options);
 		const filteredEntries = entries.filter((e) =>
-			e.channel === "stderr" ? outputConfig.includeStderr : outputConfig.includeStdout,
+			e.channel === "stderr"
+				? outputConfig.includeStderr
+				: outputConfig.includeStdout,
 		);
 		const combined = filteredEntries.map((e) => e.message).join("");
 

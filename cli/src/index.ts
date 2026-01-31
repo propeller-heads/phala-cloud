@@ -24,6 +24,7 @@ import { cpCommand } from "./commands/cp";
 import { psCommand } from "./commands/ps";
 import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
+import { appsCommand } from "./commands/apps";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,7 @@ registry.registerCommand(cpCommand);
 registry.registerCommand(switchCommand);
 registry.registerCommand(psCommand);
 registry.registerCommand(logsCommand);
+registry.registerCommand(appsCommand);
 registry.registerGroup(selfCommands.group);
 for (const command of selfCommands.commands) {
 	registry.registerCommand(command);

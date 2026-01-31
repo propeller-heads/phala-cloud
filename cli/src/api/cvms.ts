@@ -432,7 +432,10 @@ function parseStructuredLogLineToEntry(line: string): LogEntry | null {
 	if (!trimmed) return null;
 
 	try {
-		const parsed = JSON.parse(trimmed) as { channel?: string; message?: string };
+		const parsed = JSON.parse(trimmed) as {
+			channel?: string;
+			message?: string;
+		};
 		if (typeof parsed.message !== "string") return null;
 
 		const parsedChannel: LogChannel =
