@@ -4,6 +4,7 @@
 
 logs
 !src/commands/cvms/logs/
+!src/commands/logs/
 _.log
 npm-debug.log_
 yarn-debug.log*

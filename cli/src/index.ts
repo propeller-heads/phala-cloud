@@ -22,6 +22,7 @@ import { completionCommand } from "./commands/completion";
 import { sshCommand } from "./commands/ssh";
 import { cpCommand } from "./commands/cp";
 import { psCommand } from "./commands/ps";
+import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
@@ -49,6 +50,7 @@ registry.registerCommand(sshCommand);
 registry.registerCommand(cpCommand);
 registry.registerCommand(switchCommand);
 registry.registerCommand(psCommand);
+registry.registerCommand(logsCommand);
 registry.registerGroup(selfCommands.group);
 for (const command of selfCommands.commands) {
 	registry.registerCommand(command);

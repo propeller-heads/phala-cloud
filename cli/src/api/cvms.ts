@@ -321,10 +321,32 @@ export async function getTeepods(v03x_only = false): Promise<TeepodResponse> {
 export interface SerialLogsOptions {
 	tail?: number;
 	timestamps?: boolean;
+	/** RFC3339 timestamp or relative time (backend-dependent) */
+	since?: string;
+	/** RFC3339 timestamp or relative time (backend-dependent) */
+	until?: string;
+	/** Ask backend to return human-readable text output (recommended default). */
+	text?: boolean;
+	/** Ask backend to omit metadata wrappers if supported. */
+	bare?: boolean;
+}
+
+export type LogChannel = "stdout" | "stderr";
+
+export interface LogEntry {
+	channel: LogChannel;
+	message: string;
 }
 
 export interface ContainerLogsOptions extends SerialLogsOptions {
 	container?: string;
+	/**
+	 * Whether to allow matching a container by its ID prefix.
+	 *
+	 * - cvms logs: true (default, for backward compatibility)
+	 * - logs: false (only match by container name)
+	 */
+	matchContainerIdPrefix?: boolean;
 }
 
 interface ContainerInfo {
@@ -340,13 +362,30 @@ interface CvmCompositionResponse {
 /** Build log URL with query parameters */
 function buildLogUrl(
 	baseUrl: string,
-	options: { tail?: number; timestamps?: boolean; follow?: boolean },
+	options: {
+		since?: string;
+		until?: string;
+		tail?: number;
+		text?: boolean;
+		bare?: boolean;
+		timestamps?: boolean;
+		follow?: boolean;
+		ansi?: boolean;
+	},
 ): string {
 	const params: string[] = [];
+	if (options.since) params.push(`since=${encodeURIComponent(options.since)}`);
+	if (options.until) params.push(`until=${encodeURIComponent(options.until)}`);
 	if (options.follow) params.push("follow");
-	if (options.tail) params.push(`lines=${options.tail}`);
+	if (options.text) params.push("text");
+	if (options.bare) params.push("bare");
+	if (options.tail !== undefined) {
+		// Backend supports `tail`; keep `lines` for backward compatibility.
+		params.push(`tail=${options.tail}`);
+		params.push(`lines=${options.tail}`);
+	}
 	if (options.timestamps) params.push("timestamps");
-	params.push("ansi");
+	if (options.ansi ?? true) params.push("ansi");
 
 	const sep = baseUrl.includes("?") ? "&" : "?";
 	return baseUrl + sep + params.join("&");
@@ -365,6 +404,198 @@ async function streamResponse(
 		const { done, value } = await reader.read();
 		if (done) break;
 		onData(decoder.decode(value, { stream: true }));
+	}
+}
+
+function isLikelyBase64(data: string): boolean {
+	// Fast heuristic: base64 strings usually don't contain whitespace and only contain base64 alphabet
+	// and optional padding '='.
+	// We also require length to be a multiple of 4 to reduce false positives.
+	if (!data) return false;
+	if (/\s/.test(data)) return false;
+	if (data.length % 4 !== 0) return false;
+	return /^[A-Za-z0-9+/]+={0,2}$/.test(data);
+}
+
+function decodeBase64ToUtf8(data: string): string {
+	if (!isLikelyBase64(data)) return data;
+
+	try {
+		return Buffer.from(data, "base64").toString("utf-8");
+	} catch {
+		return data;
+	}
+}
+
+function parseStructuredLogLineToEntry(line: string): LogEntry | null {
+	const trimmed = line.trim();
+	if (!trimmed) return null;
+
+	try {
+		const parsed = JSON.parse(trimmed) as { channel?: string; message?: string };
+		if (typeof parsed.message !== "string") return null;
+
+		const parsedChannel: LogChannel =
+			parsed.channel === "stderr" ? "stderr" : "stdout";
+		return {
+			channel: parsedChannel,
+			message: decodeBase64ToUtf8(parsed.message),
+		};
+	} catch {
+		return null;
+	}
+}
+
+function parseStructuredLogsToEntries(input: string): LogEntry[] {
+	const lines = input.split(/\r?\n/);
+	const out: LogEntry[] = [];
+	for (const line of lines) {
+		if (!line.trim()) continue;
+		const entry = parseStructuredLogLineToEntry(line);
+		if (entry) {
+			out.push(entry);
+			continue;
+		}
+		out.push({ channel: "stdout", message: `${line}\n` });
+	}
+	return out;
+}
+
+function decodeStructuredLogsText(input: string): string {
+	// The backend may return NDJSON lines like:
+	// {"channel":"stderr","message":"<base64>"}
+	// We decode them into human-readable text.
+	const lines = input.split(/\r?\n/);
+	let out = "";
+	for (const line of lines) {
+		const entry = parseStructuredLogLineToEntry(line);
+		if (entry) {
+			out += entry.message;
+			continue;
+		}
+		if (line.trim()) out += `${line}\n`;
+	}
+	return out;
+}
+
+async function streamStructuredLogsResponse(
+	response: Response,
+	onData: (data: string) => void,
+): Promise<void> {
+	const reader = response.body?.getReader();
+	if (!reader) throw new Error("No response body available for streaming");
+
+	const decoder = new TextDecoder();
+	let buffer = "";
+	let mode: "unknown" | "raw" | "structured" = "unknown";
+
+	const flushStructuredLine = (line: string) => {
+		const entry = parseStructuredLogLineToEntry(line);
+		if (entry) {
+			onData(entry.message);
+			return;
+		}
+		if (line.trim()) onData(`${line}\n`);
+	};
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+
+		const chunk = decoder.decode(value, { stream: true });
+		if (mode === "raw") {
+			onData(chunk);
+			continue;
+		}
+
+		buffer += chunk;
+
+		if (mode === "unknown") {
+			const probe = buffer.trimStart();
+			// Heuristic: structured logs are NDJSON objects.
+			if (probe.startsWith("{")) {
+				mode = "structured";
+			} else {
+				mode = "raw";
+				onData(buffer);
+				buffer = "";
+				continue;
+			}
+		}
+
+		let idx = buffer.indexOf("\n");
+		while (idx >= 0) {
+			const line = buffer.slice(0, idx);
+			buffer = buffer.slice(idx + 1);
+			flushStructuredLine(line);
+			idx = buffer.indexOf("\n");
+		}
+	}
+
+	if (mode === "structured" && buffer.trim()) {
+		flushStructuredLine(buffer);
+	} else if (mode === "raw" && buffer) {
+		onData(buffer);
+	}
+}
+
+async function streamStructuredLogsEntriesResponse(
+	response: Response,
+	onEntry: (entry: LogEntry) => void,
+): Promise<void> {
+	const reader = response.body?.getReader();
+	if (!reader) throw new Error("No response body available for streaming");
+
+	const decoder = new TextDecoder();
+	let buffer = "";
+	let mode: "unknown" | "raw" | "structured" = "unknown";
+
+	const flushStructuredLine = (line: string) => {
+		const entry = parseStructuredLogLineToEntry(line);
+		if (entry) {
+			onEntry(entry);
+			return;
+		}
+		if (line.trim()) onEntry({ channel: "stdout", message: `${line}\n` });
+	};
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+
+		const chunk = decoder.decode(value, { stream: true });
+		if (mode === "raw") {
+			onEntry({ channel: "stdout", message: chunk });
+			continue;
+		}
+
+		buffer += chunk;
+
+		if (mode === "unknown") {
+			const probe = buffer.trimStart();
+			if (probe.startsWith("{")) {
+				mode = "structured";
+			} else {
+				mode = "raw";
+				onEntry({ channel: "stdout", message: buffer });
+				buffer = "";
+				continue;
+			}
+		}
+
+		let idx = buffer.indexOf("\n");
+		while (idx >= 0) {
+			const line = buffer.slice(0, idx);
+			buffer = buffer.slice(idx + 1);
+			flushStructuredLine(line);
+			idx = buffer.indexOf("\n");
+		}
+	}
+
+	if (mode === "structured" && buffer.trim()) {
+		flushStructuredLine(buffer);
+	} else if (mode === "raw" && buffer) {
+		onEntry({ channel: "stdout", message: buffer });
 	}
 }
 
@@ -387,6 +618,7 @@ async function getSerialLogEndpoint(appId: string): Promise<string> {
 async function getContainerLogEndpoint(
 	appId: string,
 	containerName?: string,
+	matchContainerIdPrefix = true,
 ): Promise<string> {
 	const client = await getClient();
 	// appId is already normalized by CvmIdSchema (e.g., "app_xxx" or "my-cvm-name")
@@ -400,12 +632,16 @@ async function getContainerLogEndpoint(
 
 	let containers = composition.containers;
 	if (containerName) {
-		// Match by exact name (with or without leading slash) or container ID prefix
-		containers = containers.filter(
-			(c) =>
-				c.names.some((n) => n === containerName || n === `/${containerName}`) ||
-				c.id.startsWith(containerName),
-		);
+		containers = containers.filter((c) => {
+			const matchedByName = c.names.some(
+				(n) => n === containerName || n === `/${containerName}`,
+			);
+
+			if (matchedByName) return true;
+			if (!matchContainerIdPrefix) return false;
+			return c.id.startsWith(containerName);
+		});
+
 		if (!containers.length) {
 			throw new Error(
 				`Container '${containerName}' not found in CVM '${appId}'`,
@@ -445,15 +681,100 @@ export async function fetchContainerLogs(
 	appId: string,
 	options: ContainerLogsOptions = {},
 ): Promise<string> {
-	const baseUrl = await getContainerLogEndpoint(appId, options.container);
-	const url = buildLogUrl(baseUrl, options);
+	const baseUrl = await getContainerLogEndpoint(
+		appId,
+		options.container,
+		options.matchContainerIdPrefix ?? true,
+	);
+
+	const text = options.text ?? true;
+	const bare = options.bare ?? true;
+
+	const url = buildLogUrl(baseUrl, {
+		...options,
+		text,
+		bare,
+	});
 	const response = await fetch(url);
 	if (!response.ok) {
 		throw new Error(
 			`Failed to fetch container logs: ${response.status} ${response.statusText}`,
 		);
 	}
-	return response.text();
+
+	const body = await response.text();
+	// If backend returned structured logs (NDJSON with base64 payloads), decode them.
+	if (body.trimStart().startsWith("{")) {
+		return decodeStructuredLogsText(body);
+	}
+	return body;
+}
+
+/**
+ * Fetch container logs as structured entries.
+ *
+ * This is useful when you want to route container stderr to process.stderr
+ * (like docker does internally).
+ */
+export async function fetchContainerLogsEntries(
+	appId: string,
+	options: ContainerLogsOptions = {},
+): Promise<LogEntry[]> {
+	const baseUrl = await getContainerLogEndpoint(
+		appId,
+		options.container,
+		options.matchContainerIdPrefix ?? true,
+	);
+
+	// Request structured logs (NDJSON with channel + base64 message)
+	const url = buildLogUrl(baseUrl, {
+		...options,
+		// Request structured logs (NDJSON with channel + message). We'll decode the
+		// message (base64 when applicable) and optionally route stderr.
+		text: false,
+		bare: false,
+	});
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(
+			`Failed to fetch container logs: ${response.status} ${response.statusText}`,
+		);
+	}
+
+	const body = await response.text();
+	if (body.trimStart().startsWith("{")) {
+		return parseStructuredLogsToEntries(body);
+	}
+	return [{ channel: "stdout", message: body }];
+}
+
+/** Stream container logs as structured entries. */
+export async function streamContainerLogsEntries(
+	appId: string,
+	onEntry: (entry: LogEntry) => void,
+	options: ContainerLogsOptions = {},
+	signal?: AbortSignal,
+): Promise<void> {
+	const baseUrl = await getContainerLogEndpoint(
+		appId,
+		options.container,
+		options.matchContainerIdPrefix ?? true,
+	);
+
+	const url = buildLogUrl(baseUrl, {
+		...options,
+		follow: true,
+		text: false,
+		bare: false,
+	});
+	const response = await fetch(url, { signal });
+	if (!response.ok) {
+		throw new Error(
+			`Failed to stream container logs: ${response.status} ${response.statusText}`,
+		);
+	}
+
+	await streamStructuredLogsEntriesResponse(response, onEntry);
 }
 
 /** Stream serial logs from a CVM */
@@ -485,13 +806,29 @@ export async function streamContainerLogs(
 	options: ContainerLogsOptions = {},
 	signal?: AbortSignal,
 ): Promise<void> {
-	const baseUrl = await getContainerLogEndpoint(appId, options.container);
-	const url = buildLogUrl(baseUrl, { ...options, follow: true });
+	const baseUrl = await getContainerLogEndpoint(
+		appId,
+		options.container,
+		options.matchContainerIdPrefix ?? true,
+	);
+
+	const text = options.text ?? true;
+	const bare = options.bare ?? true;
+
+	const url = buildLogUrl(baseUrl, {
+		...options,
+		follow: true,
+		text,
+		bare,
+	});
 	const response = await fetch(url, { signal });
 	if (!response.ok) {
 		throw new Error(
 			`Failed to stream container logs: ${response.status} ${response.statusText}`,
 		);
 	}
-	await streamResponse(response, onData);
+
+	// Always use the structured-aware streamer: if the backend returns plain text,
+	// it will fall back to raw streaming; if it returns structured logs, it will decode.
+	await streamStructuredLogsResponse(response, onData);
 }
