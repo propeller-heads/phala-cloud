@@ -66,7 +66,9 @@ export const CvmGatewayInfoV20260121Schema = z.object({
 });
 export type CvmGatewayInfoV20260121 = z.infer<typeof CvmGatewayInfoV20260121Schema>;
 
-export const CvmNodeInfoV20260121Schema = z.object({
+export const NodeRefSchema = z.object({
+  object_type: z.literal("node"),
+  id: z.number().int().nullable().optional(),
   name: z.string().nullable().optional(),
   region: z.string().nullable().optional(),
   device_id: z.string().nullable().optional(),
@@ -74,7 +76,11 @@ export const CvmNodeInfoV20260121Schema = z.object({
   status: z.string().nullable().optional(),
   version: z.string().nullable().optional(),
 });
-export type CvmNodeInfoV20260121 = z.infer<typeof CvmNodeInfoV20260121Schema>;
+export type NodeRef = z.infer<typeof NodeRefSchema>;
+
+// Deprecated: Use NodeRefSchema instead
+export const CvmNodeInfoV20260121Schema = NodeRefSchema;
+export type CvmNodeInfoV20260121 = NodeRef;
 
 export const CvmInfoV20260121Schema = z.object({
   id: z.string(), // hashed CvmId
@@ -82,7 +88,7 @@ export const CvmInfoV20260121Schema = z.object({
   app_id: z.string().nullable().optional(),
   vm_uuid: z.string().nullable().optional(),
   resource: CvmResourceInfoV20260121Schema,
-  node_info: CvmNodeInfoV20260121Schema.nullable().optional(),
+  node_info: NodeRefSchema.nullable().optional(),
   os: CvmOsInfoV20260121Schema.nullable().optional(),
   kms_type: KmsTypeSchema.nullable().optional(),
   kms_info: CvmKmsInfoV20260121Schema.nullable().optional(),

@@ -161,11 +161,12 @@ export {
 export {
   getWorkspaceNodes,
   safeGetWorkspaceNodes,
-  NodeInfoSchema,
   GetWorkspaceNodesSchema,
-  type NodeInfo,
   type GetWorkspaceNodes,
   type GetWorkspaceNodesRequest,
+  // Deprecated: Use NodeRef/NodeRefSchema from types instead
+  NodeInfoSchema,
+  type NodeInfo,
 } from "./workspaces/get_workspace_nodes";
 
 export {

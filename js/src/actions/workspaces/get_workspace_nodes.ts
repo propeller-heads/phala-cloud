@@ -2,6 +2,7 @@ import { z } from "zod";
 import { type Client } from "../../client";
 import { defineAction } from "../../utils/define-action";
 import { PaginationMetadataSchema } from "./list_workspaces";
+import { NodeRefSchema as ImportedNodeRefSchema } from "../../types/cvm_info_v20260121";
 
 /**
  * List nodes accessible by a workspace
@@ -67,21 +68,15 @@ import { PaginationMetadataSchema } from "./list_workspaces";
  * ```
  */
 
-export const NodeInfoSchema = z
-  .object({
-    id: z.number().nullable(),
-    name: z.string().nullable(),
-    region: z.string().nullable(),
-    device_id: z.string().nullable(),
-    ppid: z.string().nullable(),
-    status: z.string().nullable(),
-    version: z.string().nullable(),
-  })
-  .passthrough();
+// Re-export NodeRefSchema from types
+export const NodeRefSchema = ImportedNodeRefSchema;
+
+// Deprecated: Use NodeRefSchema instead
+export const NodeInfoSchema = NodeRefSchema;
 
 export const GetWorkspaceNodesSchema = z
   .object({
-    items: z.array(NodeInfoSchema),
+    items: z.array(NodeRefSchema),
     total: z.number(),
     page: z.number(),
     page_size: z.number(),
@@ -89,7 +84,9 @@ export const GetWorkspaceNodesSchema = z
   })
   .passthrough();
 
-export type NodeInfo = z.infer<typeof NodeInfoSchema>;
+export type NodeRef = z.infer<typeof NodeRefSchema>;
+// Deprecated: Use NodeRef instead
+export type NodeInfo = NodeRef;
 export type GetWorkspaceNodes = z.infer<typeof GetWorkspaceNodesSchema>;
 
 export type GetWorkspaceNodesRequest = {
