@@ -77,6 +77,7 @@ const mockCvmListV20260121 = {
         billing_period: null,
       },
       node_info: {
+        object_type: "node",
         name: "node-1",
         region: "us-east-1",
         device_id: null,
