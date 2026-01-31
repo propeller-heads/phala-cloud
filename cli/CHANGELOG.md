@@ -1,3 +1,12 @@
+## [1.1.7](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.6...cli-v1.1.7) (2026-01-31)
+
+### feat
+
+* use workspace slug as profile name, add profiles command, update default API dom ([5c150a0](https://github.com/Phala-Network/phala-cloud/commit/5c150a024d575414e60d6ead26f19a1fc9eaad4a))
+
+### fix
+
+* **cli:** use base_domain instead of cname for SSH/SCP ([4afaa6e](https://github.com/Phala-Network/phala-cloud/commit/4afaa6e5755c3dbf37d435ab30655b7233ff9b1f))
 ## [1.1.6](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.5...cli-v1.1.6) (2026-01-31)
 
 ### feat
