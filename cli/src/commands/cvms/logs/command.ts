@@ -12,29 +12,28 @@ export const cvmsLogsCommandMeta: CommandMeta = {
 		{
 			name: "tail",
 			shorthand: "n",
-			description: "Number of lines to show from the end of the logs",
+			description: "Lines from end",
 			type: "number",
 			target: "tail",
 		},
 		{
 			name: "follow",
 			shorthand: "f",
-			description: "Follow log output (stream logs in real-time)",
+			description: "Stream logs in real-time",
 			type: "boolean",
 			target: "follow",
 		},
 		{
 			name: "timestamps",
 			shorthand: "t",
-			description: "Show timestamps with log entries",
+			description: "Show timestamps",
 			type: "boolean",
 			target: "timestamps",
 		},
 		{
 			name: "container",
 			shorthand: "c",
-			description:
-				"Container name or ID to fetch logs from (defaults to first container)",
+			description: "Container name or ID (defaults to first)",
 			type: "string",
 			target: "container",
 		},

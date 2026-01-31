@@ -9,8 +9,8 @@ import { cvmIdOption, uuidOption } from "@/src/core/common-flags";
 
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
-	description:
-		"Deploy a new CVM or update an existing one. Creates a new CVM by default; updates when --cvm-id is provided or found in phala.toml.",
+	category: "deploy",
+	description: "Deploy new CVM or update existing one",
 	stability: "stable",
 	arguments: [],
 	options: [
@@ -26,8 +26,7 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "name",
 			shorthand: "n",
-			description:
-				"Name of the CVM (optional; default: current directory name, converted to a valid hostname)",
+			description: "CVM name (defaults to directory name)",
 			type: "string",
 			target: "name",
 			group: "basic",
@@ -35,8 +34,7 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "compose",
 			shorthand: "c",
-			description:
-				"Path to Docker Compose file (default: docker-compose.yml in current directory)",
+			description: "Path to Docker Compose file (default: docker-compose.yml)",
 			type: "string",
 			target: "compose",
 			group: "basic",
@@ -44,15 +42,14 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "instance-type",
 			shorthand: "t",
-			description:
-				"Instance type (e.g., tdx.small, tdx.medium, tdx.large). Optional - auto-selected if not specified.",
+			description: "Instance type (e.g., tdx.small, auto-selected if omitted)",
 			type: "string",
 			target: "instanceType",
 			group: "basic",
 		},
 		{
 			name: "vcpu",
-			description: `[DEPRECATED] Use --instance-type instead. Number of vCPUs, default is ${DEFAULT_VCPU}`,
+			description: "Use --instance-type instead",
 			type: "string",
 			target: "vcpu",
 			deprecated: true,
@@ -60,7 +57,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "memory",
-			description: `[DEPRECATED] Use --instance-type instead. Memory with optional unit, e.g., 2G, 1024MB, default is ${DEFAULT_MEMORY}MB`,
+			description: "Use --instance-type instead",
 			type: "string",
 			target: "memory",
 			deprecated: true,
@@ -68,15 +65,14 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "disk-size",
-			description: `Disk size with optional unit (optional, auto-matched if not specified), e.g., 50G, 100GB, default is ${DEFAULT_DISK_SIZE}GB`,
+			description: `Disk size with unit (e.g., 50G, default: ${DEFAULT_DISK_SIZE}GB)`,
 			type: "string",
 			target: "diskSize",
 			group: "advanced",
 		},
 		{
 			name: "image",
-			description:
-				"OS image version (optional, auto-selected if not specified)",
+			description: "OS image version (auto-selected if omitted)",
 			type: "string",
 			target: "image",
 			group: "advanced",
@@ -84,15 +80,14 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "region",
 			shorthand: "r",
-			description:
-				"Preferred region (e.g., us-west, eu-central). Optional - auto-selected if not specified.",
+			description: "Preferred region (e.g., us-west, auto-selected if omitted)",
 			type: "string",
 			target: "region",
 			group: "basic",
 		},
 		{
 			name: "node-id",
-			description: "Node ID (optional, auto-selected if not specified)",
+			description: "Node ID (auto-selected if omitted)",
 			type: "string",
 			target: "nodeId",
 			group: "advanced",
@@ -101,14 +96,14 @@ export const deployCommandMeta: CommandMeta = {
 			name: "env",
 			shorthand: "e",
 			description:
-				"Environment variable (KEY=VALUE) or path to env file. Can be specified multiple times.",
+				"Environment variable (KEY=VALUE) or env file path (repeatable)",
 			type: "string[]",
 			target: "env",
 			group: "basic",
 		},
 		{
 			name: "env-file",
-			description: "[DEPRECATED] Use -e instead. Path to environment file.",
+			description: "Use -e instead",
 			type: "string",
 			target: "envFile",
 			deprecated: true,
@@ -123,7 +118,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "kms-id",
-			description: "[DEPRECATED] Use --kms instead. KMS ID to use.",
+			description: "Use --kms instead",
 			type: "string",
 			target: "kmsId",
 			deprecated: true,
@@ -131,7 +126,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "custom-app-id",
-			description: "Custom App ID to use. For PHALA KMS, requires --nonce.",
+			description: "Custom App ID (requires --nonce for PHALA KMS)",
 			type: "string",
 			target: "customAppId",
 			group: "advanced",
@@ -139,7 +134,7 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "nonce",
 			description:
-				"Nonce for deterministic app_id generation (PHALA KMS only, requires --custom-app-id).",
+				"Nonce for deterministic app_id (requires --custom-app-id, PHALA KMS only)",
 			type: "string",
 			target: "nonce",
 			group: "advanced",
@@ -167,22 +162,21 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description:
-				"Wait for CVM to complete deployment/update before returning (only applies to updates)",
+			description: "Wait for deployment/update completion",
 			type: "boolean",
 			target: "wait",
 			group: "basic",
 		},
 		{
 			name: "ssh-pubkey",
-			description: "Path to SSH public key file (default: ~/.ssh/id_rsa.pub)",
+			description: "SSH public key path (default: ~/.ssh/id_rsa.pub)",
 			type: "string",
 			target: "sshPubkey",
 			group: "basic",
 		},
 		{
 			name: "dev-os",
-			description: "Use development OS image (requires SSH public key)",
+			description: "Use dev OS image (requires SSH key)",
 			type: "boolean",
 			target: "devOs",
 			negatedName: "no-dev-os",
@@ -190,8 +184,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "public-logs",
-			description:
-				"Make CVM logs publicly accessible (default: true for --dev-os, false otherwise)",
+			description: "Make CVM logs publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicLogs",
 			negatedName: "no-public-logs",
@@ -214,7 +207,7 @@ export const deployCommandMeta: CommandMeta = {
 	examples: [
 		// --- New Deployment Examples ---
 		{
-			name: "Deploy new CVM with auto-selection (simplest)",
+			name: "Deploy new CVM",
 			value: "phala deploy",
 		},
 		{
@@ -234,7 +227,7 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy --region us-west",
 		},
 		{
-			name: "Deploy with on-chain KMS (Ethereum)",
+			name: "Deploy with Ethereum KMS",
 			value: "phala deploy --kms ethereum --private-key <key> --rpc-url <url>",
 		},
 		// --- Update Existing CVM Examples ---
@@ -252,7 +245,7 @@ export const deployCommandMeta: CommandMeta = {
 			value: "phala deploy --cvm-id app_abc123 --wait",
 		},
 		{
-			name: "Update CVM configured in phala.toml (auto-detected)",
+			name: "Update CVM from phala.toml",
 			value: "phala deploy",
 		},
 		// --- Privacy Settings Examples ---

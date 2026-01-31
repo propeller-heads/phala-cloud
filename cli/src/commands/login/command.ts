@@ -3,13 +3,13 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const loginCommandMeta: CommandMeta = {
 	name: "login",
+	category: "profile",
 	description: "Authenticate with Phala Cloud",
 	stability: "stable",
 	arguments: [
 		{
 			name: "api-key",
-			description:
-				"API key for authentication (optional, triggers device flow if not provided)",
+			description: "API key (triggers device flow if omitted)",
 			required: false,
 			target: "apiKey",
 		},
@@ -17,26 +17,24 @@ export const loginCommandMeta: CommandMeta = {
 	options: [
 		{
 			name: "manual",
-			description: "Manually enter API key instead of using device flow",
+			description: "Enter API key manually",
 			type: "boolean",
 		},
 		{
 			name: "no-open",
-			description: "Don't automatically open browser for device flow",
+			description: "Skip browser launch",
 			type: "boolean",
 			target: "noOpen",
 		},
 		{
 			name: "profile",
-			description:
-				"Save credentials to a named profile (defaults to current workspace name)",
+			description: "Profile name (defaults to workspace name)",
 			type: "string",
 			target: "profile",
 		},
 		{
 			name: "print-token",
-			description:
-				"Print the token to stdout (machine-readable) and do not save it",
+			description: "Print token to stdout without saving",
 			type: "boolean",
 			target: "printToken",
 		},

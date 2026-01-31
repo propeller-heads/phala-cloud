@@ -4,7 +4,7 @@ export const dockerGroup: CommandGroup = {
 	path: ["docker"],
 	meta: {
 		name: "docker",
-		description: "Login to Docker Hub and manage Docker images",
-		stability: "unstable",
+		description: "Docker Hub login and image management",
+		stability: "deprecated",
 	},
 };

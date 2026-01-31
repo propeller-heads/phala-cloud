@@ -258,6 +258,7 @@ export async function runLoginCommand(
 		}
 
 		const workspaceName = user.workspace.name || "default";
+		const workspaceSlug = user.workspace.slug || undefined;
 		const profileName = input.profile || workspaceName;
 
 		upsertProfile({
@@ -265,6 +266,7 @@ export async function runLoginCommand(
 			token: apiKey,
 			apiPrefix: baseURL,
 			workspaceName,
+			workspaceSlug,
 			user: {
 				username: user.user.username,
 				email: user.user.email,

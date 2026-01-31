@@ -16,7 +16,7 @@ export const cvmsReplicateCommandMeta: CommandMeta = {
 	options: [
 		{
 			name: "teepod-id",
-			description: "TEEPod ID to use for the replica",
+			description: "TEEPod ID for replica",
 			type: "string",
 			target: "teepodId",
 		},

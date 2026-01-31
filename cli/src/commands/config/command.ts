@@ -4,8 +4,8 @@ export const configGroup: CommandGroup = {
 	path: ["config"],
 	meta: {
 		name: "config",
-		description:
-			"[DEPRECATED] Manage local CLI state (will be removed in a future version)",
+		category: "deprecated",
+		description: "Manage local CLI state",
 		stability: "deprecated",
 	},
 };

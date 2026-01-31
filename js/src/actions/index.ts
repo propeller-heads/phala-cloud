@@ -159,6 +159,30 @@ export {
 } from "./workspaces/get_workspace";
 
 export {
+  getWorkspaceNodes,
+  safeGetWorkspaceNodes,
+  NodeInfoSchema,
+  GetWorkspaceNodesSchema,
+  type NodeInfo,
+  type GetWorkspaceNodes,
+  type GetWorkspaceNodesRequest,
+} from "./workspaces/get_workspace_nodes";
+
+export {
+  getWorkspaceQuotas,
+  safeGetWorkspaceQuotas,
+  QuotaMetricSchema,
+  WorkspaceQuotasSchema,
+  WorkspaceReservedGpuQuotaSchema,
+  GetWorkspaceQuotasSchema,
+  type QuotaMetric,
+  type WorkspaceQuotas,
+  type WorkspaceReservedGpuQuota,
+  type GetWorkspaceQuotas,
+  type GetWorkspaceQuotasRequest,
+} from "./workspaces/get_workspace_quotas";
+
+export {
   listAllInstanceTypeFamilies,
   safeListAllInstanceTypeFamilies,
   listFamilyInstanceTypes,

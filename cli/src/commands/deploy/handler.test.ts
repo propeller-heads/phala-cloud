@@ -14,7 +14,7 @@ describe("buildProvisionPayload", () => {
 		"version: '3'\nservices:\n  app:\n    image: nginx";
 	const defaultEnvs = [{ key: "NODE_ENV", value: "production" }];
 	const defaultPrivacySettings = {
-		publicLogs: false,
+		publicLogs: true,
 		publicSysinfo: true,
 		listed: false,
 	};
@@ -614,7 +614,7 @@ describe("buildProvisionPayload", () => {
 
 			expect(
 				(payload.compose_file as Record<string, unknown>).public_logs,
-			).toBe(false);
+			).toBe(true);
 			expect(
 				(payload.compose_file as Record<string, unknown>).public_sysinfo,
 			).toBe(true);

@@ -3,7 +3,8 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const logoutCommandMeta: CommandMeta = {
 	name: "logout",
-	description: "Remove the stored API key",
+	category: "profile",
+	description: "Remove stored API key",
 	stability: "stable",
 };
 

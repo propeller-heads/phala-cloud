@@ -1,3 +1,37 @@
+## [1.1.6](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.5...cli-v1.1.6) (2026-01-31)
+
+### feat
+
+* **cli:** add `phala ps` command to list CVM containers ([4e218b1](https://github.com/Phala-Network/phala-cloud/commit/4e218b1f91b6b315422600ba037343fdf7d25ddc))
+* **cli:** add `phala switch` command for profile switching ([907f1fe](https://github.com/Phala-Network/phala-cloud/commit/907f1fe693d8ca90843726b118f371cefd6deb84))
+* **cli:** add phala apps command and align cvms ls output ([eb194b7](https://github.com/Phala-Network/phala-cloud/commit/eb194b74adb7433a15ee806715a2053c7ddeba3f))
+* **cli:** add phala instance-types command ([7cba272](https://github.com/Phala-Network/phala-cloud/commit/7cba272c4156d79f1ed8ecf7fce0ca0d38de9e8a))
+* **cli:** add phala logs command ([fa281ba](https://github.com/Phala-Network/phala-cloud/commit/fa281ba3705208f0d66ef1f6c776ba156204e8ab))
+* **cli:** migrate nodes list to workspace nodes API ([08e39e7](https://github.com/Phala-Network/phala-cloud/commit/08e39e7825bf72cd627c27ff4c91ab3056213be9))
+* **sdk:** add apps API actions and fix versioned client types ([3ee04e9](https://github.com/Phala-Network/phala-cloud/commit/3ee04e9611047a47890e852bdf6f3244fd457c98))
+
+### fix
+
+* **cli:** comply with RFC 8628 slow_down by permanently increasing polling interval ([f3eb624](https://github.com/Phala-Network/phala-cloud/commit/f3eb624db4b9a8156b679dfc62b28961ad24e6e4))
+* **cli:** fix boolean flag handling and visibility update race condition ([a9f94e1](https://github.com/Phala-Network/phala-cloud/commit/a9f94e1c177e675009ea503afe92a12514d903b1))
+* **cli:** improve package manager detection and self update version check ([7e89210](https://github.com/Phala-Network/phala-cloud/commit/7e892106430865a8b0580544a510429e6203e6db))
+* **cli:** show actual error before public_logs hint in logs commands ([1cd3c01](https://github.com/Phala-Network/phala-cloud/commit/1cd3c01f1e1a75a1a73952eab6131d93965e9de9))
+* **cli:** update help text compatibility test ([06586ec](https://github.com/Phala-Network/phala-cloud/commit/06586ec93d6b5217c9cab9583edd421ea4d501e8))
+* **cli:** use legacy API version for deploy handler and E2E tests ([85dcb31](https://github.com/Phala-Network/phala-cloud/commit/85dcb31751b701a1500b45456373da22154b89eb))
+* **cli:** use normalized CVM ID for serial log endpoint lookup ([33d3acb](https://github.com/Phala-Network/phala-cloud/commit/33d3acbde9b48c5ae6a93bf10880c242873e8d52))
+* **cli:** use workspace slug instead of name for API calls ([fc92027](https://github.com/Phala-Network/phala-cloud/commit/fc9202784870ab8d0bf700b65c358afa3428a0ba))
+* **deploy:** default public logs/sysinfo to true in CLI ([4576dea](https://github.com/Phala-Network/phala-cloud/commit/4576dea806d559fcc30ae74c6f38796141d2ce2d))
+* force legacy version header for serial log endpoint lookup ([783c37c](https://github.com/Phala-Network/phala-cloud/commit/783c37cbfeef8109929531686ef13a8f0c144cef))
+* typing ([8588ac2](https://github.com/Phala-Network/phala-cloud/commit/8588ac2760122f2a5aeea460a47c1b91b10f0249))
+* upgrade CLI to API version 2026-01-21 ([9a92b54](https://github.com/Phala-Network/phala-cloud/commit/9a92b54038daba79f9e54e6e6c42c37744031d5c))
+
+### refactor
+
+* **cli:** apply anti-slop guidelines to command descriptions ([a4aa29e](https://github.com/Phala-Network/phala-cloud/commit/a4aa29e583f0a713d14e2ec25db38aa8347dd4ab))
+* **cli:** replace single api-key with multi-profile credentials ([c545053](https://github.com/Phala-Network/phala-cloud/commit/c5450535797844c996d96eea58d068c33eaca2c3))
+* **cli:** simplify --dev-os/--non-dev-os to single flag with negatedName ([556d7a0](https://github.com/Phala-Network/phala-cloud/commit/556d7a0a4c97d3dc1764d77a9849ae0e8bad3b4b))
+* **cli:** unify error handling with SDK's ResourceError ([fd815b1](https://github.com/Phala-Network/phala-cloud/commit/fd815b13a241a1c22d0c59ae24f99cfec8828712))
+* extract auth schemas into credentials module and fix CLI type safety ([21a545b](https://github.com/Phala-Network/phala-cloud/commit/21a545b3901c80a203372195358cbcb37dcfad5f))
 ## [1.1.5](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.4...cli-v1.1.5) (2026-01-23)
 
 ### feat

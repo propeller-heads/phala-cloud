@@ -9,28 +9,27 @@ export const dockerGenerateCommandMeta: CommandMeta = {
 		{
 			name: "image",
 			shorthand: "i",
-			description:
-				"Docker image name to use in the compose file (e.g. phala/phala-cloud)",
+			description: "Docker image name (e.g. phala/phala-cloud)",
 			type: "string",
 			target: "image",
 		},
 		{
 			name: "env-file",
 			shorthand: "e",
-			description: "Path to environment variables file",
+			description: "Path to env file",
 			type: "string",
 			target: "envFile",
 		},
 		{
 			name: "output",
 			shorthand: "o",
-			description: "Output path for generated docker-compose.yml",
+			description: "Output path for docker-compose.yml",
 			type: "string",
 			target: "output",
 		},
 		{
 			name: "template",
-			description: "Template to use for the generated docker-compose.yml",
+			description: "Template for docker-compose.yml",
 			type: "string",
 			target: "template",
 		},

@@ -22,7 +22,7 @@ export const dockerRunCommandMeta: CommandMeta = {
 		},
 		{
 			name: "skip-env",
-			description: "Skip environment variables file prompt",
+			description: "Skip env file prompt",
 			type: "boolean",
 			target: "skipEnv",
 		},

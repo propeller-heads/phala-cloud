@@ -8,8 +8,7 @@ export const loginCommandMeta: CommandMeta = {
 	arguments: [
 		{
 			name: "api-key",
-			description:
-				"API key for authentication (optional, triggers device flow if not provided)",
+			description: "API key (triggers device flow if omitted)",
 			required: false,
 			target: "apiKey",
 		},
@@ -17,12 +16,12 @@ export const loginCommandMeta: CommandMeta = {
 	options: [
 		{
 			name: "manual",
-			description: "Manually enter API key instead of using device flow",
+			description: "Enter API key manually",
 			type: "boolean",
 		},
 		{
 			name: "no-open",
-			description: "Don't automatically open browser for device flow",
+			description: "Skip browser launch",
 			type: "boolean",
 		},
 	],

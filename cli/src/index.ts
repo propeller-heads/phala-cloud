@@ -21,7 +21,11 @@ import { switchCommand } from "./commands/switch";
 import { completionCommand } from "./commands/completion";
 import { sshCommand } from "./commands/ssh";
 import { cpCommand } from "./commands/cp";
+import { psCommand } from "./commands/ps";
+import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
+import { appsCommand } from "./commands/apps";
+import { instanceTypesCommand } from "./commands/instance-types";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,40 +41,54 @@ const version = `v${packageJson.version}${gitInfo}`;
 const runtime = detectRuntimeFromProcess();
 
 const registry = new CommandRegistry();
-registry.registerCommand(apiCommand);
-registry.registerCommand(statusCommand);
+
+// Top-level commands
 registry.registerCommand(deployCommand);
+registry.registerCommand(appsCommand);
+registry.registerCommand(instanceTypesCommand);
 registry.registerCommand(linkCommand);
-registry.registerCommand(loginCommand);
-registry.registerCommand(logoutCommand);
-registry.registerCommand(completionCommand);
 registry.registerCommand(sshCommand);
 registry.registerCommand(cpCommand);
+registry.registerCommand(psCommand);
+registry.registerCommand(logsCommand);
+registry.registerCommand(loginCommand);
+registry.registerCommand(logoutCommand);
 registry.registerCommand(switchCommand);
+registry.registerCommand(apiCommand);
+registry.registerCommand(statusCommand);
+registry.registerCommand(completionCommand);
+
+// Command groups + subcommands
 registry.registerGroup(selfCommands.group);
 for (const command of selfCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(authCommands.group);
 for (const command of authCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(configCommands.group);
 for (const command of configCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(cvmsCommands.group);
 for (const command of cvmsCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(dockerCommands.group);
 for (const command of dockerCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(nodesCommands.group);
 for (const command of nodesCommands.commands) {
 	registry.registerCommand(command);
 }
+
 registry.registerGroup(simulatorCommands.group);
 for (const command of simulatorCommands.commands) {
 	registry.registerCommand(command);

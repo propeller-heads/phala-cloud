@@ -12,7 +12,7 @@ export const cvmsUpgradeCommandMeta: CommandMeta = {
 		{
 			name: "compose",
 			shorthand: "c",
-			description: "Path to new Docker Compose file",
+			description: "Path to Docker Compose file",
 			type: "string",
 			target: "compose",
 		},
@@ -25,7 +25,7 @@ export const cvmsUpgradeCommandMeta: CommandMeta = {
 		},
 		{
 			name: "debug",
-			description: "Enable debug mode",
+			description: "Enable debug output",
 			type: "boolean",
 			target: "debug",
 		},

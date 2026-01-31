@@ -62,6 +62,16 @@ export interface CommandMeta {
 	readonly name: string;
 	readonly description: string;
 	readonly stability: CommandStability;
+	/**
+	 * Optional category used only for help output grouping.
+	 */
+	readonly category?:
+		| "deploy"
+		| "manage"
+		| "cvm-ops"
+		| "profile"
+		| "advanced"
+		| "deprecated";
 	readonly aliases?: readonly string[];
 	readonly arguments?: readonly CommandArgument[];
 	readonly options?: readonly CommandOption[];

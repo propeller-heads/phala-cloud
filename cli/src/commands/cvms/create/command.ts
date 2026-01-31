@@ -27,33 +27,31 @@ export const cvmsCreateCommandMeta: CommandMeta = {
 		},
 		{
 			name: "vcpu",
-			description: `Number of vCPUs, default is ${DEFAULT_VCPU}`,
+			description: `Virtual CPUs (default: ${DEFAULT_VCPU})`,
 			type: "string",
 			target: "vcpu",
 		},
 		{
 			name: "memory",
-			description: `Memory in MB, default is ${DEFAULT_MEMORY}`,
+			description: `Memory in MB (default: ${DEFAULT_MEMORY})`,
 			type: "string",
 			target: "memory",
 		},
 		{
 			name: "disk-size",
-			description: `Disk size in GB, default is ${DEFAULT_DISK_SIZE}`,
+			description: `Disk size in GB (default: ${DEFAULT_DISK_SIZE})`,
 			type: "string",
 			target: "diskSize",
 		},
 		{
 			name: "teepod-id",
-			description:
-				"TEEPod ID to use. If not provided, it will be selected automatically.",
+			description: "TEEPod ID (auto-selected if omitted)",
 			type: "string",
 			target: "teepodId",
 		},
 		{
 			name: "image",
-			description:
-				"Version of dstack image to use. If not provided, a default image is used.",
+			description: "dstack image version (uses default if omitted)",
 			type: "string",
 			target: "image",
 		},
@@ -66,13 +64,13 @@ export const cvmsCreateCommandMeta: CommandMeta = {
 		},
 		{
 			name: "skip-env",
-			description: "Skip environment variable prompt",
+			description: "Skip env var prompt",
 			type: "boolean",
 			target: "skipEnv",
 		},
 		{
 			name: "debug",
-			description: "Enable debug mode",
+			description: "Enable debug output",
 			type: "boolean",
 			target: "debug",
 		},
