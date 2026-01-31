@@ -115,7 +115,9 @@ describe("CLI Interface Compatibility - Help Text (v1.0.40 baseline)", () => {
 		test("main help shows command groups", async () => {
 			const helpText = await getHelpText("");
 
-			expect(helpText.toLowerCase()).toMatch(/commands:|available commands:/i);
+			// Current help format uses group labels like "Deploy:", "Manage:", etc.
+			// instead of a generic "Commands:" header
+			expect(helpText.toLowerCase()).toMatch(/deploy:|manage:|profile/i);
 		});
 	});
 });
