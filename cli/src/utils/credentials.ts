@@ -41,7 +41,6 @@ function isNonEmptyString(value: unknown): value is string {
 
 function normalizeProfileName(name: string): string {
 	// Keep it conservative for file keys.
-	// TODO: revisit once workspace slug is available.
 	const trimmed = name.trim();
 	if (trimmed.length === 0) return "default";
 	return trimmed;
@@ -49,11 +48,14 @@ function normalizeProfileName(name: string): string {
 
 export interface CredentialsWorkspaceInfo {
 	/**
-	 * Workspace identifier.
-	 *
-	 * TODO: switch to a stable slug field once API provides it.
+	 * Workspace display name (human-readable).
 	 */
 	readonly name: string;
+	/**
+	 * Workspace slug (URL-safe identifier).
+	 * Used for API calls requiring workspace identification.
+	 */
+	readonly slug?: string;
 }
 
 export interface CredentialsUserInfo {
@@ -188,6 +190,7 @@ export function upsertProfile(options: {
 	token: string;
 	apiPrefix?: string;
 	workspaceName: string;
+	workspaceSlug?: string;
 	user: CredentialsUserInfo;
 	setCurrent?: boolean;
 }): void {
@@ -200,6 +203,15 @@ export function upsertProfile(options: {
 		? profileName
 		: current?.current_profile || profileName;
 
+	const workspace: CredentialsWorkspaceInfo = options.workspaceSlug
+		? {
+				name: options.workspaceName,
+				slug: options.workspaceSlug,
+			}
+		: {
+				name: options.workspaceName,
+			};
+
 	const next: CredentialsFileV1 = {
 		schema_version: 1,
 		current_profile: nextCurrentProfile,
@@ -208,7 +220,7 @@ export function upsertProfile(options: {
 			[profileName]: {
 				token: options.token,
 				api_prefix: apiPrefix.length > 0 ? apiPrefix : DEFAULT_API_PREFIX,
-				workspace: { name: options.workspaceName },
+				workspace,
 				user: options.user,
 				updated_at: new Date().toISOString(),
 			},

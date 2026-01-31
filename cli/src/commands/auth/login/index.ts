@@ -14,6 +14,7 @@ interface CurrentUserInfo {
 	username: string;
 	email?: string;
 	workspace_name?: string;
+	workspace_slug?: string;
 }
 
 async function validateApiKey(options: {
@@ -33,6 +34,7 @@ async function validateApiKey(options: {
 		username: result.data.user.username,
 		email: result.data.user.email,
 		workspace_name: result.data.workspace.name,
+		workspace_slug: result.data.workspace.slug || undefined,
 	};
 }
 
@@ -104,6 +106,7 @@ async function runLoginCommand(
 		}
 
 		const workspaceName = user.workspace_name || "default";
+		const workspaceSlug = user.workspace_slug;
 		const profileName = workspaceName;
 
 		upsertProfile({
@@ -111,6 +114,7 @@ async function runLoginCommand(
 			token: apiKey,
 			apiPrefix: baseURL,
 			workspaceName,
+			workspaceSlug,
 			user: {
 				username: user.username,
 				email: user.email,

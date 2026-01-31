@@ -26,7 +26,11 @@ async function runNodesListCommand(
 			return 1;
 		}
 
-		const teamSlug = userResult.data.workspace.name;
+		const teamSlug = userResult.data.workspace.slug;
+		if (!teamSlug) {
+			context.fail("Workspace slug is not available. Please contact support.");
+			return 1;
+		}
 
 		// Get workspace nodes
 		const result = await safeGetWorkspaceNodes(client, {

@@ -97,6 +97,7 @@ export interface CurrentUserInfo {
 	readonly username?: string;
 	readonly email?: string;
 	readonly workspace_name?: string;
+	readonly workspace_slug?: string;
 }
 
 export type FetchCurrentUser = (options: {
@@ -115,6 +116,7 @@ function defaultFetchCurrentUser(): FetchCurrentUser {
 				username: result.data.user.username,
 				email: result.data.user.email,
 				workspace_name: result.data.workspace.name,
+				workspace_slug: result.data.workspace.slug || undefined,
 			},
 		};
 	};
@@ -175,13 +177,15 @@ async function migrateLegacyCredentials(options: {
 
 		const user = result.data;
 		const workspaceName = user.workspace_name || "default";
-		const profileName = workspaceName; // TODO: use workspace slug when available
+		const workspaceSlug = user.workspace_slug;
+		const profileName = workspaceName;
 
 		upsertProfile({
 			profileName,
 			token,
 			apiPrefix: baseURL,
 			workspaceName,
+			workspaceSlug,
 			user: {
 				username: user.username || "unknown",
 				email: user.email,
