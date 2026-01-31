@@ -99,10 +99,13 @@ async function runDeviceAuthFlow(
 	options: {
 		noOpen?: boolean;
 		printToken?: boolean;
+		baseURL: string;
 	},
 ): Promise<string> {
-	// Create client without API key - SDK will read PHALA_CLOUD_API_PREFIX from env
-	const client = createClient({ useCookieAuth: true });
+	const client = createClient({
+		useCookieAuth: true,
+		baseURL: options.baseURL,
+	});
 
 	// Step 1: Request device authorization codes
 	const codeResponse = await client.post<DeviceCodeResponse>(
@@ -228,7 +231,8 @@ export async function runLoginCommand(
 			throw new Error("--print-token is not compatible with --manual");
 		}
 
-		const baseURL = context.env.PHALA_CLOUD_API_PREFIX || DEFAULT_API_PREFIX;
+		const baseURL =
+			input.url || context.env.PHALA_CLOUD_API_PREFIX || DEFAULT_API_PREFIX;
 
 		let apiKey: string;
 		let user: AuthResponse | undefined;
@@ -245,6 +249,7 @@ export async function runLoginCommand(
 			apiKey = await runDeviceAuthFlow(context, {
 				noOpen: input.noOpen,
 				printToken: input.printToken,
+				baseURL,
 			});
 			user = await validateApiKey({ apiKey, baseURL });
 		}
@@ -259,7 +264,7 @@ export async function runLoginCommand(
 
 		const workspaceName = user.workspace.name || "default";
 		const workspaceSlug = user.workspace.slug || undefined;
-		const profileName = input.profile || workspaceName;
+		const profileName = input.profile || workspaceSlug || "default";
 
 		upsertProfile({
 			profileName,

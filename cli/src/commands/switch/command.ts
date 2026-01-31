@@ -14,20 +14,11 @@ export const switchCommandMeta: CommandMeta = {
 			target: "profileName",
 		},
 	],
-	options: [
-		{
-			name: "list",
-			shorthand: "l",
-			description: "List available profiles",
-			type: "boolean",
-			target: "list",
-		},
-	],
+	options: [],
 };
 
 export const switchCommandSchema = z.object({
 	profileName: z.string().min(1).optional(),
-	list: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
 

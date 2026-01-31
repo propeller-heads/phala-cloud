@@ -28,7 +28,7 @@ export const loginCommandMeta: CommandMeta = {
 		},
 		{
 			name: "profile",
-			description: "Profile name (defaults to workspace name)",
+			description: "Profile name (defaults to workspace slug)",
 			type: "string",
 			target: "profile",
 		},
@@ -37,6 +37,12 @@ export const loginCommandMeta: CommandMeta = {
 			description: "Print token to stdout without saving",
 			type: "boolean",
 			target: "printToken",
+		},
+		{
+			name: "url",
+			description: "Custom API endpoint URL",
+			type: "string",
+			target: "url",
 		},
 	],
 };
@@ -47,6 +53,7 @@ export const loginCommandSchema = z.object({
 	noOpen: z.boolean().optional(),
 	profile: z.string().min(1).optional(),
 	printToken: z.boolean().optional(),
+	url: z.string().url().optional(),
 });
 
 export type LoginCommandInput = z.infer<typeof loginCommandSchema>;
