@@ -1,3 +1,13 @@
+## [0.2.2](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.1...js-v0.2.2) (2026-01-31)
+
+### feat
+
+* **sdk-js:** add is_default to workspaces response schema ([85996b3](https://github.com/Phala-Network/phala-cloud/commit/85996b395c5fa7efdfe37dbf1a300964d4d441fd))
+* use workspace slug as profile name, add profiles command, update default API dom ([5c150a0](https://github.com/Phala-Network/phala-cloud/commit/5c150a024d575414e60d6ead26f19a1fc9eaad4a))
+
+### refactor
+
+* sync NodeRef schema from backend ([f699002](https://github.com/Phala-Network/phala-cloud/commit/f699002fc24785c58cfa0452c0ab151d6c661117))
 ## [0.2.1](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.1-beta.4...js-v0.2.1) (2026-01-31)
 
 ### feat
