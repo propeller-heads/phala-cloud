@@ -190,8 +190,7 @@ export const deployCommandMeta: CommandMeta = {
 		},
 		{
 			name: "public-logs",
-			description:
-				"Make CVM logs publicly accessible (default: true for --dev-os, false otherwise)",
+			description: "Make CVM logs publicly accessible (default: true)",
 			type: "boolean",
 			target: "publicLogs",
 			negatedName: "no-public-logs",

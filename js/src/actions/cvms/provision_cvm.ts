@@ -288,6 +288,7 @@ const { action: provisionCvm, safeAction: safeProvisionCvm } = defineAction<
 >(ProvisionCvmSchema, async (client, appCompose) => {
   const validated = ProvisionCvmRequestSchema.parse(appCompose);
   const body = handleGatewayCompatibility(validated);
+
   let requestBody = { ...body };
   if (typeof body.node_id === "number") {
     requestBody = { ...body, teepod_id: body.node_id };

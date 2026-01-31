@@ -591,18 +591,15 @@ interface PrivacySettings {
 }
 
 /**
- * Resolve privacy settings with priority: CLI flags > phala.toml > dev mode defaults
+ * Resolve privacy settings with priority: CLI flags > phala.toml > CLI defaults
  */
 const resolvePrivacySettings = (
 	options: Options,
 	projectConfig?: PrivacyConfig,
 ): PrivacySettings => {
-	const isDevMode = options.devOs === true;
-
 	return {
-		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? isDevMode,
-		publicSysinfo:
-			options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
+		publicLogs: options.publicLogs ?? projectConfig?.public_logs ?? true,
+		publicSysinfo: options.publicSysinfo ?? projectConfig?.public_sysinfo ?? true,
 		listed: options.listed ?? projectConfig?.listed ?? false,
 	};
 };
