@@ -42,8 +42,7 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "instance-type",
 			shorthand: "t",
-			description:
-				"Instance type (e.g., tdx.small, auto-selected if omitted)",
+			description: "Instance type (e.g., tdx.small, auto-selected if omitted)",
 			type: "string",
 			target: "instanceType",
 			group: "basic",
@@ -96,7 +95,8 @@ export const deployCommandMeta: CommandMeta = {
 		{
 			name: "env",
 			shorthand: "e",
-			description: "Environment variable (KEY=VALUE) or env file path (repeatable)",
+			description:
+				"Environment variable (KEY=VALUE) or env file path (repeatable)",
 			type: "string[]",
 			target: "env",
 			group: "basic",

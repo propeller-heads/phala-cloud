@@ -91,14 +91,25 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 
 		// hard-coded defaults for uncategorized top-level commands
 		if (name === "nodes" || name === "deploy") return "deploy";
-		if (name === "apps" || name === "cvms" || name === "link" || name === "simulator")
+		if (
+			name === "apps" ||
+			name === "cvms" ||
+			name === "link" ||
+			name === "simulator"
+		)
 			return "manage";
 		if (name === "ssh" || name === "cp" || name === "ps" || name === "logs")
 			return "cvm-ops";
-		if (name === "login" || name === "logout" || name === "switch" || name === "status")
+		if (
+			name === "login" ||
+			name === "logout" ||
+			name === "switch" ||
+			name === "status"
+		)
 			return "profile";
 		if (name === "api" || name === "self") return "advanced";
-		if (name === "auth" || name === "config" || name === "docker") return "deprecated";
+		if (name === "auth" || name === "config" || name === "docker")
+			return "deprecated";
 
 		// default bucket
 		return "advanced";

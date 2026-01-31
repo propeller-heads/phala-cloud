@@ -47,7 +47,14 @@ async function runNodesListCommand(
 			return 0;
 		}
 
-		const columns = ["ID", "NAME", "REGION", "PPID", "DEVICE_ID", "VERSION"] as const;
+		const columns = [
+			"ID",
+			"NAME",
+			"REGION",
+			"PPID",
+			"DEVICE_ID",
+			"VERSION",
+		] as const;
 		const rows = data.items.map((node) => ({
 			ID: node.id?.toString() ?? "-",
 			NAME: node.name ?? "-",

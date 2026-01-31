@@ -40,16 +40,14 @@ export const logsCommandMeta: CommandMeta = {
 		},
 		{
 			name: "since",
-			description:
-				"Logs since timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
+			description: "Logs since timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
 			type: "string",
 			target: "since",
 			argumentName: "since",
 		},
 		{
 			name: "until",
-			description:
-				"Logs before timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
+			description: "Logs before timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
 			type: "string",
 			target: "until",
 			argumentName: "until",
