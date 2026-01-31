@@ -1,3 +1,38 @@
+## [0.2.1](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.1-beta.4...js-v0.2.1) (2026-01-31)
+
+### feat
+
+* add standalone patch api for docker compose & prelaunch script ([efc9a05](https://github.com/Phala-Network/phala-cloud/commit/efc9a052c2fb0b4cf6eedce628c81ef86826fa4d))
+* add validate rule to cvm name when creating cvm ([92138c0](https://github.com/Phala-Network/phala-cloud/commit/92138c0de0021aa06e597aa321c9a293bb078e2a))
+* **js:** add batch CVM status action ([e99e0d8](https://github.com/Phala-Network/phala-cloud/commit/e99e0d86b79b9cf871f58d0e878a569e4808d6bc))
+* **js:** add workspace nodes and quotas API ([2adf971](https://github.com/Phala-Network/phala-cloud/commit/2adf971646d0b628ad68e9a07a28b98bba02e88d))
+* **sdk:** add apps API actions and fix versioned client types ([3ee04e9](https://github.com/Phala-Network/phala-cloud/commit/3ee04e9611047a47890e852bdf6f3244fd457c98))
+* **sdk:** add generic request methods with full response support ([b15c2c6](https://github.com/Phala-Network/phala-cloud/commit/b15c2c627ece4472edf1ecb8a877cd619808e662))
+* **sdk:** add versioned API client with type-safe return types ([4378e37](https://github.com/Phala-Network/phala-cloud/commit/4378e373966efbd72d987d399e0f7c9136c2d9dd))
+* unify name convention across cli & sdk ([9f0d1e5](https://github.com/Phala-Network/phala-cloud/commit/9f0d1e5d5f7b600a1c963816ce38bd1b402885ef))
+* update cvm_id ([a66bc1f](https://github.com/Phala-Network/phala-cloud/commit/a66bc1fe4a42dd01ef3f1548e54562eb5541e193))
+
+### fix
+
+* api path for batch cvm status query ([5764b05](https://github.com/Phala-Network/phala-cloud/commit/5764b05be417e568f91b88235d7f1511b62b4724))
+* **deploy:** default public logs/sysinfo to true in CLI ([4576dea](https://github.com/Phala-Network/phala-cloud/commit/4576dea806d559fcc30ae74c6f38796141d2ce2d))
+* **js:** expose instance_type in CVM response ([0c30066](https://github.com/Phala-Network/phala-cloud/commit/0c300668e821a58d30cceff5dff264dcbedbddee))
+* **js:** restore BaseClient request* methods to match Client interface ([5123018](https://github.com/Phala-Network/phala-cloud/commit/5123018f01025e7dfaa5ea6d3986275de9e495b8))
+* migrate URLs from cloud.phala.network to cloud.phala.com ([cd48ed4](https://github.com/Phala-Network/phala-cloud/commit/cd48ed4a69ffc3bd4f4c8483946cf21c2b5d38a6))
+* **schema:** add fallback defaults for deprecated CVM fields ([6d3b934](https://github.com/Phala-Network/phala-cloud/commit/6d3b93425d6634dc11d7337cdd6d0a44a68f4f0a))
+* **sdk,cli:** send update_env_vars flag when updating CVM env vars ([26077d1](https://github.com/Phala-Network/phala-cloud/commit/26077d17e418182d96b995e23e26a48da697d3ea))
+* **sdk:** add missing kms_info field to ProvisionCvmSchema ([6fc3b6a](https://github.com/Phala-Network/phala-cloud/commit/6fc3b6aa9d0c733ad2394108e388ebb907324e22))
+* **sdk:** smart default for instance_type to allow vcpu/memory params to work ([9f0780d](https://github.com/Phala-Network/phala-cloud/commit/9f0780d892d43bcb354a5ada1b8edf7c2912e0fc))
+* **test:** update e2e test assertions to match schema changes ([8cc1ac3](https://github.com/Phala-Network/phala-cloud/commit/8cc1ac354d1a5c0eaafa5cccaeb8434dab36d4b6))
+* typing ([8588ac2](https://github.com/Phala-Network/phala-cloud/commit/8588ac2760122f2a5aeea460a47c1b91b10f0249))
+* upgrade CLI to API version 2026-01-21 ([9a92b54](https://github.com/Phala-Network/phala-cloud/commit/9a92b54038daba79f9e54e6e6c42c37744031d5c))
+
+### refactor
+
+* **auth:** update v20260121 schema to remove sensitive fields and add avatar support ([7543c21](https://github.com/Phala-Network/phala-cloud/commit/7543c21943537d7f0797d9661e5f8d6233bf7a8e))
+* **cli:** unify error handling with SDK's ResourceError ([fd815b1](https://github.com/Phala-Network/phala-cloud/commit/fd815b13a241a1c22d0c59ae24f99cfec8828712))
+* extract auth schemas into credentials module and fix CLI type safety ([21a545b](https://github.com/Phala-Network/phala-cloud/commit/21a545b3901c80a203372195358cbcb37dcfad5f))
+* **js:** simplify versioned response types and add withVersion method ([b952770](https://github.com/Phala-Network/phala-cloud/commit/b9527706568c288ba36e5d14e159503dac75c5f0))
 ## [0.2.1-beta.4](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.1-beta.4...js-v0.2.1-beta.4) (2025-11-28)
 
 ### feat
