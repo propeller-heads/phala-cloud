@@ -100,7 +100,7 @@ describe("migrateStorage", () => {
 			stderr: stderr as unknown as NodeJS.WriteStream,
 			fetchCurrentUser: async () => ({
 				success: true,
-				data: { username: "alice", email: "a@b.c", team_name: "teamA" },
+				data: { username: "alice", email: "a@b.c", workspace_name: "teamA" },
 			}),
 		});
 
@@ -127,7 +127,7 @@ describe("migrateStorage", () => {
 			stderr: stderr as unknown as NodeJS.WriteStream,
 			fetchCurrentUser: async () => ({
 				success: true,
-				data: { username: "alice", team_name: "teamEnc" },
+				data: { username: "alice", workspace_name: "teamEnc" },
 			}),
 		});
 
@@ -152,7 +152,7 @@ describe("migrateStorage", () => {
 			stderr: stderr as unknown as NodeJS.WriteStream,
 			fetchCurrentUser: async () => ({
 				success: true,
-				data: { username: "alice", team_name: "team" },
+				data: { username: "alice", workspace_name: "team" },
 			}),
 		});
 

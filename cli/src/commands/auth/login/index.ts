@@ -10,11 +10,11 @@ import { logger } from "@/src/utils/logger";
 import { loginCommandMeta, loginCommandSchema } from "./command";
 import type { LoginCommandInput } from "./command";
 
-type CurrentUserInfo = {
+interface CurrentUserInfo {
 	username: string;
 	email?: string;
-	team_name?: string;
-};
+	workspace_name?: string;
+}
 
 async function validateApiKey(options: {
 	apiKey: string;
@@ -24,13 +24,16 @@ async function validateApiKey(options: {
 		baseURL: options.baseURL,
 	});
 	const result = await safeGetCurrentUser(client);
-	const userData = result.data as CurrentUserInfo;
 
-	if (!result.success || !userData?.username) {
+	if (!result.success || !result.data?.user.username) {
 		throw new Error("Invalid API key");
 	}
 
-	return userData;
+	return {
+		username: result.data.user.username,
+		email: result.data.user.email,
+		workspace_name: result.data.workspace.name,
+	};
 }
 
 async function promptForApiKey(options: {
@@ -100,7 +103,7 @@ async function runLoginCommand(
 			throw new Error("Failed to validate API key");
 		}
 
-		const workspaceName = user.team_name || "default";
+		const workspaceName = user.workspace_name || "default";
 		const profileName = workspaceName;
 
 		upsertProfile({

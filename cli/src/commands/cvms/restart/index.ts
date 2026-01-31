@@ -6,7 +6,6 @@ import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import type { CvmInfoResponse } from "@/src/api/types";
 import {
 	cvmsRestartCommandMeta,
 	cvmsRestartCommandSchema,
@@ -35,9 +34,9 @@ async function runCvmsRestartCommand(
 			return 1;
 		}
 
-		const cvmInfo = infoResult.data as CvmInfoResponse;
+		const cvmInfo = infoResult.data;
 
-		if (cvmInfo.in_progress) {
+		if (cvmInfo.progress?.target) {
 			logger.warn(
 				"CVM is currently in progress (updating/restarting). Waiting for operation to complete...",
 			);

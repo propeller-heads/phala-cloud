@@ -2,7 +2,6 @@ import chalk from "chalk";
 import { safeGetCvmInfo } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import type { CvmInfoResponse } from "@/src/api/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { logger, setJsonMode } from "@/src/utils/logger";
@@ -39,7 +38,7 @@ async function runCvmsGetCommand(
 			return 1;
 		}
 
-		const cvm = result.data as CvmInfoResponse | undefined;
+		const cvm = result.data;
 
 		if (!cvm) {
 			context.fail("CVM not found");
@@ -64,10 +63,16 @@ async function runCvmsGetCommand(
 			Name: cvm.name,
 			"App ID": `app_${cvm.app_id}`,
 			Status: statusColour,
-			vCPU: cvm.vcpu,
-			Memory: `${cvm.memory} MB`,
-			"Disk Size": `${cvm.disk_size} GB`,
-			"Dstack Image": cvm.base_image,
+			vCPU: cvm.resource.vcpu,
+			Memory:
+				cvm.resource.memory_in_gb != null
+					? `${cvm.resource.memory_in_gb} GB`
+					: "N/A",
+			"Disk Size":
+				cvm.resource.disk_in_gb != null
+					? `${cvm.resource.disk_in_gb} GB`
+					: "N/A",
+			"Dstack Image": cvm.os?.name,
 			"App URL": `${CLOUD_URL}/dashboard/cvms/app_${cvm.app_id}`,
 		});
 

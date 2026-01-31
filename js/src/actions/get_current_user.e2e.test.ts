@@ -60,7 +60,8 @@ describe.skipIf(skipIntegrationTests)("getCurrentUser Integration Tests", () => 
       expect(typeof result.user.avatar).toBe("string");
       expect(typeof result.user.email_verified).toBe("boolean");
       expect(typeof result.user.totp_enabled).toBe("boolean");
-      expect(typeof result.user.backup_codes_count).toBe("number");
+      expect(typeof result.user.has_backup_codes).toBe("boolean");
+      expect(typeof result.user.flag_has_password).toBe("boolean");
 
       // Workspace layer
       expect(typeof result.workspace.id).toBe("string");

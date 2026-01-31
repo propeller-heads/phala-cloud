@@ -114,7 +114,7 @@ async function runCvmsUpgradeCommand(
 				const envs: EnvVar[] = parseEnv([], input.envFile);
 				encryptedEnv = await encryptEnvVars(
 					envs,
-					currentCvm.encrypted_env_pubkey,
+					currentCvm.kms_info?.encrypted_env_pubkey,
 				);
 				envKeys = envs.map((env) => env.key);
 			} catch (error) {

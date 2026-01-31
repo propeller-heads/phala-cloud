@@ -12,9 +12,8 @@ export const UserInfoSchema = z
     avatar: z.string(),
     email_verified: z.boolean(),
     totp_enabled: z.boolean(),
-    backup_codes_count: z.number(),
-    flag_reset_password: z.boolean().nullable().optional(),
-    flag_has_password: z.boolean().optional(),
+    has_backup_codes: z.boolean(),
+    flag_has_password: z.boolean(),
   })
   .passthrough();
 
@@ -27,6 +26,7 @@ export const WorkspaceInfoSchema = z
     slug: z.string().nullable(),
     tier: z.string(),
     role: z.string(),
+    avatar: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -34,10 +34,10 @@ export type WorkspaceInfo = z.infer<typeof WorkspaceInfoSchema>;
 
 export const CreditsInfoSchema = z
   .object({
-    balance: z.number(),
-    granted_balance: z.number(),
+    balance: z.string().or(z.number()),
+    granted_balance: z.string().or(z.number()),
     is_post_paid: z.boolean(),
-    outstanding_amount: z.number().nullable(),
+    outstanding_amount: z.string().or(z.number()).nullable(),
   })
   .passthrough();
 

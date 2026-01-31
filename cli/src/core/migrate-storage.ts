@@ -96,7 +96,7 @@ function pickMigratableConfigKeys(
 export interface CurrentUserInfo {
 	readonly username?: string;
 	readonly email?: string;
-	readonly team_name?: string;
+	readonly workspace_name?: string;
 }
 
 export type FetchCurrentUser = (options: {
@@ -109,7 +109,14 @@ function defaultFetchCurrentUser(): FetchCurrentUser {
 		const client = createClient({ apiKey: token, baseURL });
 		const result = await safeGetCurrentUser(client);
 		if (!result.success) return { success: false };
-		return { success: true, data: result.data as CurrentUserInfo };
+		return {
+			success: true,
+			data: {
+				username: result.data.user.username,
+				email: result.data.user.email,
+				workspace_name: result.data.workspace.name,
+			},
+		};
 	};
 }
 
@@ -167,7 +174,7 @@ async function migrateLegacyCredentials(options: {
 		}
 
 		const user = result.data;
-		const workspaceName = user.team_name || "default";
+		const workspaceName = user.workspace_name || "default";
 		const profileName = workspaceName; // TODO: use workspace slug when available
 
 		upsertProfile({

@@ -286,9 +286,6 @@ export interface PubkeyResponse {
 	app_id_salt: string;
 }
 
-// CVM Info Response - re-export from SDK to avoid duplication
-export type { CvmDetailV20251028 as CvmInfoResponse } from "@phala/cloud";
-
 // Upgrade Response
 export interface UpgradeResponse {
 	detail?: string;

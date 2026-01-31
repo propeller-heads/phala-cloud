@@ -3,6 +3,7 @@ import {
 	safeGetCvmInfo,
 	safeGetCvmComposeFile,
 	type Client,
+	type CvmInfoDetailV20260121,
 } from "@phala/cloud";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
@@ -19,7 +20,6 @@ import type {
 	GetCvmNetworkResponse,
 	TeepodResponse,
 	PubkeyResponse,
-	CvmInfoResponse,
 	CvmListResponse,
 	CvmComposeConfigResponse,
 	UpgradeResponse,
@@ -31,7 +31,9 @@ import inquirer from "inquirer";
  * @param appId App ID (with or without app_ prefix)
  * @returns CVM details
  */
-export async function getCvmByAppId(appId: string): Promise<CvmInfoResponse> {
+export async function getCvmByAppId(
+	appId: string,
+): Promise<CvmInfoDetailV20260121> {
 	const client = await getClient();
 	// Remove app_ prefix if present, SDK will add it back
 	const cleanAppId = appId.replace(/^app_/, "");
@@ -41,7 +43,7 @@ export async function getCvmByAppId(appId: string): Promise<CvmInfoResponse> {
 		throw new Error(result.error.message);
 	}
 
-	return result.data as CvmInfoResponse;
+	return result.data;
 }
 
 /**
@@ -74,59 +76,6 @@ export async function getCvmNetwork(
 		`cvms/app_${cleanAppId}/network`,
 	);
 	return getCvmNetworkResponseSchema.parse(response);
-}
-
-/**
- * Start a CVM
- * @param appId App ID (with or without app_ prefix)
- * @returns Success status
- */
-export async function startCvm(appId: string): Promise<PostCvmResponse> {
-	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
-	const response = await client.post<PostCvmResponse>(
-		`cvms/app_${cleanAppId}/start`,
-	);
-	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
-	return result.data;
-}
-
-/**
- * Stop a CVM
- * @param appId App ID (with or without app_ prefix)
- * @returns Success status
- */
-export async function stopCvm(appId: string): Promise<PostCvmResponse> {
-	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
-	await client.post<PostCvmResponse>(`cvms/app_${cleanAppId}/stop`);
-	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
-	return result.data;
-}
-
-/**
- * Restart a CVM
- * @param appId App ID (with or without app_ prefix)
- * @returns Success status
- */
-export async function restartCvm(appId: string): Promise<PostCvmResponse> {
-	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
-	await client.post<PostCvmResponse>(`cvms/app_${cleanAppId}/restart`);
-	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
-	return result.data;
-}
-
-/**
- * Delete a CVM
- * @param appId App ID (with or without app_ prefix)
- * @returns Success status
- */
-export async function deleteCvm(appId: string): Promise<boolean> {
-	const client = await getClient();
-	const cleanAppId = appId.replace(/^app_/, "");
-	await client.delete(`cvms/app_${cleanAppId}`);
-	return true;
 }
 
 /**
@@ -421,11 +370,18 @@ async function streamResponse(
 
 /** Get serial log endpoint URL */
 async function getSerialLogEndpoint(appId: string): Promise<string> {
-	const cvmInfo = await getCvmByAppId(appId);
-	if (!cvmInfo.syslog_endpoint) {
+	// syslog_endpoint is not in the v20260121 schema. Force the legacy version
+	// header so the backend returns CvmBasicInfo which includes the field.
+	const client = await getClient();
+	const cleanAppId = appId.replace(/^app_/, "");
+	const rawInfo = await client.get<{ syslog_endpoint?: string | null }>(
+		`cvms/app_${cleanAppId}`,
+		{ headers: { "X-Phala-Version": "2025-10-28" } },
+	);
+	if (!rawInfo.syslog_endpoint) {
 		throw new Error(`No syslog endpoint available for CVM '${appId}'`);
 	}
-	return `${cvmInfo.syslog_endpoint}&ch=serial`;
+	return `${rawInfo.syslog_endpoint}&ch=serial`;
 }
 
 /** Get container log endpoint URL */

@@ -17,8 +17,7 @@ const mockAuthResponse: AuthResponse = {
     avatar: "/default-avatar.png",
     email_verified: true,
     totp_enabled: false,
-    backup_codes_count: 0,
-    flag_reset_password: false,
+    has_backup_codes: false,
     flag_has_password: true,
   },
   workspace: {
