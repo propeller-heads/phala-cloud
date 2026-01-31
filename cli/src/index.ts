@@ -25,6 +25,7 @@ import { psCommand } from "./commands/ps";
 import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
 import { appsCommand } from "./commands/apps";
+import { instanceTypesCommand } from "./commands/instance-types";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,7 @@ const registry = new CommandRegistry();
 // Top-level commands
 registry.registerCommand(deployCommand);
 registry.registerCommand(appsCommand);
+registry.registerCommand(instanceTypesCommand);
 registry.registerCommand(linkCommand);
 registry.registerCommand(sshCommand);
 registry.registerCommand(cpCommand);
