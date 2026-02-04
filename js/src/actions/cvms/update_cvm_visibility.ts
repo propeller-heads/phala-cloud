@@ -26,6 +26,7 @@ export const UpdateCvmVisibilityRequestSchema = refineCvmId(
   CvmIdObjectSchema.extend({
     public_sysinfo: z.boolean(),
     public_logs: z.boolean(),
+    public_tcbinfo: z.boolean().optional(),
   }),
 );
 
@@ -37,8 +38,12 @@ const { action: updateCvmVisibility, safeAction: safeUpdateCvmVisibility } = def
 >(CvmDetailV20251028Schema, async (client, request) => {
   const parsed = UpdateCvmVisibilityRequestSchema.parse(request);
   const { cvmId } = CvmIdSchema.parse(parsed);
-  const { public_sysinfo, public_logs } = parsed;
-  return await client.patch(`/cvms/${cvmId}/visibility`, { public_sysinfo, public_logs });
+  const { public_sysinfo, public_logs, public_tcbinfo } = parsed;
+  return await client.patch(`/cvms/${cvmId}/visibility`, {
+    public_sysinfo,
+    public_logs,
+    public_tcbinfo,
+  });
 });
 
 export { updateCvmVisibility, safeUpdateCvmVisibility };
