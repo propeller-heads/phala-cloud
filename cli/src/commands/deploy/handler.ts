@@ -618,16 +618,23 @@ export const buildProvisionPayload = (
 	envs: EnvVar[],
 	privacySettings: PrivacySettings,
 	preResolvedKmsSelection?: ReturnType<typeof resolveKmsSelection>,
+	preLaunchScriptContent?: string,
 ) => {
+	const composeFile: Record<string, unknown> = {
+		name: "", // Required by backend schema, defaults to empty string
+		docker_compose_file: dockerComposeYml,
+		allowed_envs: envs?.map((e) => e.key) || [],
+		public_logs: privacySettings.publicLogs,
+		public_sysinfo: privacySettings.publicSysinfo,
+	};
+
+	if (preLaunchScriptContent) {
+		composeFile.pre_launch_script = preLaunchScriptContent;
+	}
+
 	const payload: Record<string, unknown> = {
 		name: name,
-		compose_file: {
-			name: "", // Required by backend schema, defaults to empty string
-			docker_compose_file: dockerComposeYml,
-			allowed_envs: envs?.map((e) => e.key) || [],
-			public_logs: privacySettings.publicLogs,
-			public_sysinfo: privacySettings.publicSysinfo,
-		},
+		compose_file: composeFile,
 		listed: privacySettings.listed,
 	};
 
@@ -717,6 +724,7 @@ const deployNewCvm = async (
 	stdout: NodeJS.WriteStream,
 	stderr: NodeJS.WriteStream,
 	projectConfig?: PrivacyConfig,
+	preLaunchScriptContent?: string,
 ) => {
 	// Resolve KMS selection once at the start to avoid duplicate calls and warnings
 	const kmsSelection = resolveKmsSelection(validatedOptions);
@@ -746,6 +754,7 @@ const deployNewCvm = async (
 		envsWithSshKey,
 		privacySettings,
 		kmsSelection,
+		preLaunchScriptContent,
 	);
 
 	stdout.write(`Provisioning CVM ${name}...\n`);
@@ -901,6 +910,7 @@ const updateCvm = async (
 	envs: EnvVar[] | undefined,
 	client: Client<typeof API_VERSION>,
 	stdout: NodeJS.WriteStream,
+	preLaunchScriptContent?: string,
 ) => {
 	const [cvm_result, app_compose_result] = await Promise.all([
 		safeGetCvmInfo(client, {
@@ -927,6 +937,9 @@ const updateCvm = async (
 
 	// patched the compose_file
 	app_compose.docker_compose_file = docker_compose_yml;
+	if (preLaunchScriptContent) {
+		app_compose.pre_launch_script = preLaunchScriptContent;
+	}
 	if (envs && envs.length > 0) {
 		app_compose.allowed_envs = envs.map((env) => env.key);
 	}
@@ -1118,15 +1131,33 @@ export async function runDeploy(
 			interactive: input.interactive,
 		});
 
-		// Early size check for compose file (the SDK schema validates the combined
-		// size of docker_compose_file + pre_launch_script, but checking here gives
-		// users a faster, friendlier error before any network requests)
+		// Read pre-launch script file if provided
+		let preLaunchScriptContent: string | undefined;
+		if (input.preLaunchScript) {
+			if (!fs.existsSync(input.preLaunchScript)) {
+				throw new Error(
+					`Pre-launch script file not found: ${input.preLaunchScript}`,
+				);
+			}
+			preLaunchScriptContent = fs.readFileSync(
+				input.preLaunchScript,
+				"utf8",
+			);
+		}
+
+		// Early size check for compose payload (the SDK schema validates the
+		// combined size too, but checking here gives users a faster, friendlier
+		// error before any network requests)
 		const composeByteLength = Buffer.byteLength(docker_compose_yml, "utf8");
-		if (composeByteLength > MAX_COMPOSE_PAYLOAD_BYTES) {
+		const scriptByteLength = preLaunchScriptContent
+			? Buffer.byteLength(preLaunchScriptContent, "utf8")
+			: 0;
+		const totalPayloadBytes = composeByteLength + scriptByteLength;
+		if (totalPayloadBytes > MAX_COMPOSE_PAYLOAD_BYTES) {
 			const maxKB = MAX_COMPOSE_PAYLOAD_BYTES / 1024;
-			const currentKB = Math.ceil(composeByteLength / 1024);
+			const currentKB = Math.ceil(totalPayloadBytes / 1024);
 			throw new Error(
-				`Docker compose file is too large (${currentKB}KB). Maximum allowed size is ${maxKB}KB.`,
+				`Combined size of docker compose file and pre-launch script is too large (${currentKB}KB). Maximum allowed size is ${maxKB}KB.`,
 			);
 		}
 
@@ -1173,6 +1204,7 @@ export async function runDeploy(
 				envs,
 				client,
 				context.stdout,
+				preLaunchScriptContent,
 			);
 		} else {
 			// Deploy a new CVM
@@ -1184,6 +1216,7 @@ export async function runDeploy(
 				context.stdout,
 				context.stderr,
 				context.projectConfig,
+				preLaunchScriptContent,
 			);
 		}
 	} catch (error) {

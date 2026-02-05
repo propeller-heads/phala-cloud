@@ -575,6 +575,63 @@ describe("buildProvisionPayload", () => {
 		});
 	});
 
+	describe("pre-launch script handling", () => {
+		test("should include pre_launch_script in compose_file when provided", () => {
+			const options = {};
+			const scriptContent = "#!/bin/bash\necho hello";
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+				undefined,
+				scriptContent,
+			);
+
+			expect(
+				(payload.compose_file as Record<string, unknown>).pre_launch_script,
+			).toBe(scriptContent);
+		});
+
+		test("should not include pre_launch_script when not provided", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+			);
+
+			expect(
+				"pre_launch_script" in
+					(payload.compose_file as Record<string, unknown>),
+			).toBe(false);
+		});
+
+		test("should not include pre_launch_script when empty string", () => {
+			const options = {};
+
+			const payload = buildProvisionPayload(
+				options,
+				defaultName,
+				defaultDockerCompose,
+				defaultEnvs,
+				defaultPrivacySettings,
+				undefined,
+				"",
+			);
+
+			expect(
+				"pre_launch_script" in
+					(payload.compose_file as Record<string, unknown>),
+			).toBe(false);
+		});
+	});
+
 	describe("privacy settings", () => {
 		test("should include public_logs and public_sysinfo in compose_file", () => {
 			const options = {};
