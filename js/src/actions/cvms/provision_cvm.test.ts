@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProvisionCvmRequestSchema } from "./provision_cvm";
+import { MAX_COMPOSE_PAYLOAD_BYTES } from "../../types/app_compose";
 
 describe("ProvisionCvmRequestSchema", () => {
   describe("manual nonce specification", () => {
@@ -58,6 +59,56 @@ describe("ProvisionCvmRequestSchema", () => {
       if (result.success) {
         expect(result.data.nonce).toBe(0);
       }
+    });
+  });
+
+  describe("compose payload size limit", () => {
+    const baseInput = {
+      name: "test-app",
+      instance_type: "tdx.small" as const,
+      kms: "PHALA" as const,
+    };
+
+    it("should accept compose file within 200KB", () => {
+      const result = ProvisionCvmRequestSchema.safeParse({
+        ...baseInput,
+        compose_file: {
+          docker_compose_file: "x".repeat(100 * 1024),
+        },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject compose file exceeding 200KB", () => {
+      const result = ProvisionCvmRequestSchema.safeParse({
+        ...baseInput,
+        compose_file: {
+          docker_compose_file: "x".repeat(MAX_COMPOSE_PAYLOAD_BYTES + 1),
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject when compose + pre_launch_script exceed 200KB combined", () => {
+      const result = ProvisionCvmRequestSchema.safeParse({
+        ...baseInput,
+        compose_file: {
+          docker_compose_file: "x".repeat(150 * 1024),
+          pre_launch_script: "y".repeat(60 * 1024),
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("should accept when compose + pre_launch_script are within 200KB combined", () => {
+      const result = ProvisionCvmRequestSchema.safeParse({
+        ...baseInput,
+        compose_file: {
+          docker_compose_file: "x".repeat(100 * 1024),
+          pre_launch_script: "y".repeat(90 * 1024),
+        },
+      });
+      expect(result.success).toBe(true);
     });
   });
 
