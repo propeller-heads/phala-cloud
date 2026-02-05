@@ -19,6 +19,7 @@ import {
 	type EnvVar,
 	type ErrorLink,
 	type ProvisionCvmComposeFileUpdateRequest,
+	MAX_COMPOSE_PAYLOAD_BYTES,
 	ResourceError,
 	createClient,
 	encryptEnvVars,
@@ -1116,6 +1117,18 @@ export async function runDeploy(
 			dockerComposePath: dockerComposePath,
 			interactive: input.interactive,
 		});
+
+		// Early size check for compose file (the SDK schema validates the combined
+		// size of docker_compose_file + pre_launch_script, but checking here gives
+		// users a faster, friendlier error before any network requests)
+		const composeByteLength = Buffer.byteLength(docker_compose_yml, "utf8");
+		if (composeByteLength > MAX_COMPOSE_PAYLOAD_BYTES) {
+			const maxKB = MAX_COMPOSE_PAYLOAD_BYTES / 1024;
+			const currentKB = Math.ceil(composeByteLength / 1024);
+			throw new Error(
+				`Docker compose file is too large (${currentKB}KB). Maximum allowed size is ${maxKB}KB.`,
+			);
+		}
 
 		// Build options with env_file from phala.toml as fallback
 		const optionsWithEnvFile: Options = {

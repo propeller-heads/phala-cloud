@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type Client } from "../../client";
 import { KmsInfoSchema } from "../../types/kms_info";
+import { validateComposePayloadSize } from "../../types/app_compose";
 import { defineAction } from "../../utils/define-action";
 import { isValidHostname } from "../../utils/hostname";
 
@@ -203,17 +204,21 @@ export const ProvisionCvmRequestSchema = z
     vcpu: z.number().optional(), // deprecated, use instance_type instead
     memory: z.number().optional(), // deprecated, use instance_type instead
     disk_size: z.number().optional(),
-    compose_file: z.object({
-      allowed_envs: z.array(z.string()).optional(),
-      pre_launch_script: z.string().optional(),
-      docker_compose_file: z.string().optional(),
-      name: z.string().optional().default(""), // optional with default empty string
-      kms_enabled: z.boolean().optional(),
-      public_logs: z.boolean().optional(),
-      public_sysinfo: z.boolean().optional(),
-      gateway_enabled: z.boolean().optional(), // recommended
-      tproxy_enabled: z.boolean().optional(), // deprecated, for compatibility
-    }),
+    compose_file: z
+      .object({
+        allowed_envs: z.array(z.string()).optional(),
+        pre_launch_script: z.string().optional(),
+        docker_compose_file: z.string().optional(),
+        name: z.string().optional().default(""), // optional with default empty string
+        kms_enabled: z.boolean().optional(),
+        public_logs: z.boolean().optional(),
+        public_sysinfo: z.boolean().optional(),
+        gateway_enabled: z.boolean().optional(), // recommended
+        tproxy_enabled: z.boolean().optional(), // deprecated, for compatibility
+      })
+      .superRefine((data, ctx) => {
+        validateComposePayloadSize(data.docker_compose_file, data.pre_launch_script, ctx);
+      }),
     listed: z.boolean().optional(),
     kms_id: z.string().optional(),
     kms: z.enum(["PHALA", "ETHEREUM", "BASE"]).optional(), // KMS type selection (defaults to PHALA)

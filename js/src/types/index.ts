@@ -11,3 +11,4 @@ export * from "./version-mappings";
 export * from "./app_info_v20251028";
 export * from "./app_info_v20260121";
 export * from "./app_revision";
+export * from "./app_compose";
