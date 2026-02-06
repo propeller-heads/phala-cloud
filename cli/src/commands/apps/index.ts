@@ -31,6 +31,14 @@ async function runAppsCommand(
 		const result = await listAppsWithCvmStatus(client as never, {
 			page: input.page,
 			pageSize: input.pageSize,
+			search: input.search,
+			status: input.status,
+			listed: input.listed,
+			baseImage: input.baseImage,
+			instanceType: input.instanceType,
+			kmsType: input.kmsType,
+			node: input.node,
+			region: input.region,
 		});
 
 		if (result.success === false) {
