@@ -406,3 +406,10 @@ export {
   GetAppRevisionDetailRequestSchema,
   type GetAppRevisionDetailRequest,
 } from "./apps/get_app_revision_detail";
+
+export {
+  getAppFilterOptions,
+  safeGetAppFilterOptions,
+  AppFilterOptionsSchema,
+  type AppFilterOptions,
+} from "./apps/get_app_filter_options";
