@@ -7,7 +7,7 @@ import type { ApiVersion } from "../../types/client";
 export const GetAppRevisionDetailRequestSchema = z
   .object({
     appId: z.string().min(1),
-    composeHash: z.string().min(1),
+    revisionId: z.string().min(1),
     rawComposeFile: z.boolean().optional(),
   })
   .strict();
@@ -20,7 +20,7 @@ export type GetAppRevisionDetailRequest = z.infer<typeof GetAppRevisionDetailReq
  * @param client - The API client
  * @param request - Request parameters
  * @param request.appId - The app ID
- * @param request.composeHash - The compose hash of the revision
+ * @param request.revisionId - The revision record id (rev_...) of the revision
  * @param request.rawComposeFile - If true, returns compose_file as raw string instead of parsed object
  * @returns Detailed revision information including compose file and encrypted env
  *
@@ -28,13 +28,13 @@ export type GetAppRevisionDetailRequest = z.infer<typeof GetAppRevisionDetailReq
  * ```typescript
  * const detail = await getAppRevisionDetail(client, {
  *   appId: "my-app-id",
- *   composeHash: "abc123"
+ *   revisionId: "rev_abc123"
  * })
  *
  * // Get with raw compose file
  * const detail = await getAppRevisionDetail(client, {
  *   appId: "my-app-id",
- *   composeHash: "abc123",
+ *   revisionId: "rev_abc123",
  *   rawComposeFile: true
  * })
  * ```
@@ -43,9 +43,9 @@ export async function getAppRevisionDetail<V extends ApiVersion>(
   client: Client<V>,
   request: GetAppRevisionDetailRequest,
 ): Promise<AppRevisionDetailResponse> {
-  const { appId, composeHash, rawComposeFile } = GetAppRevisionDetailRequestSchema.parse(request);
+  const { appId, revisionId, rawComposeFile } = GetAppRevisionDetailRequestSchema.parse(request);
   const params = rawComposeFile !== undefined ? { raw_compose_file: rawComposeFile } : undefined;
-  const response = await client.get(`/apps/${appId}/revisions/${composeHash}`, { params });
+  const response = await client.get(`/apps/${appId}/revisions/${revisionId}`, { params });
   return AppRevisionDetailResponseSchema.parse(response);
 }
 
