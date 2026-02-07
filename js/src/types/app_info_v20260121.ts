@@ -9,6 +9,15 @@ export const DstackAppFullResponseV20260121Schema = z.object({
   app_icon_url: z.string().nullable().optional(),
   created_at: z.string(),
   kms_type: z.string(),
+  profile: z
+    .object({
+      display_name: z.string().nullable().optional(),
+      avatar_url: z.string().nullable().optional(),
+      description: z.string().nullable().optional(),
+      custom_domain: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   current_cvm: CvmInfoV20260121Schema.nullable().optional(),
   cvms: z.array(CvmInfoV20260121Schema).default([]),
   cvm_count: z.number().int().default(0),

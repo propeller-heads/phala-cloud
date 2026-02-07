@@ -24,6 +24,14 @@ export const CvmBasicInfoV20251028Schema = z.object({
 });
 export type CvmBasicInfoV20251028 = z.infer<typeof CvmBasicInfoV20251028Schema>;
 
+export const AppProfileSchema = z.object({
+  display_name: z.string().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  custom_domain: z.string().nullable().optional(),
+});
+export type AppProfile = z.infer<typeof AppProfileSchema>;
+
 export const DstackAppFullResponseV20251028Schema = z.object({
   id: z.string(),
   name: z.string(),
@@ -32,6 +40,7 @@ export const DstackAppFullResponseV20251028Schema = z.object({
   app_icon_url: z.string().nullable().optional(),
   created_at: z.string(),
   kms_type: z.string(),
+  profile: AppProfileSchema.nullable().optional(),
   current_cvm: CvmBasicInfoV20251028Schema.nullable().optional(),
   cvms: z.array(CvmBasicInfoV20251028Schema).default([]),
   cvm_count: z.number().int().default(0),
