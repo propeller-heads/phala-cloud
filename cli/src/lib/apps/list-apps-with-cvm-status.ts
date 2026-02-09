@@ -5,6 +5,14 @@ import type { Result } from "@/src/lib/result";
 export interface AppsListWithStatusOptions {
 	readonly page: number;
 	readonly pageSize: number;
+	readonly search?: string;
+	readonly status?: string[];
+	readonly listed?: boolean;
+	readonly baseImage?: string;
+	readonly instanceType?: string;
+	readonly kmsType?: string;
+	readonly node?: string;
+	readonly region?: string;
 }
 
 export interface AppCvmRow {
@@ -38,6 +46,14 @@ export async function listAppsWithCvmStatus(
 	const appListResult = await safeGetAppList(client, {
 		page: options.page,
 		page_size: options.pageSize,
+		search: options.search,
+		status: options.status,
+		listed: options.listed,
+		base_image: options.baseImage,
+		instance_type: options.instanceType,
+		kms_type: options.kmsType,
+		node: options.node,
+		region: options.region,
 	});
 
 	if (!appListResult.success) {

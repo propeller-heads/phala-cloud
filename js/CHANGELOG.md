@@ -1,3 +1,18 @@
+## [0.2.3](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.2...js-v0.2.3) (2026-02-07)
+
+### feat
+
+* add 200KB size limit for compose file + pre-launch script ([fe45765](https://github.com/Phala-Network/phala-cloud/commit/fe4576593cc08c2576e4c91d1c2b6b68cb3b9601))
+* add profile field to app schemas and getAppFilterOptions action ([cf3c2eb](https://github.com/Phala-Network/phala-cloud/commit/cf3c2eb2e1ddc1b9984484630bc603e48f48aafb))
+* add public_tcbinfo to update visibility action ([39cfd3f](https://github.com/Phala-Network/phala-cloud/commit/39cfd3f0c5f0628d8c13a25fb99a400a32cecb06))
+
+### fix
+
+* rename teepod_name to node in get_app_list action ([f863436](https://github.com/Phala-Network/phala-cloud/commit/f8634367fb5b03eb3f84877b56c8e914dc03fd55))
+
+### refactor
+
+* **js:** add revision_id to app revisions and use revisionId for detail ([8d72149](https://github.com/Phala-Network/phala-cloud/commit/8d72149e69a71bfc11eb35c2240753b4ecc014b7))
 ## [0.2.2](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.1...js-v0.2.2) (2026-01-31)
 
 ### feat

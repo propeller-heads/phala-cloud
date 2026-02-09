@@ -1139,10 +1139,7 @@ export async function runDeploy(
 					`Pre-launch script file not found: ${input.preLaunchScript}`,
 				);
 			}
-			preLaunchScriptContent = fs.readFileSync(
-				input.preLaunchScript,
-				"utf8",
-			);
+			preLaunchScriptContent = fs.readFileSync(input.preLaunchScript, "utf8");
 		}
 
 		// Early size check for compose payload (the SDK schema validates the

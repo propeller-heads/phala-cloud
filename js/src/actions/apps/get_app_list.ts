@@ -18,7 +18,7 @@ export const GetAppListRequestSchema = z
     instance_type: z.string().optional(),
     kms_slug: z.string().optional(),
     kms_type: z.string().optional(),
-    teepod_name: z.string().optional(),
+    node: z.string().optional(),
     region: z.string().optional(),
   })
   .strict();
@@ -45,7 +45,7 @@ function getSchemaForVersion(version: ApiVersion) {
  * @param request.instance_type - Filter by instance type
  * @param request.kms_slug - Filter by KMS slug
  * @param request.kms_type - Filter by KMS type
- * @param request.teepod_name - Filter by node name
+ * @param request.node - Filter by node name
  * @param request.region - Filter by region
  * @returns Paginated list of apps with type based on client API version
  *

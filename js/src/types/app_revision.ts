@@ -11,6 +11,7 @@ export const CvmRefSchema = z.object({
 export type CvmRef = z.infer<typeof CvmRefSchema>;
 
 export const AppRevisionResponseSchema = z.object({
+  revision_id: z.string(),
   app_id: z.string(),
   vm_uuid: z.string(),
   compose_hash: z.string(),
@@ -24,6 +25,7 @@ export const AppRevisionResponseSchema = z.object({
 export type AppRevisionResponse = z.infer<typeof AppRevisionResponseSchema>;
 
 export const AppRevisionDetailResponseSchema = z.object({
+  revision_id: z.string(),
   app_id: z.string(),
   vm_uuid: z.string(),
   compose_hash: z.string(),

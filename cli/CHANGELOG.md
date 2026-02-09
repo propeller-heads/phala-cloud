@@ -1,3 +1,13 @@
+## [1.1.8](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.7...cli-v1.1.8) (2026-02-07)
+
+### feat
+
+* add 200KB size limit for compose file + pre-launch script ([fe45765](https://github.com/Phala-Network/phala-cloud/commit/fe4576593cc08c2576e4c91d1c2b6b68cb3b9601))
+* add filter flags to apps and cvms list commands ([3f5ac90](https://github.com/Phala-Network/phala-cloud/commit/3f5ac907a08155171d93ad487ba8b226f2682e97))
+
+### fix
+
+* wire --pre-launch-script flag to payload and fix combined size check ([cecca57](https://github.com/Phala-Network/phala-cloud/commit/cecca57279eafecaffe4bce207f77bb561067ed6))
 ## [1.1.7](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.6...cli-v1.1.7) (2026-01-31)
 
 ### feat
