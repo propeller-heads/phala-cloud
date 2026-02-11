@@ -254,10 +254,17 @@ export async function runApiCommand(
 
 	const customHeaders = parseHeaders(input.header);
 
-	// Normalize endpoint (ensure it starts with /)
-	const endpoint = input.endpoint.startsWith("/")
+	// Normalize endpoint (ensure it starts with / and query params are encoded)
+	const rawEndpoint = input.endpoint.startsWith("/")
 		? input.endpoint
 		: `/${input.endpoint}`;
+
+	// Percent-encode query parameter values (e.g. @ → %40)
+	const qIdx = rawEndpoint.indexOf("?");
+	const endpoint =
+		qIdx >= 0
+			? `${rawEndpoint.slice(0, qIdx)}?${new URLSearchParams(rawEndpoint.slice(qIdx + 1)).toString()}`
+			: rawEndpoint;
 
 	try {
 		// Build request
