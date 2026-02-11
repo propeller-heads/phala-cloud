@@ -19,6 +19,7 @@ import {
 	type EnvVar,
 	type ErrorLink,
 	type ProvisionCvmComposeFileUpdateRequest,
+	CvmIdSchema,
 	MAX_COMPOSE_PAYLOAD_BYTES,
 	ResourceError,
 	createClient,
@@ -1178,11 +1179,9 @@ export async function runDeploy(
 			console.log("[DEBUG] input.cvmId:", input.cvmId);
 		}
 
-		const uuid =
-			context.cvmId?.id ||
-			context.cvmId?.uuid ||
-			context.cvmId?.app_id ||
-			context.cvmId?.instance_id;
+		const uuid = context.cvmId
+			? CvmIdSchema.parse(context.cvmId).cvmId
+			: undefined;
 
 		if (input.debug) {
 			console.log("[DEBUG] resolved uuid:", uuid);
