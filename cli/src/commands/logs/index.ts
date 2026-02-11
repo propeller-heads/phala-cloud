@@ -4,7 +4,11 @@ import type { CommandContext } from "@/src/core/types";
 import {
 	fetchContainerLogsEntries,
 	streamContainerLogsEntries,
+	fetchCvmChannelLogs,
+	streamCvmChannelLogs,
+	getCvmStatus,
 	type ContainerLogsOptions,
+	type CvmLogChannel,
 	type LogEntry,
 } from "@/src/api/cvms";
 import { logger, setJsonMode } from "@/src/utils/logger";
@@ -32,6 +36,32 @@ function writeLogEntry(
 	}
 }
 
+type LogMode =
+	| { type: "container"; containerName?: string }
+	| { type: "cvm"; channel: CvmLogChannel };
+
+function resolveExplicitMode(input: LogsCommandInput): LogMode | null {
+	const cvmFlags = [
+		input.serial && "serial",
+		input.cvmStdout && "stdout",
+		input.cvmStderr && "stderr",
+	].filter(Boolean) as CvmLogChannel[];
+
+	if (cvmFlags.length > 1) {
+		return null; // caller will error
+	}
+
+	if (cvmFlags.length === 1) {
+		return { type: "cvm", channel: cvmFlags[0] };
+	}
+
+	if (input.containerName) {
+		return { type: "container", containerName: input.containerName };
+	}
+
+	return null; // no explicit mode — needs auto-detection
+}
+
 async function runLogsCommand(
 	input: LogsCommandInput,
 	context: CommandContext,
@@ -47,18 +77,154 @@ async function runLogsCommand(
 
 	const { cvmId: appId } = CvmIdSchema.parse(context.cvmId);
 
-	const outputConfig = {
-		includeStdout: input.stdout,
-		includeStderr: input.stderr,
-	};
+	// --- Validate mutual exclusivity ---
 
-	if (!outputConfig.includeStdout && !outputConfig.includeStderr) {
-		context.fail("Nothing to show: both stdout and stderr are disabled");
+	const cvmFlagCount = [input.serial, input.cvmStdout, input.cvmStderr].filter(
+		Boolean,
+	).length;
+
+	if (cvmFlagCount > 1) {
+		context.fail(
+			"--serial, --cvm-stdout, and --cvm-stderr are mutually exclusive",
+		);
 		return 1;
 	}
 
+	const hasCvmFlag = cvmFlagCount === 1;
+
+	if (input.containerName && hasCvmFlag) {
+		context.fail(
+			"Cannot combine container name with --serial/--cvm-stdout/--cvm-stderr. " +
+				"Use container name for container logs, or CVM flags for CVM-level logs.",
+		);
+		return 1;
+	}
+
+	if (input.stderr && hasCvmFlag) {
+		context.fail(
+			"--stderr is only valid in container mode, not with CVM flags",
+		);
+		return 1;
+	}
+
+	// --- Determine mode ---
+
+	let mode = resolveExplicitMode(input);
+
+	if (!mode) {
+		// Auto-detect based on CVM status
+		try {
+			const status = await getCvmStatus(appId);
+			if (status === "running") {
+				mode = { type: "container" };
+			} else {
+				logger.warn(`CVM is ${status}. Falling back to serial console logs.`);
+				logger.warn(
+					"Use --serial, --cvm-stdout, or --cvm-stderr for specific CVM channels.",
+				);
+				mode = { type: "cvm", channel: "serial" };
+			}
+		} catch {
+			// If we can't get status, try container mode as default
+			mode = { type: "container" };
+		}
+	}
+
+	// --- Execute ---
+
+	if (mode.type === "cvm") {
+		return runCvmMode(appId, mode.channel, input, context);
+	}
+
+	return runContainerMode(appId, mode.containerName, input, context);
+}
+
+async function runCvmMode(
+	appId: string,
+	channel: CvmLogChannel,
+	input: LogsCommandInput,
+	context: CommandContext,
+): Promise<number> {
+	try {
+		if (input.follow) {
+			if (input.json) {
+				context.fail("Cannot use --json with --follow");
+				return 1;
+			}
+
+			const abortController = new AbortController();
+			const cleanup = () => abortController.abort();
+
+			process.on("SIGINT", cleanup);
+			process.on("SIGTERM", cleanup);
+
+			try {
+				await streamCvmChannelLogs(
+					appId,
+					channel,
+					(data) => context.stdout.write(data),
+					{
+						tail: input.tail,
+						timestamps: input.timestamps,
+						since: input.since,
+						until: input.until,
+					},
+					abortController.signal,
+				);
+			} catch (error) {
+				if ((error as Error).name !== "AbortError") {
+					throw error;
+				}
+			} finally {
+				process.removeListener("SIGINT", cleanup);
+				process.removeListener("SIGTERM", cleanup);
+			}
+
+			return 0;
+		}
+
+		const logs = await fetchCvmChannelLogs(appId, channel, {
+			tail: input.tail,
+			timestamps: input.timestamps,
+			since: input.since,
+			until: input.until,
+		});
+
+		if (input.json) {
+			context.success({ logs, cvm_id: appId, channel });
+			return 0;
+		}
+
+		if (logs.trim()) {
+			context.stdout.write(logs);
+		} else {
+			logger.info(`No ${channel} logs available`);
+		}
+
+		return 0;
+	} catch (error) {
+		context.fail(
+			`Failed to fetch CVM ${channel} logs: ${
+				error instanceof Error ? error.message : String(error)
+			}`,
+		);
+		return 1;
+	}
+}
+
+async function runContainerMode(
+	appId: string,
+	containerName: string | undefined,
+	input: LogsCommandInput,
+	context: CommandContext,
+): Promise<number> {
+	const outputConfig = {
+		includeStdout: true,
+		includeStderr: input.stderr,
+	};
+
 	const options: ContainerLogsOptions = {
-		container: input.containerName,
+		container: containerName,
 		since: input.since,
 		until: input.until,
 		tail: input.tail,
