@@ -47,7 +47,9 @@ export function buildCommandSchemaInput(
 			index = values.length;
 			break;
 		}
-		positionals[target] = values[index];
+		if (values[index] !== undefined) {
+			positionals[target] = values[index];
+		}
 		index += 1;
 	}
 

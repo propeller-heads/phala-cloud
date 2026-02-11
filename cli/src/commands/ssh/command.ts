@@ -1,19 +1,13 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument } from "@/src/core/common-flags";
 
 export const sshCommandMeta: CommandMeta = {
 	name: "ssh",
 	category: "cvm-ops",
 	description: "Connect to a CVM via SSH",
 	stability: "unstable",
-	arguments: [
-		{
-			name: "cvm-name",
-			description: "CVM name (reads from phala.toml if omitted)",
-			required: false,
-			target: "cvmId",
-		},
-	],
+	arguments: [cvmIdArgument],
 	options: [
 		{
 			name: "port",

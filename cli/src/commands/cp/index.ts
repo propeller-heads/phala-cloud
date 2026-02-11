@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import chalk from "chalk";
+import { CvmIdSchema } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
@@ -67,19 +68,14 @@ async function runCpCommand(
 		if (remotePath.cvmId) {
 			// If CVM ID is explicitly provided in path (e.g., app_123:path), parse it
 			cvmId = parse_cvm_id(remotePath.cvmId);
-		} else {
+		} else if (context.cvmId) {
 			// Otherwise use context.cvmId (already resolved with priority: interactive > --cvm-id > phala.toml)
-			cvmId =
-				context.cvmId?.id ||
-				context.cvmId?.uuid ||
-				context.cvmId?.app_id ||
-				context.cvmId?.instance_id;
+			cvmId = CvmIdSchema.parse(context.cvmId).cvmId;
 		}
 
 		if (!cvmId) {
-			logger.error(
-				"No CVM ID provided. Either use format cvm-id:path or configure it in phala.toml.\n" +
-					"Supported fields: id, uuid, app_id, or instance_id",
+			context.fail(
+				"No CVM ID provided. Either use format cvm-id:path or configure it in phala.toml.",
 			);
 			return 1;
 		}

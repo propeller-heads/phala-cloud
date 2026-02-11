@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import chalk from "chalk";
+import { CvmIdSchema } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
@@ -51,19 +52,14 @@ async function runSshCommand(
 ): Promise<number> {
 	try {
 		// Get CVM ID from context (already resolved with priority: interactive > --cvm-id > phala.toml)
-		const cvmId =
-			context.cvmId?.id ||
-			context.cvmId?.uuid ||
-			context.cvmId?.app_id ||
-			context.cvmId?.instance_id;
-
-		if (!cvmId) {
-			logger.error(
-				"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.\n" +
-					"Supported fields: id, uuid, app_id, or instance_id",
+		if (!context.cvmId) {
+			context.fail(
+				"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.",
 			);
 			return 1;
 		}
+
+		const { cvmId } = CvmIdSchema.parse(context.cvmId);
 
 		// Check for blocked options in pass-through args
 		const passThroughArgs = input["--"] ?? [];

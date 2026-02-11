@@ -1,18 +1,12 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const cvmsReplicateCommandMeta: CommandMeta = {
 	name: "replicate",
 	description: "Create a replica of an existing CVM",
 	stability: "unstable",
-	arguments: [
-		{
-			name: "cvm-id",
-			description: "UUID of the CVM to replicate",
-			required: true,
-			target: "cvmId",
-		},
-	],
+	arguments: [cvmIdArgument],
 	options: [
 		{
 			name: "teepod-id",
@@ -27,6 +21,7 @@ export const cvmsReplicateCommandMeta: CommandMeta = {
 			type: "string",
 			target: "envFile",
 		},
+		interactiveOption,
 	],
 	examples: [
 		{
@@ -37,9 +32,10 @@ export const cvmsReplicateCommandMeta: CommandMeta = {
 };
 
 export const cvmsReplicateCommandSchema = z.object({
-	cvmId: z.string().min(1, "CVM ID is required"),
+	cvmId: z.string().optional(),
 	teepodId: z.string().optional(),
 	envFile: z.string().optional(),
+	interactive: z.boolean().default(false),
 });
 
 export type CvmsReplicateCommandInput = z.infer<

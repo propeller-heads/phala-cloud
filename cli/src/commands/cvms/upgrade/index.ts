@@ -48,7 +48,7 @@ async function runCvmsUpgradeCommand(
 		);
 
 		if (!context.cvmId) {
-			logger.error(
+			context.fail(
 				"No CVM ID provided. Use --interactive to select interactively.",
 			);
 			return 1;
@@ -58,13 +58,13 @@ async function runCvmsUpgradeCommand(
 		const infoResult = await safeGetCvmInfo(client, context.cvmId);
 
 		if (!infoResult.success) {
-			logger.error(infoResult.error.message);
+			context.fail(infoResult.error.message);
 			return 1;
 		}
 
 		const cvm = infoResult.data;
 		if (!cvm) {
-			logger.error("CVM not found");
+			context.fail("CVM not found");
 			return 1;
 		}
 

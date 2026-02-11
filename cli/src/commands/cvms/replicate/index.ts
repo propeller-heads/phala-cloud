@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { encryptEnvVars } from "@phala/cloud";
+import { CvmIdSchema, encryptEnvVars } from "@phala/cloud";
 import { getCvmComposeConfig, replicateCvm } from "@/src/api/cvms";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -28,10 +28,17 @@ function parseEnvFile(filePath: string): { key: string; value: string }[] {
 
 async function runCvmsReplicateCommand(
 	input: CvmsReplicateCommandInput,
-	_context: CommandContext,
+	context: CommandContext,
 ): Promise<number> {
 	try {
-		const normalizedCvmId = input.cvmId.replace(/-/g, "");
+		if (!context.cvmId) {
+			context.fail(
+				"No CVM ID provided. Use --interactive to select interactively.",
+			);
+			return 1;
+		}
+
+		const { cvmId: normalizedCvmId } = CvmIdSchema.parse(context.cvmId);
 		let encryptedEnv: string | undefined;
 
 		if (input.envFile) {

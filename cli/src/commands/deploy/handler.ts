@@ -19,6 +19,7 @@ import {
 	type EnvVar,
 	type ErrorLink,
 	type ProvisionCvmComposeFileUpdateRequest,
+	CvmIdSchema,
 	MAX_COMPOSE_PAYLOAD_BYTES,
 	ResourceError,
 	createClient,
@@ -85,6 +86,7 @@ interface Options {
 	listed?: boolean;
 	[key: string]: unknown;
 }
+
 
 /**
  * Handle provision error with structured error response
@@ -970,6 +972,11 @@ const updateCvm = async (
 			throw new Error("Private key is required for contract DstackApp");
 		}
 
+		if (validatedOptions.debug) {
+			console.log("[DEBUG] provision.compose_hash:", provision.compose_hash);
+			console.log("[DEBUG] cvm.app_id:", cvm.app_id);
+		}
+
 		const receipt_result = await safeAddComposeHash({
 			chain: cvm.kms_info?.chain,
 			rpcUrl: validatedOptions.rpcUrl,
@@ -984,6 +991,15 @@ const updateCvm = async (
 					? JSON.stringify(receipt_result)
 					: String(receipt_result);
 			throw new Error(`Failed to add compose hash: ${errorMsg}`);
+		}
+
+		if (validatedOptions.debug) {
+			const txResult = receipt_result.data as {
+				transactionHash?: string;
+				composeHash?: string;
+			};
+			console.log("[DEBUG] addComposeHash.transactionHash:", txResult.transactionHash);
+			console.log("[DEBUG] addComposeHash.composeHash:", txResult.composeHash);
 		}
 
 		// Encrypt environment variables for decentralized KMS
@@ -1031,6 +1047,10 @@ const updateCvm = async (
 		env_keys: envs?.length ? envs.map((env) => env.key) : undefined,
 		update_env_vars: envs?.length ? true : undefined,
 	};
+
+	if (validatedOptions.debug) {
+		console.log("[DEBUG] commit.compose_hash:", data.compose_hash);
+	}
 	// @ts-ignore
 	const commitResult = await safeCommitCvmComposeFileUpdate(client, data);
 
@@ -1178,11 +1198,9 @@ export async function runDeploy(
 			console.log("[DEBUG] input.cvmId:", input.cvmId);
 		}
 
-		const uuid =
-			context.cvmId?.id ||
-			context.cvmId?.uuid ||
-			context.cvmId?.app_id ||
-			context.cvmId?.instance_id;
+		const uuid = context.cvmId
+			? CvmIdSchema.parse(context.cvmId).cvmId
+			: undefined;
 
 		if (input.debug) {
 			console.log("[DEBUG] resolved uuid:", uuid);
