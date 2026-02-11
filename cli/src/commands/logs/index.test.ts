@@ -18,6 +18,14 @@ type ContainerLogsOptions = {
 	matchContainerIdPrefix?: boolean;
 };
 
+type SerialLogsOptions = {
+	tail?: number;
+	timestamps?: boolean;
+	since?: string;
+	until?: string;
+};
+
+type CvmLogChannel = "serial" | "stdout" | "stderr";
 type LogEntry = { channel: "stdout" | "stderr"; message: string };
 
 const mockFetchContainerLogsEntries = mock(
@@ -38,9 +46,32 @@ const mockStreamContainerLogsEntries = mock(
 	},
 );
 
+const mockFetchCvmChannelLogs = mock(
+	(_appId: string, _channel: CvmLogChannel, _options: SerialLogsOptions) =>
+		Promise.resolve("serial log output\n"),
+);
+
+const mockStreamCvmChannelLogs = mock(
+	(
+		_appId: string,
+		_channel: CvmLogChannel,
+		onData: (data: string) => void,
+		_options: SerialLogsOptions,
+		_signal?: AbortSignal,
+	) => {
+		onData("streaming serial\n");
+		return Promise.resolve();
+	},
+);
+
+const mockGetCvmStatus = mock((_appId: string) => Promise.resolve("running"));
+
 mock.module("@/src/api/cvms", () => ({
 	fetchContainerLogsEntries: mockFetchContainerLogsEntries,
 	streamContainerLogsEntries: mockStreamContainerLogsEntries,
+	fetchCvmChannelLogs: mockFetchCvmChannelLogs,
+	streamCvmChannelLogs: mockStreamCvmChannelLogs,
+	getCvmStatus: mockGetCvmStatus,
 }));
 
 mock.module("@phala/cloud", () => ({
@@ -92,6 +123,17 @@ function makeContext(overrides: Partial<CommandContext> = {}): CommandContext {
 	};
 }
 
+const defaultInput = {
+	json: false,
+	interactive: false,
+	follow: false,
+	timestamps: false,
+	stderr: false,
+	serial: false,
+	cvmStdout: false,
+	cvmStderr: false,
+};
+
 describe("logs command", () => {
 	let fakeStdout: { write: (s: string) => boolean };
 	let fakeStderr: { write: (s: string) => boolean };
@@ -101,6 +143,16 @@ describe("logs command", () => {
 	beforeEach(() => {
 		mockFetchContainerLogsEntries.mockClear();
 		mockStreamContainerLogsEntries.mockClear();
+		mockFetchCvmChannelLogs.mockClear();
+		mockStreamCvmChannelLogs.mockClear();
+		mockGetCvmStatus.mockClear();
+
+		// Reset defaults
+		mockFetchContainerLogsEntries.mockResolvedValue([
+			{ channel: "stdout", message: "hello\n" },
+		]);
+		mockFetchCvmChannelLogs.mockResolvedValue("serial log output\n");
+		mockGetCvmStatus.mockResolvedValue("running");
 
 		fakeStdout = { write: () => true };
 		fakeStderr = { write: () => true };
@@ -117,13 +169,8 @@ describe("logs command", () => {
 		const failMessages: string[] = [];
 		const code = await logsCommand.run(
 			{
+				...defaultInput,
 				containerName: "my-service",
-				json: false,
-				interactive: false,
-				follow: false,
-				timestamps: false,
-				stdout: true,
-				stderr: false,
 			},
 			makeContext({
 				stdout: fakeStdout as unknown as NodeJS.WriteStream,
@@ -136,20 +183,13 @@ describe("logs command", () => {
 		expect(failMessages[0]).toContain("No CVM ID");
 	});
 
-	test("fetches logs with container name only (no id prefix matching)", async () => {
-		mockFetchContainerLogsEntries.mockResolvedValue([
-			{ channel: "stdout", message: "hello\n" },
-		]);
+	// --- Container mode tests ---
 
+	test("fetches container logs with container name", async () => {
 		const code = await logsCommand.run(
 			{
+				...defaultInput,
 				containerName: "my-service",
-				json: false,
-				interactive: false,
-				follow: false,
-				timestamps: false,
-				stdout: true,
-				stderr: false,
 			},
 			makeContext({
 				cvmId: { id: "app_abc123" },
@@ -170,21 +210,14 @@ describe("logs command", () => {
 		expect(stdoutWriteSpy).toHaveBeenCalledWith("hello\n");
 	});
 
-	test("outputs logs as json", async () => {
+	test("outputs container logs as json", async () => {
 		const successData: unknown[] = [];
-		mockFetchContainerLogsEntries.mockResolvedValue([
-			{ channel: "stdout", message: "hello\n" },
-		]);
 
 		const code = await logsCommand.run(
 			{
+				...defaultInput,
 				containerName: "my-service",
 				json: true,
-				interactive: false,
-				follow: false,
-				timestamps: false,
-				stdout: true,
-				stderr: false,
 			},
 			makeContext({
 				cvmId: { id: "app_abc123" },
@@ -205,13 +238,10 @@ describe("logs command", () => {
 		const failMessages: string[] = [];
 		const code = await logsCommand.run(
 			{
+				...defaultInput,
 				containerName: "my-service",
 				json: true,
-				interactive: false,
 				follow: true,
-				timestamps: false,
-				stdout: true,
-				stderr: false,
 			},
 			makeContext({
 				cvmId: { id: "app_abc123" },
@@ -228,12 +258,9 @@ describe("logs command", () => {
 	test("streams logs and routes container stderr to stderr when --stderr is used", async () => {
 		const code = await logsCommand.run(
 			{
+				...defaultInput,
 				containerName: "my-service",
-				json: false,
-				interactive: false,
 				follow: true,
-				timestamps: false,
-				stdout: true,
 				stderr: true,
 			},
 			makeContext({
@@ -247,5 +274,249 @@ describe("logs command", () => {
 		expect(mockStreamContainerLogsEntries).toHaveBeenCalledTimes(1);
 		expect(stdoutWriteSpy).toHaveBeenCalledWith("out\n");
 		expect(stderrWriteSpy).toHaveBeenCalledWith("err\n");
+	});
+
+	// --- CVM mode tests ---
+
+	test("--serial fetches CVM serial logs", async () => {
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				serial: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(mockFetchCvmChannelLogs).toHaveBeenCalledTimes(1);
+		const call = mockFetchCvmChannelLogs.mock.calls[0] as [
+			string,
+			CvmLogChannel,
+			SerialLogsOptions,
+		];
+		expect(call[1]).toBe("serial");
+		expect(stdoutWriteSpy).toHaveBeenCalledWith("serial log output\n");
+	});
+
+	test("--cvm-stdout fetches CVM stdout logs", async () => {
+		mockFetchCvmChannelLogs.mockResolvedValue("cvm stdout\n");
+
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				cvmStdout: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		const call = mockFetchCvmChannelLogs.mock.calls[0] as [
+			string,
+			CvmLogChannel,
+			SerialLogsOptions,
+		];
+		expect(call[1]).toBe("stdout");
+	});
+
+	test("--cvm-stderr fetches CVM stderr logs", async () => {
+		mockFetchCvmChannelLogs.mockResolvedValue("cvm stderr\n");
+
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				cvmStderr: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		const call = mockFetchCvmChannelLogs.mock.calls[0] as [
+			string,
+			CvmLogChannel,
+			SerialLogsOptions,
+		];
+		expect(call[1]).toBe("stderr");
+	});
+
+	test("--serial with --follow streams CVM serial logs", async () => {
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				serial: true,
+				follow: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(mockStreamCvmChannelLogs).toHaveBeenCalledTimes(1);
+		expect(stdoutWriteSpy).toHaveBeenCalledWith("streaming serial\n");
+	});
+
+	test("--serial with --json returns JSON output", async () => {
+		const successData: unknown[] = [];
+
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				serial: true,
+				json: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+				success: (data: unknown) => successData.push(data),
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(successData).toHaveLength(1);
+		const result = successData[0] as {
+			logs?: string;
+			cvm_id?: string;
+			channel?: string;
+		};
+		expect(result.logs).toBe("serial log output\n");
+		expect(result.channel).toBe("serial");
+	});
+
+	// --- Mutual exclusivity tests ---
+
+	test("errors when container-name combined with --serial", async () => {
+		const failMessages: string[] = [];
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				containerName: "my-service",
+				serial: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+				fail: (msg: string) => failMessages.push(msg),
+			}),
+		);
+
+		expect(code).toBe(1);
+		expect(failMessages[0]).toContain("Cannot combine container name");
+	});
+
+	test("errors when multiple CVM flags given", async () => {
+		const failMessages: string[] = [];
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				serial: true,
+				cvmStdout: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+				fail: (msg: string) => failMessages.push(msg),
+			}),
+		);
+
+		expect(code).toBe(1);
+		expect(failMessages[0]).toContain("mutually exclusive");
+	});
+
+	test("errors when --stderr used with CVM flag", async () => {
+		const failMessages: string[] = [];
+		const code = await logsCommand.run(
+			{
+				...defaultInput,
+				serial: true,
+				stderr: true,
+			},
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+				fail: (msg: string) => failMessages.push(msg),
+			}),
+		);
+
+		expect(code).toBe(1);
+		expect(failMessages[0]).toContain(
+			"--stderr is only valid in container mode",
+		);
+	});
+
+	// --- Smart fallback tests ---
+
+	test("auto-selects container mode when CVM is running and no flags given", async () => {
+		mockGetCvmStatus.mockResolvedValue("running");
+
+		const code = await logsCommand.run(
+			{ ...defaultInput },
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(mockGetCvmStatus).toHaveBeenCalledTimes(1);
+		expect(mockFetchContainerLogsEntries).toHaveBeenCalledTimes(1);
+		expect(mockFetchCvmChannelLogs).not.toHaveBeenCalled();
+	});
+
+	test("falls back to serial when CVM is stopped and no flags given", async () => {
+		mockGetCvmStatus.mockResolvedValue("stopped");
+
+		const code = await logsCommand.run(
+			{ ...defaultInput },
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(mockGetCvmStatus).toHaveBeenCalledTimes(1);
+		expect(mockFetchCvmChannelLogs).toHaveBeenCalledTimes(1);
+		const call = mockFetchCvmChannelLogs.mock.calls[0] as [
+			string,
+			CvmLogChannel,
+			SerialLogsOptions,
+		];
+		expect(call[1]).toBe("serial");
+	});
+
+	test("defaults to container mode when getCvmStatus fails", async () => {
+		mockGetCvmStatus.mockRejectedValue(new Error("network error"));
+
+		const code = await logsCommand.run(
+			{ ...defaultInput },
+			makeContext({
+				cvmId: { id: "app_abc123" },
+				stdout: fakeStdout as unknown as NodeJS.WriteStream,
+				stderr: fakeStderr as unknown as NodeJS.WriteStream,
+			}),
+		);
+
+		expect(code).toBe(0);
+		expect(mockFetchContainerLogsEntries).toHaveBeenCalledTimes(1);
 	});
 });
