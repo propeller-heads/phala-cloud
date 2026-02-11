@@ -6,7 +6,7 @@ import { jsonOption } from "@/src/commands/status/command";
 export const cvmsSerialLogsCommandMeta: CommandMeta = {
 	name: "serial-logs",
 	description: "Fetch VM serial console logs from a CVM",
-	stability: "unstable",
+	stability: "deprecated",
 	arguments: [cvmIdArgument],
 	options: [
 		{
