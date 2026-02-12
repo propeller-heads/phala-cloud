@@ -27,6 +27,7 @@ import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
 import { appsCommand } from "./commands/apps";
 import { instanceTypesCommand } from "./commands/instance-types";
+import { whoamiCommand } from "./commands/whoami";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +59,7 @@ registry.registerCommand(profilesCommand);
 registry.registerCommand(switchCommand);
 registry.registerCommand(apiCommand);
 registry.registerCommand(statusCommand);
+registry.registerCommand(whoamiCommand);
 registry.registerCommand(completionCommand);
 
 // Command groups + subcommands
