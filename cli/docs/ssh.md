@@ -1,0 +1,71 @@
+# phala ssh
+
+Connect to a CVM via SSH through the Phala Cloud gateway.
+
+## Usage
+
+    phala ssh [cvm-id] [options] [-- ssh-options]
+
+## Arguments
+
+| Name | Required | Description |
+|------|----------|-------------|
+| `cvm-id` | No | CVM ID, UUID, or name (uses linked CVM if omitted) |
+
+## Options
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--port <port>` | `-p` | 443 | Gateway port (priority: CLI > phala.toml > 443) |
+| `--gateway <domain>` | `-g` | | Gateway domain (priority: CLI > phala.toml > API) |
+| `--timeout <seconds>` | `-t` | 30 | Connection timeout |
+| `--verbose` | `-v` | false | Show verbose connection details |
+| `--dry-run` | | false | Print SSH command without executing |
+
+## Pass-through Options
+
+All arguments after `--` are passed directly to ssh. Trailing arguments are executed as remote commands.
+
+Common pass-through options:
+- `-i` — SSH identity file
+- `-L` — Local port forwarding
+- `-R` — Remote port forwarding
+- `-D` — SOCKS proxy
+- `-N` — No command (useful with port forwarding)
+- `-v` — SSH verbose mode
+
+Note: `-o ProxyCommand` is blocked for security reasons.
+
+## Examples
+
+Connect to linked CVM:
+
+    $ phala ssh
+
+Connect to specific CVM:
+
+    $ phala ssh app_abc123
+
+Forward local port 8080 to remote port 80:
+
+    $ phala ssh -- -L 8080:localhost:80
+
+Execute remote command:
+
+    $ phala ssh -- ls /app
+
+Print SSH command without executing:
+
+    $ phala ssh --dry-run
+
+Connect with verbose details:
+
+    $ phala ssh --verbose
+
+Use custom SSH identity:
+
+    $ phala ssh -- -i ~/.ssh/custom_key
+
+Set up SOCKS proxy on port 1080:
+
+    $ phala ssh -- -D 1080 -N
