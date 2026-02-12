@@ -1,7 +1,8 @@
 import { safeGetCurrentUser } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { getClientWithAuth, type CliApiClient } from "@/src/lib/client";
+import { getClientWithAuth } from "@/src/lib/client";
+import { checkForUpdates } from "@/src/core/update-check";
 
 import { logger, setJsonMode } from "@/src/utils/logger";
 import { statusCommandMeta, statusCommandSchema } from "./command";
@@ -66,6 +67,27 @@ export async function runStatusCommand(
 		context.stdout.write(`Logged in as: ${userInfo.user.username}\n`);
 		context.stdout.write(`Current Workspace: ${userInfo.workspace.name}\n`);
 		context.stdout.write(`Current Profile: ${auth.profileName}\n`);
+
+		// Force upgrade check (bypass TTL cache)
+		if (context.cli) {
+			const notice = await checkForUpdates({
+				executableName: context.cli.executableName,
+				packageName: context.cli.packageName,
+				currentVersion: context.cli.packageVersion,
+				runtime: context.cli.runtime,
+				env: context.env,
+				isJson: false,
+				stderrIsTTY: context.stderr.isTTY === true,
+				ttlMs: 0,
+				timeoutMs: 5000,
+			});
+			if (notice) {
+				context.stderr.write(`\n${notice.message}`);
+			} else {
+				context.stdout.write("CLI is up to date.\n");
+			}
+		}
+
 		return 0;
 	} catch (error) {
 		logger.error(

@@ -43,7 +43,7 @@ async function runWhoamiCommand(
 		return 0;
 	}
 
-	context.stdout.write(`${user.username}\n`);
+	context.stdout.write(`${user.username} (${workspace.name})\n`);
 	return 0;
 }
 
