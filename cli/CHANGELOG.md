@@ -1,3 +1,27 @@
+## [1.1.9](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.8...cli-v1.1.9) (2026-02-12)
+
+### docs
+
+* **cli:** group commands in README, add link to quick start, drop deprecated ([8703e6f](https://github.com/Phala-Network/phala-cloud/commit/8703e6f36c15f3260380ec370d14967555d1351e))
+* **cli:** move skill to sdks/skills/, add best practices ([a96f696](https://github.com/Phala-Network/phala-cloud/commit/a96f696aa91e1169ee4f89038abc9ad48b7886ed))
+* **cli:** rewrite README, add command reference and agent skill ([456bea2](https://github.com/Phala-Network/phala-cloud/commit/456bea2c82e98200c5a61f66b88c4a2dad6a8568))
+
+### feat
+
+* **cli:** add `phala whoami` command ([4fa9e30](https://github.com/Phala-Network/phala-cloud/commit/4fa9e3039f28e7e0bef55b55e476c5f84946a313))
+* **cli:** add CVM channel log API functions ([3b867dd](https://github.com/Phala-Network/phala-cloud/commit/3b867ddaa00976b57ca7e449f100f6bdb3a5fb18))
+* **cli:** redesign `phala logs` as unified log command ([f3b8a5b](https://github.com/Phala-Network/phala-cloud/commit/f3b8a5b2e1e44c516971bc85fc67c93a7c6bde26))
+* **cli:** show workspace in whoami, add upgrade check to status ([5bac9cc](https://github.com/Phala-Network/phala-cloud/commit/5bac9cc2b46944c0541efd713214479233b8ea1f))
+
+### fix
+
+* **cli:** percent-encode query parameter values in `phala api` ([f407411](https://github.com/Phala-Network/phala-cloud/commit/f407411ebab2d5588118cab8939af84616e3ec2c))
+* **cli:** print full compose hash trace in deploy --debug update flow ([1c40950](https://github.com/Phala-Network/phala-cloud/commit/1c409501af98310602c874ceeeb4543678b6ce96))
+* **cli:** unify CVM ID handling across commands ([abff9bb](https://github.com/Phala-Network/phala-cloud/commit/abff9bb2e906a80a61607f7b324860763f348727))
+
+### refactor
+
+* **cli:** mark `cvms logs` and `cvms serial-logs` as deprecated ([c8314eb](https://github.com/Phala-Network/phala-cloud/commit/c8314eb7640b5244adb626747bf37ecd3d185be3))
 ## [1.1.8](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.7...cli-v1.1.8) (2026-02-07)
 
 ### feat
