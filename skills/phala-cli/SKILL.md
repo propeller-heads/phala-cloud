@@ -20,6 +20,7 @@ npm install -g phala
 
 phala login                     # authenticate (device flow)
 phala deploy                    # deploy from docker-compose.yml
+phala link                      # bind directory → CVM (creates phala.toml)
 phala logs -f                   # stream container logs
 phala ssh                       # SSH into the CVM
 ```
@@ -84,39 +85,67 @@ phala ssh                       # SSH into the CVM
 | `phala docker login/build/push` | Docker image helpers |
 | `phala simulator start/stop` | Local TEE simulator |
 
-## Common Workflows
+## Best Practices
 
-### First deployment
+### Use phala.toml for every project
+
+After first deploy, run `phala link` to create `phala.toml`. This file is safe to commit — it contains no secrets, only the CVM identifier and deploy preferences. With it, all commands (`deploy`, `logs`, `ssh`, `cp`, `ps`) work without specifying a CVM ID.
 
 ```bash
-phala login
-cd my-project/                  # must have docker-compose.yml
-phala deploy -n my-app -e .env
-phala logs -f                   # watch deployment progress
+phala deploy -n my-app -e .env  # first deploy
+phala link                      # creates phala.toml
+git add phala.toml              # safe to commit
+
+# from now on, everyone on the team can just run:
+phala deploy                    # updates the linked CVM
+phala logs -f                   # no --cvm-id needed
+phala ssh
 ```
 
-### Update an existing CVM
+### Debugging with log sources
+
+Container not working? Follow this order:
+
+1. **`phala logs`** — container stdout. If the container is running, app-level errors show here.
+2. **`phala logs --serial`** — serial console. If the container didn't start, docker-compose errors and image pull failures show here. Also shows kernel and boot messages.
+3. **`phala logs --cvm-stderr`** — CVM stderr. If the CVM itself has issues at the process level.
 
 ```bash
-# Option 1: phala.toml has cvm_id configured
-phala deploy
-
-# Option 2: explicit CVM ID
-phala deploy --cvm-id app_abc123
-
-# Wait for completion
-phala deploy --cvm-id app_abc123 --wait
-```
-
-### View logs
-
-```bash
-phala logs                      # container logs
-phala logs --serial             # serial console (boot, kernel)
-phala logs -f --tail 100        # follow last 100 lines
-phala logs --since 30m          # last 30 minutes
+# Container is running but app errors
+phala logs -f
 phala logs my-container         # specific container
+
+# Container didn't start — check serial for docker-compose / pull errors
+phala logs --serial
+
+# Still unclear — check CVM-level stderr
+phala logs --cvm-stderr
+
+# Narrow down by time
+phala logs --since 30m
+phala logs --serial --tail 200
 ```
+
+Use `phala ps` to see which containers are running before checking logs for a specific one.
+
+### Deploy + wait in CI/CD
+
+```bash
+export PHALA_CLOUD_API_KEY="phak_..."
+phala deploy --name my-app --wait
+phala logs --tail 20
+```
+
+### Multiple workspaces
+
+```bash
+phala login --profile work
+phala login --profile personal
+phala switch work
+phala profiles                  # list all profiles
+```
+
+## Common Workflows
 
 ### SSH and file transfer
 
@@ -148,23 +177,6 @@ phala deploy --kms base --private-key 0x... --rpc-url https://...
 phala api /api/v1/cvms                         # GET
 phala api /api/v1/cvms -q '.[].name'           # with jq filter
 phala api /api/v1/cvms -X POST -f name=test    # POST with fields
-```
-
-### CI/CD pipeline
-
-```bash
-export PHALA_CLOUD_API_KEY="phak_..."
-phala deploy --name my-app --wait
-phala logs --tail 20
-```
-
-### Multiple workspaces
-
-```bash
-phala login --profile work
-phala login --profile personal
-phala switch work
-phala profiles                  # list all profiles
 ```
 
 ## Key Concepts
