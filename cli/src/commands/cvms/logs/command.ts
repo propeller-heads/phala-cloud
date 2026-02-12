@@ -6,7 +6,7 @@ import { jsonOption } from "@/src/commands/status/command";
 export const cvmsLogsCommandMeta: CommandMeta = {
 	name: "logs",
 	description: "Fetch container logs from a CVM",
-	stability: "unstable",
+	stability: "deprecated",
 	arguments: [cvmIdArgument],
 	options: [
 		{

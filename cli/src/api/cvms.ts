@@ -602,8 +602,13 @@ async function streamStructuredLogsEntriesResponse(
 	}
 }
 
-/** Get serial log endpoint URL */
-async function getSerialLogEndpoint(appId: string): Promise<string> {
+export type CvmLogChannel = "serial" | "stdout" | "stderr";
+
+/** Get CVM-level (syslog) log endpoint URL for a given channel */
+export async function getCvmLogEndpoint(
+	appId: string,
+	channel: CvmLogChannel,
+): Promise<string> {
 	// syslog_endpoint is not in the v20260121 schema. Force the legacy version
 	// header so the backend returns CvmBasicInfo which includes the field.
 	const client = await getClient();
@@ -614,7 +619,12 @@ async function getSerialLogEndpoint(appId: string): Promise<string> {
 	if (!rawInfo.syslog_endpoint) {
 		throw new Error(`No syslog endpoint available for CVM '${appId}'`);
 	}
-	return `${rawInfo.syslog_endpoint}&ch=serial`;
+	return `${rawInfo.syslog_endpoint}&ch=${channel}`;
+}
+
+/** Get serial log endpoint URL (backward compat wrapper) */
+async function getSerialLogEndpoint(appId: string): Promise<string> {
+	return getCvmLogEndpoint(appId, "serial");
 }
 
 /** Get container log endpoint URL */
@@ -834,4 +844,51 @@ export async function streamContainerLogs(
 	// Always use the structured-aware streamer: if the backend returns plain text,
 	// it will fall back to raw streaming; if it returns structured logs, it will decode.
 	await streamStructuredLogsResponse(response, onData);
+}
+
+/** Fetch CVM-level channel logs (serial/stdout/stderr) */
+export async function fetchCvmChannelLogs(
+	appId: string,
+	channel: CvmLogChannel,
+	options: SerialLogsOptions = {},
+): Promise<string> {
+	const baseUrl = await getCvmLogEndpoint(appId, channel);
+	const url = buildLogUrl(baseUrl, options);
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(
+			`Failed to fetch CVM ${channel} logs: ${response.status} ${response.statusText}`,
+		);
+	}
+	return response.text();
+}
+
+/** Stream CVM-level channel logs (serial/stdout/stderr) */
+export async function streamCvmChannelLogs(
+	appId: string,
+	channel: CvmLogChannel,
+	onData: (data: string) => void,
+	options: SerialLogsOptions = {},
+	signal?: AbortSignal,
+): Promise<void> {
+	const baseUrl = await getCvmLogEndpoint(appId, channel);
+	const url = buildLogUrl(baseUrl, { ...options, follow: true });
+	const response = await fetch(url, { signal });
+	if (!response.ok) {
+		throw new Error(
+			`Failed to stream CVM ${channel} logs: ${response.status} ${response.statusText}`,
+		);
+	}
+	await streamResponse(response, onData);
+}
+
+/** Get CVM status string (e.g. "running", "stopped") */
+export async function getCvmStatus(appId: string): Promise<string> {
+	const client = await getClient();
+	const cleanAppId = appId.replace(/^app_/, "");
+	const result = await safeGetCvmInfo(client, { app_id: cleanAppId });
+	if (!result.success) {
+		throw new Error(result.error.message);
+	}
+	return result.data.status;
 }

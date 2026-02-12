@@ -6,28 +6,52 @@ import { jsonOption } from "@/src/commands/status/command";
 export const logsCommandMeta: CommandMeta = {
 	name: "logs",
 	category: "cvm-ops",
-	description: "Fetch container logs from a CVM",
+	description: "Fetch logs from a CVM",
 	stability: "unstable",
 	arguments: [
 		{
 			name: "container-name",
 			description: "Container name to fetch logs from",
-			required: true,
+			required: false,
 			target: "containerName",
 		},
 	],
 	options: [
 		{
+			name: "serial",
+			description: "CVM serial console (boot, kernel, docker-compose)",
+			type: "boolean",
+			target: "serial",
+		},
+		{
+			name: "cvm-stdout",
+			description: "CVM stdout channel",
+			type: "boolean",
+			target: "cvmStdout",
+		},
+		{
+			name: "cvm-stderr",
+			description: "CVM stderr channel",
+			type: "boolean",
+			target: "cvmStderr",
+		},
+		{
+			name: "stderr",
+			description: "Include container stderr (container mode only)",
+			type: "boolean",
+			target: "stderr",
+		},
+		{
 			name: "tail",
 			shorthand: "n",
-			description: "Lines from end",
+			description: "Number of lines from end",
 			type: "number",
 			target: "tail",
 		},
 		{
 			name: "follow",
 			shorthand: "f",
-			description: "Stream logs in real-time",
+			description: "Stream in real-time",
 			type: "boolean",
 			target: "follow",
 		},
@@ -40,30 +64,17 @@ export const logsCommandMeta: CommandMeta = {
 		},
 		{
 			name: "since",
-			description: "Logs since timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
+			description: "Start time (RFC3339 or relative, e.g. 42m)",
 			type: "string",
 			target: "since",
 			argumentName: "since",
 		},
 		{
 			name: "until",
-			description: "Logs before timestamp (e.g. 2013-01-02T13:23:37Z or 42m)",
+			description: "End time (RFC3339 or relative)",
 			type: "string",
 			target: "until",
 			argumentName: "until",
-		},
-		{
-			name: "stdout",
-			description: "Include stdout (default: true)",
-			type: "boolean",
-			target: "stdout",
-			negatedName: "no-stdout",
-		},
-		{
-			name: "stderr",
-			description: "Include stderr and route to stderr",
-			type: "boolean",
-			target: "stderr",
 		},
 		cvmIdOption,
 		jsonOption,
@@ -71,46 +82,52 @@ export const logsCommandMeta: CommandMeta = {
 	],
 	examples: [
 		{
-			name: "Show container logs",
+			name: "Container stdout",
 			value: "phala logs my-service",
 		},
 		{
-			name: "Include stderr",
+			name: "Container stderr",
 			value: "phala logs my-service --stderr",
 		},
 		{
-			name: "Show only stderr",
-			value: "phala logs my-service --no-stdout --stderr",
+			name: "Follow container logs",
+			value: "phala logs my-service -f",
+		},
+		{
+			name: "CVM serial console",
+			value: "phala logs --serial",
+		},
+		{
+			name: "CVM stdout channel",
+			value: "phala logs --cvm-stdout",
+		},
+		{
+			name: "CVM stderr channel",
+			value: "phala logs --cvm-stderr",
 		},
 		{
 			name: "Last 100 lines",
-			value: "phala logs my-service --tail 100",
-		},
-		{
-			name: "Follow logs",
-			value: "phala logs my-service --follow",
+			value: "phala logs my-service -n 100",
 		},
 		{
 			name: "Specify CVM",
 			value: "phala logs my-service --cvm-id app_abc123",
 		},
-		{
-			name: "With timestamps",
-			value: "phala logs my-service --timestamps",
-		},
 	],
 };
 
 export const logsCommandSchema = z.object({
-	containerName: z.string(),
+	containerName: z.string().optional(),
 	cvmId: z.string().optional(),
+	serial: z.boolean().default(false),
+	cvmStdout: z.boolean().default(false),
+	cvmStderr: z.boolean().default(false),
+	stderr: z.boolean().default(false),
 	since: z.string().optional(),
 	until: z.string().optional(),
 	tail: z.number().optional(),
 	follow: z.boolean().default(false),
 	timestamps: z.boolean().default(false),
-	stdout: z.boolean().default(true),
-	stderr: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
