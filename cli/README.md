@@ -24,8 +24,8 @@ phala login
 # Deploy from a directory with docker-compose.yml
 phala deploy
 
-# Check deployment status
-phala apps
+# Link the directory to the CVM for future commands
+phala link
 
 # View container logs
 phala logs
@@ -34,7 +34,37 @@ phala logs
 phala ssh
 ```
 
+> **Tip:** Run `phala link` after your first deploy. It creates a `phala.toml` that binds the directory to the CVM, so subsequent commands (`deploy`, `logs`, `ssh`, `cp`, `ps`) work without specifying a CVM ID. `phala.toml` is safe to commit to version control.
+
 ## Commands
+
+### Deploy
+
+| Command | Description |
+|---------|-------------|
+| [`deploy`](docs/deploy.md) | Deploy new CVM or update existing one |
+| [`instance-types`](docs/instance-types.md) | List available instance types |
+| [`nodes`](docs/nodes.md) | List TEE worker nodes |
+
+### Manage
+
+| Command | Description |
+|---------|-------------|
+| [`apps`](docs/apps.md) | List deployed CVMs |
+| [`cvms`](docs/cvms.md) | Manage CVMs (start, stop, restart, delete, resize, ...) |
+| [`link`](docs/link.md) | Link a local directory to a CVM |
+| [`simulator`](docs/simulator.md) | Local TEE simulator for development |
+
+### CVM Operations
+
+| Command | Description |
+|---------|-------------|
+| [`logs`](docs/logs.md) | Fetch logs from a CVM (container, serial, stdout/stderr) |
+| [`ps`](docs/ps.md) | List containers of a CVM |
+| [`ssh`](docs/ssh.md) | Connect to a CVM via SSH |
+| [`cp`](docs/cp.md) | Copy files to/from a CVM via SCP |
+
+### Profile / Auth
 
 | Command | Description |
 |---------|-------------|
@@ -44,22 +74,14 @@ phala ssh
 | [`whoami`](docs/whoami.md) | Print the current user |
 | [`profiles`](docs/profiles.md) | List auth profiles |
 | [`switch`](docs/switch.md) | Switch auth profiles |
-| [`deploy`](docs/deploy.md) | Deploy new CVM or update existing one |
-| [`apps`](docs/apps.md) | List deployed CVMs |
-| [`logs`](docs/logs.md) | Fetch logs from a CVM (container, serial, stdout/stderr) |
-| [`ps`](docs/ps.md) | List containers of a CVM |
-| [`ssh`](docs/ssh.md) | Connect to a CVM via SSH |
-| [`cp`](docs/cp.md) | Copy files to/from a CVM via SCP |
+
+### Advanced
+
+| Command | Description |
+|---------|-------------|
 | [`api`](docs/api.md) | Make authenticated API requests |
-| [`cvms`](docs/cvms.md) | Manage CVMs (start, stop, restart, delete, resize, ...) |
-| [`nodes`](docs/nodes.md) | List TEE worker nodes |
-| [`instance-types`](docs/instance-types.md) | List available instance types |
-| [`docker`](docs/docker.md) | Docker image build/push helpers |
-| [`simulator`](docs/simulator.md) | Local TEE simulator for development |
 | [`self`](docs/self.md) | CLI self-management (update) |
-| [`config`](docs/config.md) | Manage local CLI configuration |
 | [`completion`](docs/completion.md) | Generate shell completion scripts |
-| [`link`](docs/link.md) | Link a local directory to a CVM |
 
 ## Configuration
 
