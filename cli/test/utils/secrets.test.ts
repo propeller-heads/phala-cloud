@@ -2,8 +2,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { parseEnv } from "../../src/utils/secrets";
-// Assuming bun test provides Jest-like globals, otherwise, you might need:
-// import { describe, test, expect, afterEach } from '@jest/globals';
 
 // Helper to create a temporary file for testing
 const createTempFile = (content: string): string => {
