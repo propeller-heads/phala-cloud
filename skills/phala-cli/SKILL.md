@@ -9,209 +9,247 @@ description: |
 
 # Phala Cloud CLI
 
-Command-line tool for deploying and managing TEE applications on Phala Cloud.
+`phala` (npm) — deploy and manage TEE applications (CVMs) on Phala Cloud.
 
-Package: `phala` (npm). Binary names: `phala`, `pha`.
+## Operations
 
-## Quick Start
+Determine what the user wants, then follow the matching procedure:
 
-```bash
-npm install -g phala
+| User says | Operation |
+|-----------|-----------|
+| "deploy", "上线", "launch", "create a CVM" | **First Deploy** |
+| "update", "redeploy", "upgrade", "push changes" | **Update Existing CVM** |
+| "not working", "error", "logs", "debug", "为什么挂了" | **Debug a CVM** |
+| "SSH", "connect", "shell", "copy files" | **SSH & File Transfer** |
+| "CI/CD", "automate", "pipeline", "GitHub Actions" | **CI/CD Setup** |
+| "attestation", "verify", "proof" | **Attestation** |
+| "list", "status", "which CVMs" | `phala apps` or `phala cvms get <id>` |
 
-phala login                     # authenticate (device flow)
-phala deploy                    # deploy from docker-compose.yml
-phala link                      # bind directory → CVM (creates phala.toml)
-phala logs -f                   # stream container logs
-phala ssh                       # SSH into the CVM
-```
+---
 
-## Command Overview
+## First Deploy
 
-### Authentication
-
-| Command | Description |
-|---------|-------------|
-| `phala login [api-key]` | Authenticate (device flow if no key) |
-| `phala logout` | Remove stored API key |
-| `phala status` | Check auth status (`--json` for scripting) |
-| `phala whoami` | Print current user |
-| `phala profiles` | List auth profiles |
-| `phala switch <profile>` | Switch active profile |
-
-### Deployment
-
-| Command | Description |
-|---------|-------------|
-| `phala deploy` | Deploy new CVM or update existing |
-| `phala instance-types [family]` | List instance types (cpu, gpu) |
-
-### App Management
-
-| Command | Description |
-|---------|-------------|
-| `phala apps` | List deployed CVMs (with filters) |
-| `phala cvms list` | List CVMs (alias for apps) |
-| `phala cvms get [id]` | Get CVM details |
-| `phala cvms start [id]` | Start a stopped CVM |
-| `phala cvms stop [id]` | Stop a running CVM |
-| `phala cvms restart [id]` | Restart a CVM |
-| `phala cvms delete [id]` | Delete a CVM (`-f` to skip prompt) |
-| `phala cvms resize [id]` | Resize CVM resources |
-| `phala cvms replicate [id]` | Create a CVM replica |
-| `phala cvms attestation [id]` | Get CVM attestation report |
-| `phala link [id]` | Link directory to CVM (creates phala.toml) |
-| `phala nodes list` | List TEE worker nodes |
-
-### CVM Operations
-
-| Command | Description |
-|---------|-------------|
-| `phala logs [container]` | Container logs (default mode) |
-| `phala logs --serial` | CVM serial console (boot/kernel) |
-| `phala logs --cvm-stdout` | CVM stdout channel |
-| `phala logs --cvm-stderr` | CVM stderr channel |
-| `phala ps [id]` | List containers in a CVM |
-| `phala ssh [id]` | SSH into CVM (`--` passes args to ssh) |
-| `phala cp <src> <dst>` | SCP files to/from CVM |
-
-### Advanced
-
-| Command | Description |
-|---------|-------------|
-| `phala api <endpoint>` | Authenticated HTTP request to API |
-| `phala self update` | Update the CLI |
-| `phala config get/set/list` | Manage CLI configuration |
-| `phala completion` | Generate shell completions (bash/zsh/fish) |
-| `phala docker login/build/push` | Docker image helpers |
-| `phala simulator start/stop` | Local TEE simulator |
-
-## Best Practices
-
-### Use phala.toml for every project
-
-After first deploy, run `phala link` to create `phala.toml`. This file is safe to commit — it contains no secrets, only the CVM identifier and deploy preferences. With it, all commands (`deploy`, `logs`, `ssh`, `cp`, `ps`) work without specifying a CVM ID.
+### Step 1: Authenticate
 
 ```bash
-phala deploy -n my-app -e .env  # first deploy
-phala link                      # creates phala.toml
-git add phala.toml              # safe to commit
-
-# from now on, everyone on the team can just run:
-phala deploy                    # updates the linked CVM
-phala logs -f                   # no --cvm-id needed
-phala ssh
+phala login                   # opens browser (device flow)
 ```
 
-### Debugging with log sources
+Headless environment? Use `phala login --no-open` (prints URL) or `phala login phak_xxx` (direct key).
 
-Container not working? Follow this order:
-
-1. **`phala logs`** — container stdout. If the container is running, app-level errors show here.
-2. **`phala logs --serial`** — serial console. If the container didn't start, docker-compose errors and image pull failures show here. Also shows kernel and boot messages.
-3. **`phala logs --cvm-stderr`** — CVM stderr. If the CVM itself has issues at the process level.
+### Step 2: Deploy
 
 ```bash
-# Container is running but app errors
-phala logs -f
-phala logs my-container         # specific container
-
-# Container didn't start — check serial for docker-compose / pull errors
-phala logs --serial
-
-# Still unclear — check CVM-level stderr
-phala logs --cvm-stderr
-
-# Narrow down by time
-phala logs --since 30m
-phala logs --serial --tail 200
+phala deploy -n my-app -c docker-compose.yml -e .env
 ```
 
-Use `phala ps` to see which containers are running before checking logs for a specific one.
+The compose file must use publicly pullable images, or set `DSTACK_DOCKER_USERNAME` / `DSTACK_DOCKER_PASSWORD` in the env file for private registries.
 
-### Deploy + wait in CI/CD
+Instance type is auto-selected. Override with `-t tdx.small`, `-t tdx.medium`, etc. Check available types: `phala instance-types`.
+
+### Step 3: Link the project
+
+```bash
+phala link
+git add phala.toml            # safe to commit — no secrets
+```
+
+This creates `phala.toml` binding the directory to the CVM. From now on, `deploy`, `logs`, `ssh`, `cp`, `ps` all work without specifying a CVM ID. Everyone on the team gets the same binding.
+
+### Step 4: Verify
+
+```bash
+phala ps                      # containers running?
+phala logs -f                 # app output
+```
+
+If containers aren't running, go to **Debug a CVM**.
+
+---
+
+## Update Existing CVM
+
+With `phala.toml` in the directory (from `phala link`):
+
+```bash
+phala deploy                  # updates the linked CVM
+```
+
+Without `phala.toml`:
+
+```bash
+phala deploy --cvm-id app_abc123
+```
+
+The CLI detects a CVM identifier and switches to update mode automatically. Changed compose file, env vars, or deploy flags are applied.
+
+---
+
+## Debug a CVM
+
+Three log sources, escalate in order:
+
+| Step | Command | When to use |
+|------|---------|-------------|
+| 1 | `phala logs -f` | Container is running but app has errors |
+| 2 | `phala logs --serial` | Container didn't start — shows docker-compose errors, image pull failures, kernel/boot messages |
+| 3 | `phala logs --cvm-stderr` | CVM itself has process-level issues (rare) |
+
+### Procedure
+
+1. **Check what's running:**
+   ```bash
+   phala ps
+   ```
+   If the container is listed and running, go to step 2. If no containers or container is restarting, skip to step 3.
+
+2. **Read container logs:**
+   ```bash
+   phala logs -f                     # stream all
+   phala logs my-container           # specific container
+   phala logs --since 30m            # last 30 minutes only
+   ```
+
+3. **Container not starting? Check serial:**
+   ```bash
+   phala logs --serial --tail 200
+   ```
+   Look for: `docker-compose` errors, image pull failures (`manifest unknown`, `unauthorized`), OOM kills.
+
+4. **CVM not booting at all?**
+   ```bash
+   phala logs --cvm-stderr
+   ```
+
+### Common failures in serial logs
+
+| Serial log message | Cause | Fix |
+|-------------------|-------|-----|
+| `manifest unknown` | Image tag doesn't exist | Fix image tag in compose file, redeploy |
+| `unauthorized` / `authentication required` | Private registry, no credentials | Add `DSTACK_DOCKER_USERNAME` + `DSTACK_DOCKER_PASSWORD` to env file |
+| `no space left on device` | Disk full | Redeploy with `--disk-size 50G` |
+| `OOMKilled` | Out of memory | Use larger instance type: `-t tdx.medium` or `-t tdx.large` |
+
+---
+
+## SSH & File Transfer
+
+### SSH into CVM
+
+```bash
+phala ssh                             # interactive shell (uses phala.toml)
+phala ssh app_abc123                  # by CVM ID
+phala ssh -- ls /app                  # run single command
+phala ssh -- -L 8080:localhost:80     # port forwarding
+```
+
+Everything after `--` is passed to ssh. **`-o ProxyCommand` is blocked** for security.
+
+### Copy files
+
+```bash
+phala cp ./config.yml :~/             # upload to linked CVM (: prefix = phala.toml CVM)
+phala cp my-app:~/logs/ ./logs/ -r    # download from named CVM
+```
+
+Path format: `local-path`, `cvm-name:remote-path`, or `:remote-path` (linked CVM from phala.toml).
+
+### SSH not working?
+
+```bash
+phala ssh --dry-run                   # print the actual ssh command
+phala ssh --verbose                   # connection details
+```
+
+Common causes:
+- CVM not running → `phala apps --search my-app` to check status
+- No SSH key → redeploy with `--ssh-pubkey ~/.ssh/id_rsa.pub`
+- Key mismatch → `phala ssh -- -i ~/.ssh/correct_key`
+
+---
+
+## CI/CD Setup
 
 ```bash
 export PHALA_CLOUD_API_KEY="phak_..."
-phala deploy --name my-app --wait
-phala logs --tail 20
+phala deploy --name my-app --wait     # --wait blocks until CVM is ready
+phala logs --tail 20                  # verify startup
 ```
 
-### Multiple workspaces
+`--wait` is critical in CI — without it, deploy returns immediately and the CVM may not be ready when subsequent steps run.
+
+With `phala.toml` committed to the repo, CI just needs `PHALA_CLOUD_API_KEY` and `phala deploy --wait`.
+
+---
+
+## Attestation
 
 ```bash
-phala login --profile work
-phala login --profile personal
-phala switch work
-phala profiles                  # list all profiles
+phala cvms attestation                # human-readable (uses phala.toml)
+phala cvms attestation app_abc123     # by CVM ID
+phala cvms attestation --json | jq '.quote'   # extract quote for verification
 ```
 
-## Common Workflows
+---
 
-### SSH and file transfer
+## On-chain KMS Deploy
+
+For Ethereum or Base KMS instead of the default Phala KMS:
 
 ```bash
-phala ssh                       # interactive shell
-phala ssh -- -L 8080:localhost:80   # port forwarding
-phala ssh -- ls /app            # remote command
-phala cp ./config.yml :~/       # upload to linked CVM
-phala cp my-app:~/logs/ ./logs/ -r  # download directory
+phala deploy -n my-app -c docker-compose.yml \
+  --kms ethereum --private-key 0x... --rpc-url https://eth.merkle.io
+
+phala deploy -n my-app -c docker-compose.yml \
+  --kms base --private-key 0x... --rpc-url https://mainnet.base.org
 ```
 
-### Attestation verification
+---
+
+## Multiple Workspaces
 
 ```bash
-phala cvms attestation app_abc123
-phala cvms attestation --json | jq '.quote'
+phala login --profile work            # creates "work" profile
+phala login --profile personal        # creates "personal" profile
+phala switch work                     # switch active profile
+phala profiles                        # list all (active marked with *)
+phala whoami                          # verify current user
 ```
 
-### On-chain KMS deployment
+A `phala.toml` can also pin a profile: add `profile = "work"` so commands in that directory always use the right workspace.
 
-```bash
-phala deploy --kms ethereum --private-key 0x... --rpc-url https://...
-phala deploy --kms base --private-key 0x... --rpc-url https://...
-```
+---
 
-### API access
+## CVM Identification
 
-```bash
-phala api /api/v1/cvms                         # GET
-phala api /api/v1/cvms -q '.[].name'           # with jq filter
-phala api /api/v1/cvms -X POST -f name=test    # POST with fields
-```
-
-## Key Concepts
-
-### CVM identification
-
-Commands accept CVM identifiers in multiple formats:
+Commands accept CVM identifiers in any format:
 - App ID: `app_abc123def456`
 - Instance ID: `instance_abc123`
-- UUID: `91b62ea0-6c64-4985-aa6c-fc3c88a02e64`
-- Name: `my-app` (matched against workspace CVMs)
+- UUID: `91b62ea0-6c64-...`
+- Name: `my-app`
 
-### phala.toml
+With `phala.toml` present, no identifier needed.
 
-Project config file that binds a directory to a CVM:
+---
 
-```toml
-app_id = "app_abc123"
-compose_file = "docker-compose.yml"
-env_file = ".env"
-public_logs = true
-listed = false
-```
+## Gotchas
 
-Commands like `deploy`, `logs`, `ssh`, `cp` use this automatically.
+| Issue | Detail |
+|-------|--------|
+| `phala.toml` must be in CWD | The CLI reads from the current working directory only. `cd` to the project root before running commands. |
+| `:path` in cp means linked CVM | `phala cp ./f :~/f` copies to the phala.toml CVM. Without the `:`, it's a local path. Easy to miss. |
+| `--` required for ssh pass-through | `phala ssh -L 8080:...` fails — the CLI eats the flag. Use `phala ssh -- -L 8080:...`. |
+| `-o ProxyCommand` blocked | Security restriction in `phala ssh`. Cannot override. |
+| Deploy auto-detects update mode | If `phala.toml` or `--cvm-id` provides a CVM identifier, deploy updates instead of creating. No separate "update" command. |
+| `--wait` only for deploy | Only `phala deploy --wait` blocks until ready. Other commands don't have `--wait`. |
+| Env file secrets are encrypted | `DSTACK_*` and other env vars in `-e .env` are encrypted before transmission. The CVM decrypts at runtime. Safe to include registry passwords. |
+| Serial logs show boot-time only | `--serial` captures the VM boot sequence. If you need runtime container logs, use default `phala logs`. |
+| `phala apps` pagination | Default 50 items. Use `--page-size 100` for up to 100. No way to get all in one call if >100 CVMs. |
 
-### Environment variables
+## Reference Files
 
-| Variable | Purpose |
-|----------|---------|
-| `PHALA_CLOUD_API_KEY` | Override stored API key |
-| `PHALA_CLOUD_API_PREFIX` | Override API base URL |
-| `PHALA_CLOUD_DIR` | Override credentials dir (~/.phala-cloud) |
-| `PHALA_UPDATE_CHANNEL` | Release channel for self update |
-
-See [references/commands.md](references/commands.md) for full command details.
-See [references/configuration.md](references/configuration.md) for config details.
-See [references/troubleshooting.md](references/troubleshooting.md) for error codes and common issues.
+| File | Contents |
+|------|----------|
+| [commands.md](references/commands.md) | All commands with flags and arguments |
+| [configuration.md](references/configuration.md) | phala.toml fields, env vars, profiles, Docker registry setup |
+| [troubleshooting.md](references/troubleshooting.md) | Deploy error codes (ERR-1xxx, ERR-2xxx), auth issues, Docker issues, log source guide |
