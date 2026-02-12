@@ -1,0 +1,29 @@
+# phala logout
+
+Remove stored API key from the current profile.
+
+## Usage
+
+```bash
+phala logout
+```
+
+## Examples
+
+### Log out from current profile
+
+```bash
+$ phala logout
+✓ Logged out successfully
+```
+
+### Verify logout
+
+```bash
+$ phala logout
+✓ Logged out successfully
+
+$ phala status
+✗ Not authenticated. Run 'phala login' to authenticate.
+```
+
