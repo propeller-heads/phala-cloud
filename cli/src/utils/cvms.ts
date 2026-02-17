@@ -6,12 +6,12 @@ import { logger } from "./logger";
  * Wait for CVM to complete any in-progress operations and reach running state
  * Progress messages are automatically suppressed in JSON mode.
  *
- * @param uuid CVM UUID to monitor
+ * @param cvmId CVM identifier (UUID, app_id, name, or any format accepted by CvmIdSchema)
  * @param timeoutMs Maximum time to wait in milliseconds (default: 5 minutes)
  * @returns Promise that resolves when CVM is running and not in_progress, or rejects on timeout
  */
 export async function waitForCvmReady(
-	uuid: string,
+	cvmId: string,
 	timeoutMs = 300000, // 5 minutes default
 ): Promise<void> {
 	const client = await getClient();
@@ -22,7 +22,7 @@ export async function waitForCvmReady(
 
 	while (Date.now() - startTime < timeoutMs) {
 		try {
-			const result = await safeGetCvmInfo(client, { uuid });
+			const result = await safeGetCvmInfo(client, { id: cvmId });
 
 			if (!result.success) {
 				logger.warn(`Failed to get CVM info: ${result.error.message}`);
