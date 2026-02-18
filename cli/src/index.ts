@@ -27,6 +27,7 @@ import { logsCommand } from "./commands/logs";
 import { selfCommands } from "./commands/self";
 import { appsCommand } from "./commands/apps";
 import { instanceTypesCommand } from "./commands/instance-types";
+import { sshKeysCommands } from "./commands/ssh-keys";
 import { whoamiCommand } from "./commands/whoami";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
@@ -80,6 +81,11 @@ for (const command of configCommands.commands) {
 
 registry.registerGroup(cvmsCommands.group);
 for (const command of cvmsCommands.commands) {
+	registry.registerCommand(command);
+}
+
+registry.registerGroup(sshKeysCommands.group);
+for (const command of sshKeysCommands.commands) {
 	registry.registerCommand(command);
 }
 

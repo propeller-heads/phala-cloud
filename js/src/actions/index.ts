@@ -371,6 +371,33 @@ export {
   type GetCvmStatusBatchRequest,
 } from "./cvms/get_cvm_status_batch";
 
+export {
+  getCvmUserConfig,
+  safeGetCvmUserConfig,
+  CvmUserConfigSchema,
+  GetCvmUserConfigRequestSchema,
+  type CvmUserConfig,
+  type GetCvmUserConfigRequest,
+} from "./cvms/get_cvm_user_config";
+
+export {
+  listSshKeys,
+  safeListSshKeys,
+  SshKeySchema,
+  ListSshKeysResponseSchema,
+  type SshKey,
+  type ListSshKeysResponse,
+} from "./ssh_keys/list_ssh_keys";
+
+export {
+  importGithubProfileSshKeys,
+  safeImportGithubProfileSshKeys,
+  ImportGithubProfileRequestSchema,
+  ImportGithubProfileResponseSchema,
+  type ImportGithubProfileRequest,
+  type ImportGithubProfileResponse,
+} from "./ssh_keys/import_github_profile";
+
 // App Operations
 export {
   getAppList,

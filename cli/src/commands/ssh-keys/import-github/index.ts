@@ -1,0 +1,76 @@
+import { safeImportGithubProfileSshKeys } from "@phala/cloud";
+import { defineCommand } from "@/src/core/define-command";
+import type { CommandContext } from "@/src/core/types";
+import { getClient } from "@/src/lib/client";
+import { logger } from "@/src/utils/logger";
+import {
+	sshKeysImportGithubCommandMeta,
+	sshKeysImportGithubCommandSchema,
+	type SshKeysImportGithubCommandInput,
+} from "./command";
+
+async function runSshKeysImportGithubCommand(
+	input: SshKeysImportGithubCommandInput,
+	context: CommandContext,
+): Promise<number> {
+	try {
+		const client = await getClient();
+		const spinner = logger.startSpinner(
+			`Importing SSH keys from github.com/${input.githubUsername}`,
+		);
+
+		const result = await safeImportGithubProfileSshKeys(client, {
+			github_username: input.githubUsername,
+		});
+
+		spinner.stop(true);
+
+		if (!result.success) {
+			logger.error(`Failed to import SSH keys: ${result.error.message}`);
+			return 1;
+		}
+
+		const { keys_added, keys_skipped, errors } = result.data;
+
+		logger.keyValueTable(
+			{
+				"GitHub User": input.githubUsername,
+				"Keys Added": keys_added,
+				"Keys Skipped": keys_skipped,
+			},
+			{ borderStyle: "rounded" },
+		);
+
+		if (errors.length > 0) {
+			logger.break();
+			logger.warn(`${errors.length} key(s) could not be imported:`);
+			for (const err of errors) {
+				logger.warn(`  ${err}`);
+			}
+		}
+
+		logger.break();
+		if (keys_added > 0) {
+			logger.success(
+				`Added ${keys_added} SSH key(s) from github.com/${input.githubUsername}`,
+			);
+		} else {
+			logger.info("No new keys added (all keys already exist)");
+		}
+
+		return 0;
+	} catch (error) {
+		logger.logDetailedError(error);
+		context.fail("Failed to import SSH keys");
+		return 1;
+	}
+}
+
+export const sshKeysImportGithubCommand = defineCommand({
+	path: ["ssh-keys", "import-github"],
+	meta: sshKeysImportGithubCommandMeta,
+	schema: sshKeysImportGithubCommandSchema,
+	handler: runSshKeysImportGithubCommand,
+});
+
+export default sshKeysImportGithubCommand;

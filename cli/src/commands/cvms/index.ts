@@ -9,6 +9,7 @@ import { cvmsLogsCommand } from "./logs";
 import { cvmsReplicateCommand } from "./replicate";
 import { cvmsResizeCommand } from "./resize";
 import { cvmsRestartCommand } from "./restart";
+import { cvmsRuntimeConfigCommand } from "./runtime-config";
 import { cvmsSerialLogsCommand } from "./serial-logs";
 import { cvmsStartCommand } from "./start";
 import { cvmsStopCommand } from "./stop";
@@ -27,6 +28,7 @@ export const cvmsCommands = {
 		cvmsReplicateCommand,
 		cvmsResizeCommand,
 		cvmsRestartCommand,
+		cvmsRuntimeConfigCommand,
 		cvmsSerialLogsCommand,
 		cvmsStartCommand,
 		cvmsStopCommand,
