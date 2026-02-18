@@ -87,7 +87,6 @@ interface Options {
 	[key: string]: unknown;
 }
 
-
 /**
  * Handle provision error with structured error response
  */
@@ -998,7 +997,10 @@ const updateCvm = async (
 				transactionHash?: string;
 				composeHash?: string;
 			};
-			console.log("[DEBUG] addComposeHash.transactionHash:", txResult.transactionHash);
+			console.log(
+				"[DEBUG] addComposeHash.transactionHash:",
+				txResult.transactionHash,
+			);
 			console.log("[DEBUG] addComposeHash.composeHash:", txResult.composeHash);
 		}
 
