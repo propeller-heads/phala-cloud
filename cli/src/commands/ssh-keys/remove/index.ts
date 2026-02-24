@@ -51,11 +51,18 @@ async function runSshKeysRemoveCommand(
 	try {
 		let keyId = input.keyId;
 
-		if (!keyId) {
+		if (!keyId && input.interactive) {
 			keyId = await selectSshKey();
 			if (!keyId) {
 				return 0;
 			}
+		}
+
+		if (!keyId) {
+			context.fail(
+				"Missing key_id. Use `phala ssh-keys rm <key_id>` or `phala ssh-keys rm -i` for interactive selection.",
+			);
+			return 1;
 		}
 
 		const client = await getClient();
