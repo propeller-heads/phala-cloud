@@ -398,6 +398,27 @@ export {
   type ImportGithubProfileResponse,
 } from "./ssh_keys/import_github_profile";
 
+export {
+  createSshKey,
+  safeCreateSshKey,
+  CreateSshKeyRequestSchema,
+  type CreateSshKeyRequest,
+} from "./ssh_keys/create_ssh_key";
+
+export {
+  deleteSshKey,
+  safeDeleteSshKey,
+  DeleteSshKeyRequestSchema,
+  type DeleteSshKeyRequest,
+} from "./ssh_keys/delete_ssh_key";
+
+export {
+  syncGithubSshKeys,
+  safeSyncGithubSshKeys,
+  SyncGithubSshKeysResponseSchema,
+  type SyncGithubSshKeysResponse,
+} from "./ssh_keys/sync_github_ssh_keys";
+
 // App Operations
 export {
   getAppList,
