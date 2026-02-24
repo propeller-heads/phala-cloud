@@ -5,7 +5,11 @@ import {
 	DEFAULT_MEMORY,
 	DEFAULT_VCPU,
 } from "@/src/utils/constants";
-import { cvmIdOption, uuidOption } from "@/src/core/common-flags";
+import {
+	cvmIdOption,
+	interactiveOption,
+	uuidOption,
+} from "@/src/core/common-flags";
 
 export const deployCommandMeta: CommandMeta = {
 	name: "deploy",
@@ -16,6 +20,7 @@ export const deployCommandMeta: CommandMeta = {
 	options: [
 		cvmIdOption,
 		uuidOption,
+		interactiveOption,
 		{
 			name: "debug",
 			description: "Enable debug logging",

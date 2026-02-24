@@ -50,7 +50,6 @@ export const globalCommandOptions: readonly CommandOption[] = [
 	versionOption,
 	apiTokenOption,
 	jsonOption,
-	interactiveOption,
 ];
 
 export const commonAuthOptions: readonly CommandOption[] = [apiTokenOption];

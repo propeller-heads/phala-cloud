@@ -1,4 +1,5 @@
-import { safeDeleteSshKey } from "@phala/cloud";
+import inquirer from "inquirer";
+import { safeDeleteSshKey, safeListSshKeys } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
@@ -9,20 +10,63 @@ import {
 	type SshKeysRemoveCommandInput,
 } from "./command";
 
+async function selectSshKey(): Promise<string | undefined> {
+	const spinner = logger.startSpinner("Fetching SSH keys");
+	const client = await getClient();
+	const result = await safeListSshKeys(client);
+	spinner.stop(true);
+
+	if (!result.success) {
+		logger.error(`Failed to fetch SSH keys: ${result.error.message}`);
+		return undefined;
+	}
+
+	const keys = result.data;
+	if (keys.length === 0) {
+		logger.info("No SSH keys found");
+		return undefined;
+	}
+
+	const choices = keys.map((key) => ({
+		name: `${key.id}  ${key.name}  (${key.key_type}, ${key.fingerprint})`,
+		value: key.id,
+	}));
+
+	const { selectedKey } = await inquirer.prompt([
+		{
+			type: "list",
+			name: "selectedKey",
+			message: "Select an SSH key to remove:",
+			choices,
+		},
+	]);
+
+	return selectedKey;
+}
+
 async function runSshKeysRemoveCommand(
 	input: SshKeysRemoveCommandInput,
 	context: CommandContext,
 ): Promise<number> {
 	try {
+		let keyId = input.keyId;
+
+		if (!keyId) {
+			keyId = await selectSshKey();
+			if (!keyId) {
+				return 0;
+			}
+		}
+
 		const client = await getClient();
-		const result = await safeDeleteSshKey(client, { keyId: input.keyId });
+		const result = await safeDeleteSshKey(client, { keyId });
 
 		if (!result.success) {
 			context.fail(`Failed to remove SSH key: ${result.error.message}`);
 			return 1;
 		}
 
-		logger.success(`SSH key ${input.keyId} removed`);
+		logger.success(`SSH key ${keyId} removed`);
 		return 0;
 	} catch (error) {
 		logger.logDetailedError(error);

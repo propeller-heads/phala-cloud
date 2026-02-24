@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 import type { CommandMeta } from "@/src/core/types";
 
 export const cvmsRuntimeConfigCommandMeta: CommandMeta = {
@@ -7,6 +7,7 @@ export const cvmsRuntimeConfigCommandMeta: CommandMeta = {
 	description: "Show the runtime configuration of a CVM",
 	stability: "stable",
 	arguments: [cvmIdArgument],
+	options: [interactiveOption],
 	examples: [
 		{
 			name: "Show runtime config by app_id",

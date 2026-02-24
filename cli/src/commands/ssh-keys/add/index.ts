@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
 import { safeCreateSshKey } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -50,7 +50,8 @@ async function runSshKeysAddCommand(
 		}
 
 		const publicKey = readFileSync(keyFilePath, "utf-8").trim();
-		const keyName = input.name ?? basename(keyFilePath, ".pub");
+		const keyName =
+			input.name ?? `${hostname()}-${basename(keyFilePath, ".pub")}`;
 
 		const client = await getClient();
 		const result = await safeCreateSshKey(client, {
