@@ -31,16 +31,10 @@ async function runCvmsRuntimeConfigCommand(
 
 		const config = result.data;
 
-		logger.keyValueTable(
-			{
-				Hostname: config.hostname ?? "-",
-				"Gateway Domain": config.default_gateway_domain ?? "-",
-				"SSH Keys":
-					config.ssh_authorized_keys.length > 0
-						? `${config.ssh_authorized_keys.length} key(s)`
-						: "none",
-			},
-			{ borderStyle: "rounded" },
+		logger.info(`Hostname:       ${config.hostname ?? "-"}`);
+		logger.info(`Gateway Domain: ${config.default_gateway_domain ?? "-"}`);
+		logger.info(
+			`SSH Keys:       ${config.ssh_authorized_keys.length > 0 ? `${config.ssh_authorized_keys.length} key(s)` : "none"}`,
 		);
 
 		if (config.ssh_authorized_keys.length > 0) {

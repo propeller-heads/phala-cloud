@@ -3,6 +3,7 @@ import type { CommandMeta } from "@/src/core/types";
 
 export const sshKeysListCommandMeta: CommandMeta = {
 	name: "list",
+	aliases: ["ls"],
 	description: "List SSH keys for the current user",
 	stability: "stable",
 	examples: [

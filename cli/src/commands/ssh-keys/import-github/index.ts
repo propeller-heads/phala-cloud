@@ -32,27 +32,16 @@ async function runSshKeysImportGithubCommand(
 
 		const { keys_added, keys_skipped, errors } = result.data;
 
-		logger.keyValueTable(
-			{
-				"GitHub User": input.githubUsername,
-				"Keys Added": keys_added,
-				"Keys Skipped": keys_skipped,
-			},
-			{ borderStyle: "rounded" },
-		);
-
 		if (errors.length > 0) {
-			logger.break();
 			logger.warn(`${errors.length} key(s) could not be imported:`);
 			for (const err of errors) {
 				logger.warn(`  ${err}`);
 			}
 		}
 
-		logger.break();
 		if (keys_added > 0) {
 			logger.success(
-				`Added ${keys_added} SSH key(s) from github.com/${input.githubUsername}`,
+				`Added ${keys_added} SSH key(s) from github.com/${input.githubUsername} (${keys_skipped} skipped)`,
 			);
 		} else {
 			logger.info("No new keys added (all keys already exist)");

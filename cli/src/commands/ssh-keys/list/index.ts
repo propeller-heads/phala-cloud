@@ -31,6 +31,7 @@ async function runSshKeysListCommand(
 		}
 
 		const columns = [
+			"ID",
 			"NAME",
 			"TYPE",
 			"FINGERPRINT",
@@ -38,6 +39,7 @@ async function runSshKeysListCommand(
 			"CREATED",
 		] as const;
 		const rows = keys.map((key) => ({
+			ID: key.id,
 			NAME: key.name,
 			TYPE: key.key_type,
 			FINGERPRINT: key.fingerprint,
