@@ -1,3 +1,27 @@
+## [1.1.10](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.9...cli-v1.1.10) (2026-02-25)
+
+### docs
+
+* **cli:** add ssh-keys and runtime-config command reference ([006e697](https://github.com/Phala-Network/phala-cloud/commit/006e69749ae0ffea1947d78027d03fa624e03d62))
+
+### feat
+
+* **cli:** improve SSH key commands ([565f36a](https://github.com/Phala-Network/phala-cloud/commit/565f36a90a1145bd68bd493d9b3857a15e24866f))
+* **sdk+cli:** add SSH key and CVM runtime-config commands ([692321a](https://github.com/Phala-Network/phala-cloud/commit/692321a05bacdbc4da9bcfbc9b82ab8fcfc9d25a))
+
+### fix
+
+* **cli:** add --json output support to all ssh-keys commands ([6c93846](https://github.com/Phala-Network/phala-cloud/commit/6c938469d6bee77b36d34c70d5b5a5e8ff89c6ac))
+* **cli:** fix selectCvm() to use correct API response shape ([47f2c34](https://github.com/Phala-Network/phala-cloud/commit/47f2c346463fdc0ee3d2dcb07660817adad29a96))
+* **cli:** improve help display, interactive rm, and key naming ([e98824d](https://github.com/Phala-Network/phala-cloud/commit/e98824df39287d8f7319a0212868c7d744ffb56d))
+* **cli:** ssh-keys rm requires -i for interactive mode ([fc7b4ba](https://github.com/Phala-Network/phala-cloud/commit/fc7b4bac070f2c795fa41ad53714888b02415da2))
+* **cli:** tighten tilde path expansion in ssh-keys add ([3a218e8](https://github.com/Phala-Network/phala-cloud/commit/3a218e85e34f67e230c6916a15684b74384edb4c))
+* **cli:** update help shorthand conflict test for current global options ([6eec811](https://github.com/Phala-Network/phala-cloud/commit/6eec8112a0f4370e6470a2308ab282124efca3d5))
+
+### refactor
+
+* **cli:** centralize --json handling in dispatcher ([ae05446](https://github.com/Phala-Network/phala-cloud/commit/ae054465b8389803114524e4bb8d21ef814f5b38))
+* **cli:** promote runtime-config to top-level command ([5aaa56e](https://github.com/Phala-Network/phala-cloud/commit/5aaa56e76362067c70346b53110360d0721eb839))
 ## [1.1.9](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.8...cli-v1.1.9) (2026-02-12)
 
 ### docs
