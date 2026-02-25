@@ -87,6 +87,7 @@ export const CvmInfoV20260121Schema = z.object({
   name: z.string(),
   app_id: z.string().nullable().optional(),
   vm_uuid: z.string().nullable().optional(),
+  instance_id: z.string().nullable().optional(),
   resource: CvmResourceInfoV20260121Schema,
   node_info: NodeRefSchema.nullable().optional(),
   os: CvmOsInfoV20260121Schema.nullable().optional(),

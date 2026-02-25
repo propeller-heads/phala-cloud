@@ -314,6 +314,24 @@ export {
 } from "./cvms/update_cvm_visibility";
 
 export {
+  refreshCvmInstanceId,
+  safeRefreshCvmInstanceId,
+  InstanceIdRefreshResultSchema,
+  RefreshCvmInstanceIdRequestSchema,
+  type InstanceIdRefreshResult,
+  type RefreshCvmInstanceIdRequest,
+} from "./cvms/refresh_cvm_instance_id";
+
+export {
+  refreshCvmInstanceIds,
+  safeRefreshCvmInstanceIds,
+  RefreshCvmInstanceIdsRequestSchema,
+  RefreshCvmInstanceIdsResponseSchema,
+  type RefreshCvmInstanceIdsRequest,
+  type RefreshCvmInstanceIdsResponse,
+} from "./cvms/refresh_cvm_instance_ids";
+
+export {
   getAvailableOsImages,
   safeGetAvailableOsImages,
   OSImageVariantSchema,
