@@ -51,7 +51,7 @@ describe("formatCommandHelp", () => {
 				name: "demo-conflict",
 				description: "Demo command (shorthand conflict)",
 				stability: "stable",
-				options: [{ name: "include", shorthand: "i", type: "boolean" }],
+				options: [{ name: "jot", shorthand: "j", type: "boolean" }],
 			},
 			schema: z.object({}),
 			run: () => undefined,
@@ -66,10 +66,10 @@ describe("formatCommandHelp", () => {
 		});
 
 		expect(text).toContain("Global options:");
-		expect(text).toContain("--interactive");
-		expect(text).not.toContain("-i, --interactive");
+		expect(text).toContain("--json");
+		expect(text).not.toContain("-j, --json");
 
 		expect(text).toContain("Basic options:");
-		expect(text).toContain("-i, --include");
+		expect(text).toContain("-j, --jot");
 	});
 });
