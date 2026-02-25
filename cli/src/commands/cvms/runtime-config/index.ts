@@ -60,7 +60,7 @@ async function runCvmsRuntimeConfigCommand(
 }
 
 export const cvmsRuntimeConfigCommand = defineCommand({
-	path: ["cvms", "runtime-config"],
+	path: ["runtime-config"],
 	meta: cvmsRuntimeConfigCommandMeta,
 	schema: cvmsRuntimeConfigCommandSchema,
 	handler: runCvmsRuntimeConfigCommand,

@@ -6,16 +6,17 @@ export const cvmsRuntimeConfigCommandMeta: CommandMeta = {
 	name: "runtime-config",
 	description: "Show the runtime configuration of a CVM",
 	stability: "stable",
+	category: "cvm-ops",
 	arguments: [cvmIdArgument],
 	options: [interactiveOption],
 	examples: [
 		{
 			name: "Show runtime config by app_id",
-			value: "phala cvms runtime-config app_123",
+			value: "phala runtime-config app_123",
 		},
 		{
 			name: "Show runtime config by name",
-			value: "phala cvms runtime-config my-app",
+			value: "phala runtime-config my-app",
 		},
 	],
 };
