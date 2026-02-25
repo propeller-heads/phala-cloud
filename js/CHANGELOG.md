@@ -1,3 +1,9 @@
+## [0.2.4](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.3...js-v0.2.4) (2026-02-25)
+
+### feat
+
+* **sdk+cli:** add SSH key and CVM runtime-config commands ([692321a](https://github.com/Phala-Network/phala-cloud/commit/692321a05bacdbc4da9bcfbc9b82ab8fcfc9d25a))
+* **sdk:** add create, delete, and sync SSH key actions ([a688f29](https://github.com/Phala-Network/phala-cloud/commit/a688f2909932500be88ac238d5fcb894f7af98d6))
 ## [0.2.3](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.2...js-v0.2.3) (2026-02-07)
 
 ### feat
