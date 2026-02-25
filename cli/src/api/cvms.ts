@@ -20,7 +20,6 @@ import type {
 	GetCvmNetworkResponse,
 	TeepodResponse,
 	PubkeyResponse,
-	CvmListResponse,
 	CvmComposeConfigResponse,
 	UpgradeResponse,
 } from "./types";
@@ -93,31 +92,17 @@ export async function selectCvm(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	const cvmList = result.data as CvmListResponse;
-	const cvms = cvmList.items;
+	const { items } = result.data;
 
-	if (!cvms || cvms.length === 0) {
+	if (items.length === 0) {
 		logger.info("No CVMs found for your account");
 		return undefined;
 	}
 
-	// Prepare choices for the inquirer prompt
-	const choices = cvms.map((cvm: unknown) => {
-		// Handle different API response formats
-		const item = cvm as {
-			hosted?: { app_id?: string; id?: string; name?: string; status?: string };
-			name?: string;
-			status?: string;
-		};
-		const id = item.hosted?.app_id || item.hosted?.id;
-		const name = item.name || item.hosted?.name;
-		const status = item.status || item.hosted?.status;
-
-		return {
-			name: `${name || "Unnamed"} (${id}) - Status: ${status || "Unknown"}`,
-			value: id,
-		};
-	});
+	const choices = items.map((cvm) => ({
+		name: `${cvm.name} (${cvm.app_id ?? cvm.id}) - ${cvm.status}`,
+		value: cvm.app_id ?? cvm.id,
+	}));
 
 	const { selectedCvm } = await inquirer.prompt([
 		{
