@@ -2,7 +2,7 @@ import { safeGetCvmContainersStats } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { psCommandMeta, psCommandSchema, type PsCommandInput } from "./command";
 
 function formatCreated(timestamp: number): string {
@@ -27,8 +27,6 @@ async function runPsCommand(
 	input: PsCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	if (!context.cvmId) {
 		context.fail(
 			"No CVM ID provided. Use --interactive to select interactively.",

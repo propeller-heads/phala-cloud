@@ -5,7 +5,7 @@ import type { CvmAttestationResponse } from "@/src/api/types";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import {
 	cvmsAttestationCommandMeta,
 	cvmsAttestationCommandSchema,
@@ -16,9 +16,6 @@ async function runCvmsAttestationCommand(
 	input: CvmsAttestationCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	// Enable JSON mode if --json flag is set
-	setJsonMode(input.json);
-
 	if (!context.cvmId) {
 		context.fail(
 			"No CVM ID provided. Use --interactive to select interactively.",

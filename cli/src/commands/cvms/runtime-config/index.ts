@@ -1,5 +1,6 @@
 import { safeGetCvmUserConfig } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
@@ -25,26 +26,28 @@ async function runCvmsRuntimeConfigCommand(
 		const result = await safeGetCvmUserConfig(client, context.cvmId);
 
 		if (!result.success) {
-			logger.error(`Failed to get runtime config: ${result.error.message}`);
+			context.fail(`Failed to get runtime config: ${result.error.message}`);
 			return 1;
 		}
 
 		const config = result.data;
 
-		logger.info(`Hostname:       ${config.hostname ?? "-"}`);
-		logger.info(`Gateway Domain: ${config.default_gateway_domain ?? "-"}`);
-		logger.info(
+		if (isInJsonMode()) {
+			context.success(config);
+			return 0;
+		}
+
+		console.log(`Hostname:       ${config.hostname ?? "-"}`);
+		console.log(`Gateway Domain: ${config.default_gateway_domain ?? "-"}`);
+		console.log(
 			`SSH Keys:       ${config.ssh_authorized_keys.length > 0 ? `${config.ssh_authorized_keys.length} key(s)` : "none"}`,
 		);
 
 		if (config.ssh_authorized_keys.length > 0) {
-			logger.break();
-			logger.info("SSH Authorized Keys:");
+			console.log();
+			console.log("SSH Authorized Keys:");
 			for (const key of config.ssh_authorized_keys) {
-				const parts = key.split(" ");
-				const keyType = parts[0] ?? "";
-				const keyComment = parts[2] ?? "";
-				logger.info(`  ${keyType} ...${keyComment ? ` ${keyComment}` : ""}`);
+				console.log(`  ${key}`);
 			}
 		}
 

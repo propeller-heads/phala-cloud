@@ -4,7 +4,7 @@ import semver from "semver";
 import chalk from "chalk";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { getStateValue, saveState } from "@/src/utils/state";
 import {
 	detectPackageManager,
@@ -169,8 +169,6 @@ async function runSelfUpdate(
 	input: SelfUpdateCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	const packageName = context.cli?.packageName ?? "phala";
 	const runtime: RuntimeName =
 		(context.cli?.runtime as RuntimeName | undefined) ??

@@ -2,7 +2,6 @@ import { safeGetCurrentUser } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClientWithAuth } from "@/src/lib/client";
-import { setJsonMode } from "@/src/utils/logger";
 import {
 	whoamiCommandMeta,
 	whoamiCommandSchema,
@@ -13,8 +12,6 @@ async function runWhoamiCommand(
 	input: WhoamiCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	const { client, auth } = await getClientWithAuth(context, {
 		apiToken: input.apiToken,
 	});

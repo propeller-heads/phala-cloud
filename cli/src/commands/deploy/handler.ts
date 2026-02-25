@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import type { CommandContext } from "@/src/core/types";
 import { resolveAuthForContext } from "@/src/lib/client";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import {
 	CLOUD_URL,
 	DEFAULT_DISK_SIZE,
@@ -1134,9 +1134,6 @@ export async function runDeploy(
 	input: DeployCommandInput,
 	context: CommandContext,
 ): Promise<void> {
-	// Enable JSON mode if --json flag is set
-	setJsonMode(input.json || false);
-
 	try {
 		// Use positional argument if provided, otherwise use the --compose option
 		// Fallback to phala.toml compose_file if not specified

@@ -11,7 +11,7 @@ import {
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient, resolveAuthForContext } from "@/src/lib/client";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import {
 	projectConfigExists,
 	saveProjectConfig,
@@ -177,8 +177,6 @@ export async function runLinkCommand(
 	input: LinkCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	try {
 		// Direct CVM ID provided - non-interactive mode
 		if (input.cvmId) {

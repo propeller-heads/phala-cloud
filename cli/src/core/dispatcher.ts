@@ -6,7 +6,7 @@ import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
 import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
-import { isInJsonMode } from "./json-mode";
+import { isInJsonMode, setJsonMode } from "./json-mode";
 import { getProjectConfig } from "@/src/utils/project-config";
 import { selectCvm } from "@/src/api/cvms";
 import { checkForUpdates, getCachedUpdateNotice } from "./update-check";
@@ -118,6 +118,8 @@ export async function dispatchCommand(
 			commandArgv,
 			definition.meta.options,
 		);
+
+		setJsonMode(parsedArguments.flags["--json"] === true);
 
 		if (parsedArguments.flags["--version"]) {
 			stdout.write(`${version}\n`);
