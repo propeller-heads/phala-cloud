@@ -1,5 +1,6 @@
 import { safeImportGithubProfileSshKeys } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
@@ -26,8 +27,13 @@ async function runSshKeysImportGithubCommand(
 		spinner.stop(true);
 
 		if (!result.success) {
-			logger.error(`Failed to import SSH keys: ${result.error.message}`);
+			context.fail(`Failed to import SSH keys: ${result.error.message}`);
 			return 1;
+		}
+
+		if (isInJsonMode()) {
+			context.success(result.data);
+			return 0;
 		}
 
 		const { keys_added, keys_skipped, errors } = result.data;

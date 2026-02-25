@@ -1,5 +1,6 @@
 import { safeListSshKeys } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { printTable } from "@/src/lib/table";
@@ -24,6 +25,11 @@ async function runSshKeysListCommand(
 		}
 
 		const keys = result.data;
+
+		if (isInJsonMode()) {
+			context.success(keys);
+			return 0;
+		}
 
 		if (keys.length === 0) {
 			logger.info("No SSH keys found");

@@ -3,6 +3,7 @@ import { basename, join } from "node:path";
 import { homedir, hostname } from "node:os";
 import { safeCreateSshKey } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
@@ -62,6 +63,11 @@ async function runSshKeysAddCommand(
 		if (!result.success) {
 			context.fail(`Failed to add SSH key: ${result.error.message}`);
 			return 1;
+		}
+
+		if (isInJsonMode()) {
+			context.success(result.data);
+			return 0;
 		}
 
 		logger.success(

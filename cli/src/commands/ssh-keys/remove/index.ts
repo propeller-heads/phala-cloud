@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { safeDeleteSshKey, safeListSshKeys } from "@phala/cloud";
 import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { logger } from "@/src/utils/logger";
@@ -71,6 +72,11 @@ async function runSshKeysRemoveCommand(
 		if (!result.success) {
 			context.fail(`Failed to remove SSH key: ${result.error.message}`);
 			return 1;
+		}
+
+		if (isInJsonMode()) {
+			context.success({ keyId, removed: true });
+			return 0;
 		}
 
 		logger.success(`SSH key ${keyId} removed`);
