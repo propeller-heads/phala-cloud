@@ -31,8 +31,8 @@ async function runSshKeysAddCommand(
 ): Promise<number> {
 	try {
 		let keyFilePath = input.keyFile;
-		if (keyFilePath?.startsWith("~")) {
-			keyFilePath = join(homedir(), keyFilePath.slice(1));
+		if (keyFilePath?.startsWith("~/")) {
+			keyFilePath = join(homedir(), keyFilePath.slice(2));
 		}
 
 		if (!keyFilePath) {
