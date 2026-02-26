@@ -1,6 +1,6 @@
 import { CvmIdSchema, safeGetCvmInfo } from "@phala/cloud";
 import type { CommandContext } from "@/src/core/types";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { getClient } from "@/src/lib/client";
 
 /**
@@ -54,8 +54,6 @@ export function createLogsHandler<TInput extends BaseLogsInput, TOptions>(
 		input: TInput,
 		context: CommandContext,
 	): Promise<number> {
-		setJsonMode(input.json);
-
 		if (!context.cvmId) {
 			context.fail(
 				"No CVM ID provided. Use --interactive to select interactively.",

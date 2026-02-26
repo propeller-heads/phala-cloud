@@ -4,7 +4,7 @@ import type { CommandContext } from "@/src/core/types";
 import { getClientWithAuth } from "@/src/lib/client";
 import { checkForUpdates } from "@/src/core/update-check";
 
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { statusCommandMeta, statusCommandSchema } from "./command";
 import type { StatusCommandInput } from "./command";
 
@@ -12,8 +12,6 @@ export async function runStatusCommand(
 	input: StatusCommandInput,
 	context: CommandContext,
 ): Promise<number | undefined> {
-	setJsonMode(input.json);
-
 	const debug = input.debug || context.env.DEBUG?.toLowerCase() === "true";
 
 	const { client, auth } = await getClientWithAuth(context, {

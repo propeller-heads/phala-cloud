@@ -1,0 +1,69 @@
+import { safeGetCvmUserConfig } from "@phala/cloud";
+import { defineCommand } from "@/src/core/define-command";
+import { isInJsonMode } from "@/src/core/json-mode";
+import type { CommandContext } from "@/src/core/types";
+import { getClient } from "@/src/lib/client";
+import { logger } from "@/src/utils/logger";
+import {
+	cvmsRuntimeConfigCommandMeta,
+	cvmsRuntimeConfigCommandSchema,
+	type CvmsRuntimeConfigCommandInput,
+} from "./command";
+
+async function runCvmsRuntimeConfigCommand(
+	_input: CvmsRuntimeConfigCommandInput,
+	context: CommandContext,
+): Promise<number> {
+	if (!context.cvmId) {
+		context.fail(
+			"No CVM ID provided. Either pass a CVM ID as argument or configure it in phala.toml.",
+		);
+		return 1;
+	}
+
+	try {
+		const client = await getClient();
+		const result = await safeGetCvmUserConfig(client, context.cvmId);
+
+		if (!result.success) {
+			context.fail(`Failed to get runtime config: ${result.error.message}`);
+			return 1;
+		}
+
+		const config = result.data;
+
+		if (isInJsonMode()) {
+			context.success(config);
+			return 0;
+		}
+
+		console.log(`Hostname:       ${config.hostname ?? "-"}`);
+		console.log(`Gateway Domain: ${config.default_gateway_domain ?? "-"}`);
+		console.log(
+			`SSH Keys:       ${config.ssh_authorized_keys.length > 0 ? `${config.ssh_authorized_keys.length} key(s)` : "none"}`,
+		);
+
+		if (config.ssh_authorized_keys.length > 0) {
+			console.log();
+			console.log("SSH Authorized Keys:");
+			for (const key of config.ssh_authorized_keys) {
+				console.log(`  ${key}`);
+			}
+		}
+
+		return 0;
+	} catch (error) {
+		logger.logDetailedError(error);
+		context.fail("Failed to get CVM runtime config");
+		return 1;
+	}
+}
+
+export const cvmsRuntimeConfigCommand = defineCommand({
+	path: ["runtime-config"],
+	meta: cvmsRuntimeConfigCommandMeta,
+	schema: cvmsRuntimeConfigCommandSchema,
+	handler: runCvmsRuntimeConfigCommand,
+});
+
+export default cvmsRuntimeConfigCommand;

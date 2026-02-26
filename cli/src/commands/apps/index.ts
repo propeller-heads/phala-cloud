@@ -3,7 +3,7 @@ import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { printTable } from "@/src/lib/table";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { listAppsWithCvmStatus } from "@/src/lib/apps/list-apps-with-cvm-status";
 
 import {
@@ -24,8 +24,6 @@ async function runAppsCommand(
 	input: AppsCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	try {
 		const client = await getClient();
 		const result = await listAppsWithCvmStatus(client as never, {

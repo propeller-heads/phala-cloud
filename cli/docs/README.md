@@ -30,6 +30,7 @@ For installation and quick start, see the [README](../README.md).
 | [cvms](./cvms.md) | Manage CVMs (start, stop, restart, delete, resize, ...) |
 | [link](./link.md) | Link a local directory to a CVM |
 | [nodes](./nodes.md) | List TEE worker nodes |
+| [ssh-keys](./ssh-keys.md) | Manage SSH keys (list, add, remove, import from GitHub) |
 
 ## CVM Operations
 
@@ -39,6 +40,7 @@ For installation and quick start, see the [README](../README.md).
 | [ps](./ps.md) | List containers of a CVM |
 | [ssh](./ssh.md) | Connect to a CVM via SSH |
 | [cp](./cp.md) | Copy files to/from a CVM via SCP |
+| [runtime-config](./runtime-config.md) | Show CVM runtime configuration |
 
 ## Advanced
 

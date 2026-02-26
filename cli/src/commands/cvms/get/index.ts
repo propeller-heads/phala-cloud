@@ -4,7 +4,7 @@ import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { CLOUD_URL } from "@/src/utils/constants";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import {
 	cvmsGetCommandMeta,
 	cvmsGetCommandSchema,
@@ -15,9 +15,6 @@ async function runCvmsGetCommand(
 	input: CvmsGetCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	// Enable JSON mode if --json flag is set
-	setJsonMode(input.json);
-
 	if (!context.cvmId) {
 		context.fail(
 			"No CVM ID provided. Use --interactive to select interactively.",

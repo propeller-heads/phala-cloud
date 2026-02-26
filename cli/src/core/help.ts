@@ -128,7 +128,13 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 			const stability = meta?.stability;
 			const indicator = stability ? formatStabilityIndicator(stability) : "";
 			const name = node.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
+			const aliases = meta?.aliases;
+			const displayName = aliases?.length
+				? `${name} (${aliases.join(", ")})`
+				: name;
+			lines.push(
+				`  ${displayName.padEnd(18)}${description}${indicator}`.trimEnd(),
+			);
 		}
 		lines.push("");
 	}
@@ -136,9 +142,9 @@ export function formatGlobalHelp(options: GlobalHelpOptions): string {
 	lines.push("");
 	lines.push("Global options:");
 	for (const option of globalCommandOptions) {
-		lines.push(
-			`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
-		);
+		const sig = formatOptionSignature(option);
+		const pad = Math.max(24, sig.length + 2);
+		lines.push(`  ${sig.padEnd(pad)}${option.description ?? ""}`.trimEnd());
 	}
 
 	return lines.join("\n");
@@ -173,16 +179,22 @@ export function formatGroupHelp(options: GroupHelpOptions): string {
 			const stability = meta?.stability;
 			const indicator = stability ? formatStabilityIndicator(stability) : "";
 			const name = child.name ?? "";
-			lines.push(`  ${name.padEnd(18)}${description}${indicator}`.trimEnd());
+			const aliases = meta?.aliases;
+			const displayName = aliases?.length
+				? `${name} (${aliases.join(", ")})`
+				: name;
+			lines.push(
+				`  ${displayName.padEnd(18)}${description}${indicator}`.trimEnd(),
+			);
 		}
 		lines.push("");
 	}
 
 	lines.push("Global options:");
 	for (const option of globalCommandOptions) {
-		lines.push(
-			`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
-		);
+		const sig = formatOptionSignature(option);
+		const pad = Math.max(24, sig.length + 2);
+		lines.push(`  ${sig.padEnd(pad)}${option.description ?? ""}`.trimEnd());
 	}
 
 	return lines.join("\n");
@@ -230,9 +242,9 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 		for (const option of visibleGlobalOptions) {
 			const includeShorthand =
 				!option.shorthand || !commandShorthands.has(option.shorthand);
-			lines.push(
-				`  ${formatOptionSignature(option, { includeShorthand }).padEnd(24)}${option.description ?? ""}`.trimEnd(),
-			);
+			const sig = formatOptionSignature(option, { includeShorthand });
+			const pad = Math.max(24, sig.length + 2);
+			lines.push(`  ${sig.padEnd(pad)}${option.description ?? ""}`.trimEnd());
 		}
 	}
 
@@ -268,9 +280,9 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 			lines.push("");
 			lines.push(title);
 			for (const option of options) {
-				lines.push(
-					`  ${formatOptionSignature(option).padEnd(24)}${option.description ?? ""}`.trimEnd(),
-				);
+				const sig = formatOptionSignature(option);
+				const pad = Math.max(24, sig.length + 2);
+				lines.push(`  ${sig.padEnd(pad)}${option.description ?? ""}`.trimEnd());
 			}
 		};
 
@@ -317,8 +329,12 @@ export function formatCommandHelp(options: CommandHelpOptions): string {
 				? formatStabilityIndicator(stability)
 				: "";
 			const name = child.name ?? "";
+			const aliases = meta?.aliases;
+			const displayName = aliases?.length
+				? `${name} (${aliases.join(", ")})`
+				: name;
 			lines.push(
-				`  ${name.padEnd(18)}${description}${childIndicator}`.trimEnd(),
+				`  ${displayName.padEnd(18)}${description}${childIndicator}`.trimEnd(),
 			);
 		}
 	}

@@ -5,7 +5,7 @@ import { resizeCvm } from "@/src/api/cvms";
 import { CLOUD_URL } from "@/src/utils/constants";
 import { getClient } from "@/src/lib/client";
 
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import { retryOnConflict } from "@/src/utils/retry";
 import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
@@ -72,9 +72,6 @@ async function runCvmsResizeCommand(
 	input: CvmsResizeCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	// Enable JSON mode if --json flag is set
-	setJsonMode(input.json);
-
 	if (!context.cvmId) {
 		context.fail(
 			"No CVM ID provided. Use --interactive to select interactively.",

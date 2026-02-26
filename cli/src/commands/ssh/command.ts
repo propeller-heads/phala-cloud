@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CommandMeta } from "@/src/core/types";
-import { cvmIdArgument } from "@/src/core/common-flags";
+import { cvmIdArgument, interactiveOption } from "@/src/core/common-flags";
 
 export const sshCommandMeta: CommandMeta = {
 	name: "ssh",
@@ -9,6 +9,7 @@ export const sshCommandMeta: CommandMeta = {
 	stability: "unstable",
 	arguments: [cvmIdArgument],
 	options: [
+		interactiveOption,
 		{
 			name: "port",
 			shorthand: "p",

@@ -6,7 +6,7 @@ import { defineCommand } from "@/src/core/define-command";
 import type { CommandContext } from "@/src/core/types";
 import { getClient } from "@/src/lib/client";
 import { printTable } from "@/src/lib/table";
-import { logger, setJsonMode } from "@/src/utils/logger";
+import { logger } from "@/src/utils/logger";
 import {
 	instanceTypesCommandMeta,
 	instanceTypesCommandSchema,
@@ -25,8 +25,6 @@ async function runInstanceTypesCommand(
 	input: InstanceTypesCommandInput,
 	context: CommandContext,
 ): Promise<number> {
-	setJsonMode(input.json);
-
 	try {
 		const client = await getClient();
 

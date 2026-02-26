@@ -371,6 +371,54 @@ export {
   type GetCvmStatusBatchRequest,
 } from "./cvms/get_cvm_status_batch";
 
+export {
+  getCvmUserConfig,
+  safeGetCvmUserConfig,
+  CvmUserConfigSchema,
+  GetCvmUserConfigRequestSchema,
+  type CvmUserConfig,
+  type GetCvmUserConfigRequest,
+} from "./cvms/get_cvm_user_config";
+
+export {
+  listSshKeys,
+  safeListSshKeys,
+  SshKeySchema,
+  ListSshKeysResponseSchema,
+  type SshKey,
+  type ListSshKeysResponse,
+} from "./ssh_keys/list_ssh_keys";
+
+export {
+  importGithubProfileSshKeys,
+  safeImportGithubProfileSshKeys,
+  ImportGithubProfileRequestSchema,
+  ImportGithubProfileResponseSchema,
+  type ImportGithubProfileRequest,
+  type ImportGithubProfileResponse,
+} from "./ssh_keys/import_github_profile";
+
+export {
+  createSshKey,
+  safeCreateSshKey,
+  CreateSshKeyRequestSchema,
+  type CreateSshKeyRequest,
+} from "./ssh_keys/create_ssh_key";
+
+export {
+  deleteSshKey,
+  safeDeleteSshKey,
+  DeleteSshKeyRequestSchema,
+  type DeleteSshKeyRequest,
+} from "./ssh_keys/delete_ssh_key";
+
+export {
+  syncGithubSshKeys,
+  safeSyncGithubSshKeys,
+  SyncGithubSshKeysResponseSchema,
+  type SyncGithubSshKeysResponse,
+} from "./ssh_keys/sync_github_ssh_keys";
+
 // App Operations
 export {
   getAppList,

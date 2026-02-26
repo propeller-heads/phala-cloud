@@ -172,6 +172,34 @@ import {
   type CvmState,
 } from "./actions/cvms/get_cvm_state";
 
+import {
+  listSshKeys,
+  safeListSshKeys,
+  type ListSshKeysResponse,
+} from "./actions/ssh_keys/list_ssh_keys";
+import {
+  importGithubProfileSshKeys,
+  safeImportGithubProfileSshKeys,
+  type ImportGithubProfileRequest,
+  type ImportGithubProfileResponse,
+} from "./actions/ssh_keys/import_github_profile";
+import {
+  createSshKey,
+  safeCreateSshKey,
+  type CreateSshKeyRequest,
+} from "./actions/ssh_keys/create_ssh_key";
+import {
+  deleteSshKey,
+  safeDeleteSshKey,
+  type DeleteSshKeyRequest,
+} from "./actions/ssh_keys/delete_ssh_key";
+import {
+  syncGithubSshKeys,
+  safeSyncGithubSshKeys,
+  type SyncGithubSshKeysResponse,
+} from "./actions/ssh_keys/sync_github_ssh_keys";
+import type { SshKey } from "./actions/ssh_keys/list_ssh_keys";
+
 import type { KmsInfo } from "./types/kms_info";
 import type { VM } from "./types/cvm_info";
 
@@ -296,6 +324,16 @@ export function createClient<V extends ApiVersion = DefaultApiVersion>(
     readonly safeNextAppIds: typeof safeNextAppIds;
     readonly getCvmState: typeof getCvmState;
     readonly safeGetCvmState: typeof safeGetCvmState;
+    readonly listSshKeys: typeof listSshKeys;
+    readonly safeListSshKeys: typeof safeListSshKeys;
+    readonly importGithubProfileSshKeys: typeof importGithubProfileSshKeys;
+    readonly safeImportGithubProfileSshKeys: typeof safeImportGithubProfileSshKeys;
+    readonly createSshKey: typeof createSshKey;
+    readonly safeCreateSshKey: typeof safeCreateSshKey;
+    readonly deleteSshKey: typeof deleteSshKey;
+    readonly safeDeleteSshKey: typeof safeDeleteSshKey;
+    readonly syncGithubSshKeys: typeof syncGithubSshKeys;
+    readonly safeSyncGithubSshKeys: typeof safeSyncGithubSshKeys;
   } = {
     getCurrentUser,
     safeGetCurrentUser,
@@ -369,6 +407,16 @@ export function createClient<V extends ApiVersion = DefaultApiVersion>(
     safeNextAppIds,
     getCvmState,
     safeGetCvmState,
+    listSshKeys,
+    safeListSshKeys,
+    importGithubProfileSshKeys,
+    safeImportGithubProfileSshKeys,
+    createSshKey,
+    safeCreateSshKey,
+    deleteSshKey,
+    safeDeleteSshKey,
+    syncGithubSshKeys,
+    safeSyncGithubSshKeys,
   };
 
   return client.extend(allActions) as unknown as Client<V>;
@@ -1056,4 +1104,83 @@ export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseCl
     request: GetCvmStateRequest,
     parameters: { schema: false },
   ): Promise<SafeResult<unknown>>;
+
+  // SSH Key Operations
+  listSshKeys(): Promise<ListSshKeysResponse>;
+  listSshKeys<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<z.infer<T>>;
+  listSshKeys(parameters: { schema: false }): Promise<unknown>;
+
+  safeListSshKeys(): Promise<SafeResult<ListSshKeysResponse>>;
+  safeListSshKeys<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<
+    SafeResult<z.infer<T>>
+  >;
+  safeListSshKeys(parameters: { schema: false }): Promise<SafeResult<unknown>>;
+
+  importGithubProfileSshKeys(
+    request: ImportGithubProfileRequest,
+  ): Promise<ImportGithubProfileResponse>;
+  importGithubProfileSshKeys<T extends z.ZodTypeAny>(
+    request: ImportGithubProfileRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  importGithubProfileSshKeys(
+    request: ImportGithubProfileRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeImportGithubProfileSshKeys(
+    request: ImportGithubProfileRequest,
+  ): Promise<SafeResult<ImportGithubProfileResponse>>;
+  safeImportGithubProfileSshKeys<T extends z.ZodTypeAny>(
+    request: ImportGithubProfileRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeImportGithubProfileSshKeys(
+    request: ImportGithubProfileRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  createSshKey(request: CreateSshKeyRequest): Promise<SshKey>;
+  createSshKey<T extends z.ZodTypeAny>(
+    request: CreateSshKeyRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  createSshKey(request: CreateSshKeyRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeCreateSshKey(request: CreateSshKeyRequest): Promise<SafeResult<SshKey>>;
+  safeCreateSshKey<T extends z.ZodTypeAny>(
+    request: CreateSshKeyRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeCreateSshKey(
+    request: CreateSshKeyRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  deleteSshKey(request: DeleteSshKeyRequest): Promise<void>;
+  deleteSshKey<T extends z.ZodTypeAny>(
+    request: DeleteSshKeyRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  deleteSshKey(request: DeleteSshKeyRequest, parameters: { schema: false }): Promise<unknown>;
+
+  safeDeleteSshKey(request: DeleteSshKeyRequest): Promise<SafeResult<void>>;
+  safeDeleteSshKey<T extends z.ZodTypeAny>(
+    request: DeleteSshKeyRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeDeleteSshKey(
+    request: DeleteSshKeyRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  syncGithubSshKeys(): Promise<SyncGithubSshKeysResponse>;
+  syncGithubSshKeys<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<z.infer<T>>;
+  syncGithubSshKeys(parameters: { schema: false }): Promise<unknown>;
+
+  safeSyncGithubSshKeys(): Promise<SafeResult<SyncGithubSshKeysResponse>>;
+  safeSyncGithubSshKeys<T extends z.ZodTypeAny>(parameters: { schema: T }): Promise<
+    SafeResult<z.infer<T>>
+  >;
+  safeSyncGithubSshKeys(parameters: { schema: false }): Promise<SafeResult<unknown>>;
 }
