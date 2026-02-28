@@ -235,6 +235,13 @@ export {
   type DeleteCvmRequest,
 } from "./cvms/delete_cvm";
 
+export {
+  replicateCvm,
+  safeReplicateCvm,
+  ReplicateCvmRequestSchema,
+  type ReplicateCvmRequest,
+} from "./cvms/replicate_cvm";
+
 // CVM Query Operations
 export {
   getCvmStats,
