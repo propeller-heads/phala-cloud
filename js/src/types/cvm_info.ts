@@ -27,7 +27,7 @@ export const VMSchema = z.object({
   vm_uuid: z.string().nullable(),
   instance_id: z.string().nullable(),
   app_url: z.string().optional().nullable(),
-  base_image: z.string().nullable(),
+  base_image: z.string().optional().nullable(),
   vcpu: z.number(),
   memory: z.number(),
   disk_size: z.number(),
