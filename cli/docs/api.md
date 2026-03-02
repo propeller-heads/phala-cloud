@@ -17,8 +17,8 @@ Make authenticated HTTP requests to the Phala Cloud API with automatic credentia
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--method <method>` | `-X` | GET | HTTP method (GET, POST, PUT, DELETE, PATCH, etc.) |
-| `--field <field>` | `-f` | | String parameter `key=value` (use `key=@file` for file). Repeatable |
-| `--raw-field <field>` | `-F` | | Typed JSON parameter `key:=value` (use `key:=@file` for JSON file). Repeatable |
+| `--query <param>` | `-f` | | Query parameter: `key=value` (use `key=@file` for file). Repeatable |
+| `--field <field>` | `-F` | | Body field: `key=value` (string) or `key:=value` (typed JSON). Supports `@file`. Repeatable |
 | `--header <header>` | `-H` | | HTTP header `key:value`. Repeatable |
 | `--data <data>` | `-d` | | Request body (cURL-style). Repeatable |
 | `--input <file>` | | | Read body from file (use `-` for stdin) |
@@ -26,6 +26,16 @@ Make authenticated HTTP requests to the Phala Cloud API with automatic credentia
 | `--jq <expression>` | `-q` | | Filter output with jq expression |
 | `--silent` | | false | Suppress response body |
 | `--api-token <token>` | | | Override API token |
+
+## Flag Semantics
+
+- **`-f` (query)**: Always appended to the URL as query parameters, regardless of HTTP method.
+- **`-F` (body field)**: Always sent as JSON request body. Supports `key=value` for strings and `key:=value` for typed JSON (numbers, booleans, null, arrays, objects).
+- **`-d` (data)**: Raw request body. If the value is valid JSON, it is sent as JSON automatically.
+- **`--input`**: Read body from a file.
+
+`-f` can be combined with any body option (`-F`, `-d`, `--input`).
+`-F`, `-d`, and `--input` are mutually exclusive.
 
 ## Environment Variables
 
@@ -42,13 +52,33 @@ Extract CVM names with jq:
 
     $ phala api /api/v1/cvms -q '.[].name'
 
-Create CVM with string field:
+GET with query parameters:
 
-    $ phala api /api/v1/cvms -X POST -f name=my-app
+    $ phala api /api/v1/cvms -f status=active -f page=2
 
-Create CVM with typed JSON fields:
+POST with body fields (string and typed):
 
-    $ phala api /api/v1/cvms -X POST -F vcpu:=2 -F memory:=4096
+    $ phala api /api/v1/cvms -X POST -F name=my-app -F vcpu:=2 -F memory:=4096
+
+POST with cURL-style -d:
+
+    $ phala api /api/v1/endpoint -X POST -d '{"name":"test"}'
+
+POST from file:
+
+    $ phala api /api/v1/cvms -X POST --input request.json
+
+POST from stdin:
+
+    $ echo '{"name":"test"}' | phala api /api/v1/cvms -X POST --input -
+
+Query params + body combined:
+
+    $ phala api /api/v1/cvms -X POST -f page=1 -F name=my-app -F vcpu:=2
+
+Body field from file:
+
+    $ phala api /api/v1/endpoint -X POST -F config:=@settings.json
 
 Delete CVM:
 
@@ -58,26 +88,9 @@ Include response headers:
 
     $ phala api /api/v1/status -i
 
-Send JSON body from stdin:
-
-    $ echo '{"name":"test"}' | phala api /api/v1/cvms -X POST --input -
-
-Send JSON body from file:
-
-    $ phala api /api/v1/cvms -X POST --input request.json
-
 Add custom headers:
 
-    $ phala api /api/v1/cvms -H "X-Custom-Header:value" -H "X-Another:test"
-
-Complex query with multiple fields:
-
-    $ phala api /api/v1/cvms -X POST \
-        -f name=my-app \
-        -f region=us-west \
-        -F vcpu:=4 \
-        -F memory:=8192 \
-        -F env:='{"KEY":"value"}'
+    $ phala api /api/v1/cvms -H "X-Custom-Header:value"
 
 Filter nested JSON with jq:
 

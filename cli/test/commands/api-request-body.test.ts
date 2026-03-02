@@ -2,7 +2,10 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { buildApiRequestBody } from "../../src/commands/api/index";
+import {
+	buildApiRequestBody,
+	resolveRequest,
+} from "../../src/commands/api/index";
 import type { ApiCommandInput } from "../../src/commands/api/command";
 
 function baseInput(overrides: Partial<ApiCommandInput> = {}): ApiCommandInput {
@@ -15,7 +18,7 @@ function baseInput(overrides: Partial<ApiCommandInput> = {}): ApiCommandInput {
 	};
 }
 
-describe("api command - -d/--data request body", () => {
+describe("buildApiRequestBody - -d/--data", () => {
 	test("parses JSON body from -d", () => {
 		const result = buildApiRequestBody(baseInput({ data: ['{"foo":"bar"}'] }));
 
@@ -35,24 +38,6 @@ describe("api command - -d/--data request body", () => {
 
 		expect(result.body).toBe("xxx");
 		expect(result.defaultContentType).toBe("application/x-www-form-urlencoded");
-	});
-
-	test("errors when -d is used with -f/-F/--input", () => {
-		expect(() =>
-			buildApiRequestBody(baseInput({ data: ["x"], field: ["a=b"] })),
-		).toThrow(
-			'"-d/--data" cannot be used with "-f/--field" or "-F/--raw-field"',
-		);
-
-		expect(() =>
-			buildApiRequestBody(baseInput({ data: ["x"], rawField: ["a:=1"] })),
-		).toThrow(
-			'"-d/--data" cannot be used with "-f/--field" or "-F/--raw-field"',
-		);
-
-		expect(() =>
-			buildApiRequestBody(baseInput({ data: ["x"], input: "data.json" })),
-		).toThrow('"-d/--data" cannot be used with "--input"');
 	});
 
 	test("parses JSON array from -d", () => {
@@ -75,18 +60,177 @@ describe("api command - -d/--data request body", () => {
 		expect(result.body).toBeUndefined();
 		expect(result.defaultContentType).toBeUndefined();
 	});
+});
 
-	test("-f/-F fields work without -d", () => {
+describe("buildApiRequestBody - -F body fields", () => {
+	test("-F with string value (key=value)", () => {
 		const result = buildApiRequestBody(
-			baseInput({ field: ["name=test"], rawField: ["count:=42"] }),
+			baseInput({ field: ["name=test", "tag=bar"] }),
 		);
 
-		expect(result.body).toEqual({ name: "test", count: 42 });
-		expect(result.defaultContentType).toBeUndefined();
+		expect(result.body).toEqual({ name: "test", tag: "bar" });
+	});
+
+	test("-F with typed JSON value (key:=value)", () => {
+		const result = buildApiRequestBody(
+			baseInput({ field: ["count:=42", "enabled:=true"] }),
+		);
+
+		expect(result.body).toEqual({ count: 42, enabled: true });
+	});
+
+	test("-F mixes string and typed JSON values", () => {
+		const result = buildApiRequestBody(
+			baseInput({ field: ["name=foo", "count:=10", "active:=false"] }),
+		);
+
+		expect(result.body).toEqual({ name: "foo", count: 10, active: false });
+	});
+
+	test("-F with null and array values", () => {
+		const result = buildApiRequestBody(
+			baseInput({ field: ["x:=null", 'tags:=["a","b"]'] }),
+		);
+
+		expect(result.body).toEqual({ x: null, tags: ["a", "b"] });
 	});
 });
 
-describe("api command - @file syntax", () => {
+describe("buildApiRequestBody - mutual exclusion", () => {
+	test("errors when -d is used with -F", () => {
+		expect(() =>
+			buildApiRequestBody(baseInput({ data: ["x"], field: ["a=b"] })),
+		).toThrow('"-d/--data" cannot be used with "-F/--field"');
+	});
+
+	test("errors when -d is used with --input", () => {
+		expect(() =>
+			buildApiRequestBody(baseInput({ data: ["x"], input: "data.json" })),
+		).toThrow('"-d/--data" cannot be used with "--input"');
+	});
+
+	test("errors when --input is used with -F", () => {
+		expect(() =>
+			buildApiRequestBody(baseInput({ field: ["a=b"], input: "data.json" })),
+		).toThrow('"--input" cannot be used with "-F/--field"');
+	});
+
+	test("-f (query) does NOT conflict with -d", () => {
+		const result = buildApiRequestBody(
+			baseInput({ query: ["page=1"], data: ['{"x":1}'] }),
+		);
+		// -f is ignored by buildApiRequestBody; -d produces body
+		expect(result.body).toEqual({ x: 1 });
+	});
+
+	test("-f (query) does NOT conflict with -F", () => {
+		const result = buildApiRequestBody(
+			baseInput({ query: ["page=1"], field: ["name=foo"] }),
+		);
+		// -f is ignored by buildApiRequestBody; -F produces body
+		expect(result.body).toEqual({ name: "foo" });
+	});
+});
+
+describe("resolveRequest - -f query params", () => {
+	test("-f appends query params to endpoint", () => {
+		const result = resolveRequest(
+			baseInput({ query: ["status=active", "page=2"] }),
+			"/cvms",
+		);
+
+		expect(result.method).toBe("GET");
+		expect(result.endpoint).toBe("/cvms?status=active&page=2");
+		expect(result.body).toBeUndefined();
+	});
+
+	test("-f appends with & when URL already has query string", () => {
+		const result = resolveRequest(
+			baseInput({ query: ["page=2"] }),
+			"/cvms?sort=name",
+		);
+
+		expect(result.endpoint).toBe("/cvms?sort=name&page=2");
+	});
+
+	test("-f works with POST method (query params, not body)", () => {
+		const result = resolveRequest(
+			baseInput({ method: "POST", query: ["page=1"] }),
+			"/endpoint",
+		);
+
+		expect(result.method).toBe("POST");
+		expect(result.endpoint).toBe("/endpoint?page=1");
+		expect(result.body).toBeUndefined();
+	});
+
+	test("-f combined with -F: query params + body", () => {
+		const result = resolveRequest(
+			baseInput({
+				method: "POST",
+				query: ["page=1"],
+				field: ["name=foo", "count:=10"],
+			}),
+			"/endpoint",
+		);
+
+		expect(result.method).toBe("POST");
+		expect(result.endpoint).toBe("/endpoint?page=1");
+		expect(result.body).toEqual({ name: "foo", count: 10 });
+	});
+
+	test("-f combined with -d: query params + raw body", () => {
+		const result = resolveRequest(
+			baseInput({
+				method: "POST",
+				query: ["page=1"],
+				data: ['{"x":1}'],
+			}),
+			"/endpoint",
+		);
+
+		expect(result.method).toBe("POST");
+		expect(result.endpoint).toBe("/endpoint?page=1");
+		expect(result.body).toEqual({ x: 1 });
+	});
+
+	test("no -f: endpoint unchanged", () => {
+		const result = resolveRequest(baseInput({}), "/cvms");
+
+		expect(result.endpoint).toBe("/cvms");
+		expect(result.body).toBeUndefined();
+	});
+});
+
+describe("resolveRequest - method preservation", () => {
+	test("GET without body stays GET", () => {
+		const result = resolveRequest(baseInput({ method: "GET" }), "/test");
+
+		expect(result.method).toBe("GET");
+	});
+
+	test("POST with -F body stays POST", () => {
+		const result = resolveRequest(
+			baseInput({ method: "POST", field: ["x=1"] }),
+			"/test",
+		);
+
+		expect(result.method).toBe("POST");
+		expect(result.body).toEqual({ x: "1" });
+	});
+
+	test("PATCH with -d body stays PATCH", () => {
+		const result = resolveRequest(
+			baseInput({ method: "PATCH", data: ['{"x":1}'] }),
+			"/test",
+		);
+
+		expect(result.method).toBe("PATCH");
+		expect(result.body).toEqual({ x: 1 });
+	});
+});
+
+describe("@file syntax", () => {
 	let tmpDir: string;
 	let textFile: string;
 	let jsonFile: string;
@@ -107,7 +251,7 @@ describe("api command - @file syntax", () => {
 		rmSync(tmpDir, { recursive: true, force: true });
 	});
 
-	test("-f reads file content as string with =@", () => {
+	test("-F reads file content as string with =@", () => {
 		const result = buildApiRequestBody(
 			baseInput({ field: [`content=@${textFile}`] }),
 		);
@@ -115,20 +259,9 @@ describe("api command - @file syntax", () => {
 		expect(result.body).toEqual({ content: "Hello from file!" });
 	});
 
-	test("-f with @file mixed with regular fields", () => {
-		const result = buildApiRequestBody(
-			baseInput({ field: [`content=@${textFile}`, "name=test"] }),
-		);
-
-		expect(result.body).toEqual({
-			content: "Hello from file!",
-			name: "test",
-		});
-	});
-
 	test("-F reads and parses JSON file with :=@", () => {
 		const result = buildApiRequestBody(
-			baseInput({ rawField: [`config:=@${jsonFile}`] }),
+			baseInput({ field: [`config:=@${jsonFile}`] }),
 		);
 
 		expect(result.body).toEqual({
@@ -136,51 +269,32 @@ describe("api command - @file syntax", () => {
 		});
 	});
 
-	test("-F with @file mixed with inline JSON values", () => {
-		const result = buildApiRequestBody(
-			baseInput({ rawField: [`config:=@${jsonFile}`, "enabled:=true"] }),
-		);
-
-		expect(result.body).toEqual({
-			config: { nested: true, count: 42 },
-			enabled: true,
-		});
-	});
-
-	test("-f and -F with @file can be combined", () => {
+	test("-F mixes @file with inline values", () => {
 		const result = buildApiRequestBody(
 			baseInput({
-				field: [`readme=@${textFile}`],
-				rawField: [`settings:=@${jsonFile}`],
+				field: [`readme=@${textFile}`, `settings:=@${jsonFile}`, "name=foo"],
 			}),
 		);
 
 		expect(result.body).toEqual({
 			readme: "Hello from file!",
 			settings: { nested: true, count: 42 },
+			name: "foo",
 		});
 	});
 
-	test("-F throws error for invalid JSON file", () => {
+	test("-F throws error for invalid JSON file with :=@", () => {
 		expect(() =>
-			buildApiRequestBody(
-				baseInput({ rawField: [`bad:=@${invalidJsonFile}`] }),
-			),
+			buildApiRequestBody(baseInput({ field: [`bad:=@${invalidJsonFile}`] })),
 		).toThrow(/Failed to parse JSON from file/);
 	});
 
 	test("-f with nonexistent file throws error", () => {
 		expect(() =>
-			buildApiRequestBody(baseInput({ field: ["x=@/nonexistent/file.txt"] })),
+			resolveRequest(
+				baseInput({ query: ["x=@/nonexistent/file.txt"] }),
+				"/test",
+			),
 		).toThrow();
-	});
-
-	test("literal @ in value without file reference", () => {
-		// Value starting with @@ should be treated as literal @
-		// Actually current impl treats any @ as file reference
-		// This test documents current behavior - user must use --input for literal @
-		expect(() =>
-			buildApiRequestBody(baseInput({ field: ["email=@user"] })),
-		).toThrow(); // Will fail because @user is not a file
 	});
 });

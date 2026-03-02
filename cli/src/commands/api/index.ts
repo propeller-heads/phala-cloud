@@ -22,11 +22,46 @@ try {
 }
 
 /**
- * Parse key=value string fields into an object.
- * Supports @file syntax: key=@file.txt reads file content as string value.
- * Use key=@- to read from stdin.
+ * Read content from file or stdin.
  */
-function parseStringFields(
+function readFileContent(path: string): string {
+	if (path === "-") {
+		return readFileSync(0, "utf-8");
+	}
+	return readFileSync(path, "utf-8");
+}
+
+/**
+ * Parse a string value into its appropriate JSON type
+ */
+function parseJsonValue(value: string): unknown {
+	if (value === "true") return true;
+	if (value === "false") return false;
+	if (value === "null") return null;
+
+	if (/^-?\d+$/.test(value)) {
+		return Number.parseInt(value, 10);
+	}
+	if (/^-?\d+\.\d+$/.test(value)) {
+		return Number.parseFloat(value);
+	}
+
+	if (value.startsWith("[") || value.startsWith("{")) {
+		try {
+			return JSON.parse(value);
+		} catch {
+			// Not valid JSON, return as string
+		}
+	}
+
+	return value;
+}
+
+/**
+ * Parse -f query params into key=value pairs.
+ * Supports @file syntax: key=@file.txt reads file content as value.
+ */
+function parseQueryParams(
 	fields: string[] | undefined,
 ): Record<string, string> {
 	const result: Record<string, string> = {};
@@ -36,9 +71,7 @@ function parseStringFields(
 			const key = field.slice(0, eqIdx);
 			const value = field.slice(eqIdx + 1);
 			if (value.startsWith("@")) {
-				// Read from file or stdin
-				const path = value.slice(1);
-				result[key] = readFileContent(path);
+				result[key] = readFileContent(value.slice(1));
 			} else {
 				result[key] = value;
 			}
@@ -48,21 +81,21 @@ function parseStringFields(
 }
 
 /**
- * Parse key:=value JSON fields into an object with proper types.
- * Supports @file syntax: key:=@file.json reads and parses file as JSON.
- * Use key:=@- to read JSON from stdin.
+ * Parse -F body fields into an object.
+ * Handles both key=value (string) and key:=value (typed JSON).
+ * Supports @file syntax for both forms.
  */
-function parseJsonFields(
+function parseBodyFields(
 	fields: string[] | undefined,
 ): Record<string, unknown> {
 	const result: Record<string, unknown> = {};
 	for (const field of fields ?? []) {
-		const sepIdx = field.indexOf(":=");
-		if (sepIdx > 0) {
-			const key = field.slice(0, sepIdx);
-			const value = field.slice(sepIdx + 2);
+		// Try := first (typed JSON)
+		const colonEqIdx = field.indexOf(":=");
+		if (colonEqIdx > 0) {
+			const key = field.slice(0, colonEqIdx);
+			const value = field.slice(colonEqIdx + 2);
 			if (value.startsWith("@")) {
-				// Read from file and parse as JSON
 				const path = value.slice(1);
 				const content = readFileContent(path);
 				try {
@@ -75,37 +108,21 @@ function parseJsonFields(
 			} else {
 				result[key] = parseJsonValue(value);
 			}
+			continue;
+		}
+		// Try = (string)
+		const eqIdx = field.indexOf("=");
+		if (eqIdx > 0) {
+			const key = field.slice(0, eqIdx);
+			const value = field.slice(eqIdx + 1);
+			if (value.startsWith("@")) {
+				result[key] = readFileContent(value.slice(1));
+			} else {
+				result[key] = value;
+			}
 		}
 	}
 	return result;
-}
-
-/**
- * Parse a string value into its appropriate JSON type
- */
-function parseJsonValue(value: string): unknown {
-	if (value === "true") return true;
-	if (value === "false") return false;
-	if (value === "null") return null;
-
-	// Try to parse as number
-	if (/^-?\d+$/.test(value)) {
-		return Number.parseInt(value, 10);
-	}
-	if (/^-?\d+\.\d+$/.test(value)) {
-		return Number.parseFloat(value);
-	}
-
-	// Try to parse as JSON array or object
-	if (value.startsWith("[") || value.startsWith("{")) {
-		try {
-			return JSON.parse(value);
-		} catch {
-			// Not valid JSON, return as string
-		}
-	}
-
-	return value;
 }
 
 /**
@@ -133,25 +150,6 @@ function hasHeader(
 }
 
 /**
- * Read content from file or stdin.
- * Supports "@-" for stdin and "@path" for file paths.
- */
-function readFileContent(path: string): string {
-	if (path === "-") {
-		// Read from stdin (fd 0)
-		return readFileSync(0, "utf-8");
-	}
-	return readFileSync(path, "utf-8");
-}
-
-/**
- * Read request body from file or stdin (legacy wrapper)
- */
-function readInputBody(inputPath: string): string {
-	return readFileContent(inputPath);
-}
-
-/**
  * Check if HTTP method typically has a request body
  */
 function methodHasBody(method: string): boolean {
@@ -164,21 +162,26 @@ type BuiltRequestBody = {
 };
 
 /**
- * Build request body from input options.
- *
- * Notes:
- * - `--input` takes precedence over everything else
- * - `-d/--data` is mutually exclusive with `-f/-F` (to avoid ambiguity)
+ * Build request body from -F, -d, and --input options.
+ * These three are mutually exclusive.
+ * Note: -f (query params) is handled separately in resolveRequest.
  */
 export function buildApiRequestBody(input: ApiCommandInput): BuiltRequestBody {
+	const hasFields = input.field && input.field.length > 0;
+
 	if (input.input && input.data && input.data.length > 0) {
 		throw new Error('"-d/--data" cannot be used with "--input"');
+	}
+	if (hasFields && input.data && input.data.length > 0) {
+		throw new Error('"-d/--data" cannot be used with "-F/--field"');
+	}
+	if (hasFields && input.input) {
+		throw new Error('"--input" cannot be used with "-F/--field"');
 	}
 
 	// --input takes precedence
 	if (input.input) {
-		const content = readInputBody(input.input);
-		// Try to parse as JSON, if it fails return as string
+		const content = readFileContent(input.input);
 		try {
 			return { body: JSON.parse(content) };
 		} catch {
@@ -188,20 +191,9 @@ export function buildApiRequestBody(input: ApiCommandInput): BuiltRequestBody {
 
 	// -d/--data: cURL-style raw body data
 	if (input.data && input.data.length > 0) {
-		if (
-			(input.field && input.field.length > 0) ||
-			(input.rawField && input.rawField.length > 0)
-		) {
-			throw new Error(
-				'"-d/--data" cannot be used with "-f/--field" or "-F/--raw-field"',
-			);
-		}
-
-		// cURL-style: multiple -d get joined with "&"
 		const combined =
 			input.data.length === 1 ? input.data[0] : input.data.join("&");
 
-		// If it's valid JSON, send as JSON automatically
 		const trimmed = combined.trim();
 		if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
 			try {
@@ -211,23 +203,55 @@ export function buildApiRequestBody(input: ApiCommandInput): BuiltRequestBody {
 			}
 		}
 
-		// Match cURL default for -d: application/x-www-form-urlencoded
 		return {
 			body: combined,
 			defaultContentType: "application/x-www-form-urlencoded",
 		};
 	}
 
-	// Merge string fields and JSON fields
-	const stringFields = parseStringFields(input.field);
-	const jsonFields = parseJsonFields(input.rawField);
-	const merged = { ...stringFields, ...jsonFields };
-
-	if (Object.keys(merged).length === 0) {
-		return { body: undefined };
+	// -F body fields
+	if (hasFields) {
+		const bodyFields = parseBodyFields(input.field);
+		if (Object.keys(bodyFields).length === 0) {
+			return { body: undefined };
+		}
+		return { body: bodyFields };
 	}
 
-	return { body: merged };
+	return { body: undefined };
+}
+
+type ResolvedRequest = {
+	method: string;
+	endpoint: string;
+	body: Record<string, unknown> | string | undefined;
+};
+
+/**
+ * Resolve the final HTTP method, endpoint, and body for an API request.
+ *
+ * -f fields are always appended as query parameters.
+ * -F/-d/--input are always used as request body.
+ */
+export function resolveRequest(
+	input: ApiCommandInput,
+	endpoint: string,
+): ResolvedRequest {
+	const { body } = buildApiRequestBody(input);
+
+	// -f → query params (always appended to URL)
+	const queryParams = parseQueryParams(input.query);
+	let finalEndpoint = endpoint;
+	if (Object.keys(queryParams).length > 0) {
+		const params = new URLSearchParams();
+		for (const [key, value] of Object.entries(queryParams)) {
+			params.append(key, value);
+		}
+		const separator = finalEndpoint.includes("?") ? "&" : "?";
+		finalEndpoint = `${finalEndpoint}${separator}${params.toString()}`;
+	}
+
+	return { method: input.method, endpoint: finalEndpoint, body };
 }
 
 export async function runApiCommand(
@@ -267,21 +291,18 @@ export async function runApiCommand(
 			: rawEndpoint;
 
 	try {
-		// Build request
-		const { body, defaultContentType } = buildApiRequestBody(input);
+		const { defaultContentType } = buildApiRequestBody(input);
 
 		if (defaultContentType && !hasHeader(customHeaders, "content-type")) {
 			customHeaders["Content-Type"] = defaultContentType;
 		}
 
-		// Auto-switch to POST if body is present and method is still default GET
-		const method =
-			body !== undefined && input.method === "GET" ? "POST" : input.method;
+		const resolved = resolveRequest(input, endpoint);
 
 		// Execute request with full response
-		const response = await client.requestFull(endpoint, {
-			method,
-			body: methodHasBody(method) ? body : undefined,
+		const response = await client.requestFull(resolved.endpoint, {
+			method: resolved.method,
+			body: methodHasBody(resolved.method) ? resolved.body : undefined,
 			headers: customHeaders,
 		});
 
