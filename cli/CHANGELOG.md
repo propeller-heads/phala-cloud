@@ -1,3 +1,13 @@
+## [1.1.11](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.10...cli-v1.1.11) (2026-03-02)
+
+### fix
+
+* **cli:** error when body provided with GET/HEAD/OPTIONS ([abf6ab9](https://github.com/Phala-Network/phala-cloud/commit/abf6ab9fd8eeddc0e2465cf10ac536dcfd479a61))
+* **cli:** restore -i/--interactive flag for switch command ([b4786fa](https://github.com/Phala-Network/phala-cloud/commit/b4786fae5a2449b19e123905407c09e7c2b06239))
+
+### refactor
+
+* **cli:** split -f (query) and -F (body) into distinct roles ([b5c465d](https://github.com/Phala-Network/phala-cloud/commit/b5c465dfd9f7ddd90ebe877b7393413138f93ec1))
 ## [1.1.10](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.9...cli-v1.1.10) (2026-02-25)
 
 ### docs
