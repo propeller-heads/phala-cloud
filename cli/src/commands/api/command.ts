@@ -19,17 +19,19 @@ export const apiCommandMeta: CommandMeta = {
 
 The endpoint should be an API path like "/cvms" or "/users/me".
 
-By default, GET is used. If you add -f, -F, -d or --input, it switches to POST.
-Use -X to override the method explicitly.
-
-Use -f key=value for string parameters, -F key:=value for typed JSON values
-(numbers, booleans, null, arrays, objects). Both support @file syntax to read
-values from files: -f content=@file.txt (as string), -F config:=@data.json (as JSON).
+Use -f key=value to add query parameters (appended to the URL for any method).
+Use -F key=value or -F key:=value to add body fields (sent as JSON body).
+-F supports both string values (key=value) and typed JSON values (key:=value
+for numbers, booleans, null, arrays, objects). Both -f and -F support @file
+syntax: -f q=@query.txt, -F config:=@data.json.
 
 Use -d to send raw request body data (cURL-style). If the value is valid JSON,
 it will be sent as JSON automatically.
 
 Use --input to send a JSON file as request body, or --input - to read from stdin.
+
+-f (query) can be combined with -F/-d/--input (body). -F, -d, and --input
+are mutually exclusive.
 
 Use -q to filter JSON output with jq syntax (built-in, no jq installation needed).
 
@@ -55,20 +57,20 @@ ENVIRONMENT VARIABLES
 			target: "method",
 		},
 		{
-			name: "field",
+			name: "query",
 			shorthand: "f",
 			description:
-				"String parameter: key=value (use key=@file to read from file)",
+				"Query parameter: key=value (use key=@file to read from file)",
 			type: "string[]",
-			target: "field",
+			target: "query",
 		},
 		{
-			name: "raw-field",
+			name: "field",
 			shorthand: "F",
 			description:
-				"Typed JSON parameter: key:=value (use key:=@file for JSON file)",
+				"Body field: key=value (string) or key:=value (typed JSON). Supports @file",
 			type: "string[]",
-			target: "rawField",
+			target: "field",
 		},
 		{
 			name: "header",
@@ -125,28 +127,28 @@ ENVIRONMENT VARIABLES
 			value: "phala api /cvms -q '.items[].name'",
 		},
 		{
-			name: "POST with string params",
-			value: "phala api /endpoint -X POST -f name=foo -f tag=bar",
+			name: "GET with query params",
+			value: "phala api /endpoint -f status=active -f page=2",
 		},
 		{
-			name: "POST with typed params",
-			value: "phala api /endpoint -X POST -F count:=10 -F enabled:=true",
+			name: "POST with body fields",
+			value: "phala api /endpoint -X POST -F name=foo -F count:=10",
+		},
+		{
+			name: "POST with cURL-style -d",
+			value: `phala api /endpoint -X POST -d '{"foo":"bar"}'`,
 		},
 		{
 			name: "POST from file",
 			value: "phala api /endpoint -X POST --input data.json",
 		},
 		{
-			name: "POST with cURL-style -d",
-			value: `phala api /endpoint -d '{"foo":"bar"}'`,
+			name: "Query params + body combined",
+			value: "phala api /endpoint -X POST -f page=1 -F name=foo",
 		},
 		{
-			name: "POST with file content as string field",
-			value: "phala api /endpoint -f content=@readme.txt",
-		},
-		{
-			name: "POST with JSON file as nested object",
-			value: "phala api /endpoint -F config:=@settings.json",
+			name: "Body field from file",
+			value: "phala api /endpoint -X POST -F config:=@settings.json",
 		},
 		{
 			name: "Show response headers",
@@ -161,8 +163,8 @@ export const apiCommandSchema = z.object({
 		.enum(HTTP_METHODS)
 		.default("GET")
 		.transform((v) => v.toUpperCase() as (typeof HTTP_METHODS)[number]),
+	query: z.array(z.string()).optional(),
 	field: z.array(z.string()).optional(),
-	rawField: z.array(z.string()).optional(),
 	header: z.array(z.string()).optional(),
 	data: z.array(z.string()).optional(),
 	input: z.string().optional(),
