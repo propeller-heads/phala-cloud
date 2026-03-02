@@ -14,7 +14,15 @@ export const switchCommandMeta: CommandMeta = {
 			target: "profileName",
 		},
 	],
-	options: [],
+	options: [
+		{
+			name: "interactive",
+			shorthand: "i",
+			description: "Select profile interactively",
+			type: "boolean",
+			target: "interactive",
+		},
+	],
 };
 
 export const switchCommandSchema = z.object({
