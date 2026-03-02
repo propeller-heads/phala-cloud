@@ -73,6 +73,7 @@ export const WorkspaceResponseSchema = z
     role: z.string(),
     is_default: z.boolean(),
     created_at: z.string(),
+    confidential_models_enabled: z.boolean().optional(),
   })
   .passthrough();
 
