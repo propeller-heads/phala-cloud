@@ -202,6 +202,29 @@ describe("resolveRequest - -f query params", () => {
 	});
 });
 
+describe("resolveRequest - GET with body produces body (caller must validate)", () => {
+	test("GET + -F produces body in resolved result", () => {
+		const result = resolveRequest(
+			baseInput({ method: "GET", field: ["name=foo"] }),
+			"/test",
+		);
+
+		// resolveRequest itself does not reject; runApiCommand checks methodHasBody
+		expect(result.method).toBe("GET");
+		expect(result.body).toEqual({ name: "foo" });
+	});
+
+	test("GET + -d produces body in resolved result", () => {
+		const result = resolveRequest(
+			baseInput({ method: "GET", data: ['{"x":1}'] }),
+			"/test",
+		);
+
+		expect(result.method).toBe("GET");
+		expect(result.body).toEqual({ x: 1 });
+	});
+});
+
 describe("resolveRequest - method preservation", () => {
 	test("GET without body stays GET", () => {
 		const result = resolveRequest(baseInput({ method: "GET" }), "/test");

@@ -299,10 +299,17 @@ export async function runApiCommand(
 
 		const resolved = resolveRequest(input, endpoint);
 
+		if (resolved.body !== undefined && !methodHasBody(resolved.method)) {
+			context.stderr.write(
+				`Error: ${resolved.method} does not support a request body. Use -X POST (or PUT/PATCH) to send body data.\n`,
+			);
+			return 1;
+		}
+
 		// Execute request with full response
 		const response = await client.requestFull(resolved.endpoint, {
 			method: resolved.method,
-			body: methodHasBody(resolved.method) ? resolved.body : undefined,
+			body: resolved.body,
 			headers: customHeaders,
 		});
 
