@@ -18,7 +18,7 @@ import { defineAction } from "../../utils/define-action";
  * ```
  */
 
-const CertificateSubjectSchema = z.object({
+export const CertificateSubjectSchema = z.object({
   common_name: z.string().nullable(),
   organization: z.string().nullable(),
   country: z.string().nullable(),
@@ -26,13 +26,13 @@ const CertificateSubjectSchema = z.object({
   locality: z.string().nullable(),
 });
 
-const CertificateIssuerSchema = z.object({
+export const CertificateIssuerSchema = z.object({
   common_name: z.string().nullable(),
   organization: z.string().nullable(),
   country: z.string().nullable(),
 });
 
-const CertificateSchema = z.object({
+export const CertificateSchema = z.object({
   subject: CertificateSubjectSchema,
   issuer: CertificateIssuerSchema,
   serial_number: z.string(),
@@ -49,7 +49,7 @@ const CertificateSchema = z.object({
   cert_usage: z.string().nullable().optional(),
 });
 
-const EventLogSchema = z.object({
+export const EventLogSchema = z.object({
   imr: z.number(),
   event_type: z.number(),
   digest: z.string(),
@@ -57,7 +57,7 @@ const EventLogSchema = z.object({
   event_payload: z.string(),
 });
 
-const TcbInfoSchema = z.object({
+export const TcbInfoSchema = z.object({
   mrtd: z.string(),
   rootfs_hash: z.string().nullable().optional(),
   rtmr0: z.string(),

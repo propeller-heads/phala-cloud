@@ -294,6 +294,11 @@ export {
   safeGetCvmAttestation,
   CvmAttestationSchema,
   GetCvmAttestationRequestSchema,
+  CertificateSubjectSchema,
+  CertificateIssuerSchema,
+  CertificateSchema,
+  EventLogSchema,
+  TcbInfoSchema,
   type GetCvmAttestationRequest,
   type CvmAttestation,
 } from "./cvms/get_cvm_attestation";
