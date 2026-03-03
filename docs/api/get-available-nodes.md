@@ -94,7 +94,11 @@ const custom = await getAvailableNodes(client, { schema: customSchema })
 
 **Important**: The behavior of this endpoint varies based on your API version.
 
-### Version 2025-10-28 (Current)
+### Version 2026-01-21 (Latest)
+- Same node filtering as `2025-10-28` (no v0.3.x nodes)
+- Response structure unchanged for this endpoint
+
+### Version 2025-10-28
 - **Never returns v0.3.x nodes**
 - All nodes with version v0.3.x are automatically filtered out
 - The `v03x_only` parameter is completely ignored when using this exact version
@@ -110,16 +114,16 @@ const custom = await getAvailableNodes(client, { schema: customSchema })
 ### Setting API Version
 
 ```typescript
-// Use specific API version
+// Use the latest version (default for new tokens)
 const client = createClient({
   apiKey: 'your-api-key',
-  version: '2025-05-31'  // Use baseline version to see v0.3.x nodes
+  version: '2026-01-21'  // Latest version, filters out v0.3.x nodes
 })
 
-// Or use the latest version (default for new tokens)
+// Use baseline version to see v0.3.x nodes
 const client = createClient({
   apiKey: 'your-api-key',
-  version: '2025-10-28'  // Filters out v0.3.x nodes
+  version: '2025-05-31'
 })
 ```
 

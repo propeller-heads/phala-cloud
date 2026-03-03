@@ -1,11 +1,12 @@
 import { ZodError } from "zod";
 import chalk from "chalk";
-import type { CvmIdInput } from "@phala/cloud";
+import { SUPPORTED_API_VERSIONS, type CvmIdInput } from "@phala/cloud";
 import { buildCommandSchemaInput } from "./input-builder";
 import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
 import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
+import { isValidApiVersion, setApiVersionOverride } from "./api-version";
 import { isInJsonMode, setJsonMode } from "./json-mode";
 import { getProjectConfig } from "@/src/utils/project-config";
 import { selectCvm } from "@/src/api/cvms";
@@ -120,6 +121,17 @@ export async function dispatchCommand(
 		);
 
 		setJsonMode(parsedArguments.flags["--json"] === true);
+
+		const rawApiVersion = parsedArguments.flags["--api-version"];
+		if (typeof rawApiVersion === "string") {
+			if (!isValidApiVersion(rawApiVersion)) {
+				stderr.write(
+					`Invalid API version "${rawApiVersion}". Supported versions: ${SUPPORTED_API_VERSIONS.join(", ")}\n`,
+				);
+				return 1;
+			}
+			setApiVersionOverride(rawApiVersion);
+		}
 
 		if (parsedArguments.flags["--version"]) {
 			stdout.write(`${version}\n`);
