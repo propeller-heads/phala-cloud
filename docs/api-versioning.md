@@ -4,7 +4,7 @@ Phala Cloud uses API versioning to release new features and improvements while m
 
 ## Current Version
 
-The current API version is **`2025-10-28`**.
+The current API version is **`2026-01-21`**.
 
 ## How Versioning Works
 
@@ -29,7 +29,7 @@ Include the `X-Phala-Version` header in your requests:
 # Use a specific version
 curl https://cloud-api.phala.network/api/v1/cvms \
   -H "X-API-Key: your-api-key" \
-  -H "X-Phala-Version: 2025-10-28"
+  -H "X-Phala-Version: 2026-01-21"
 
 # Use the LATEST version (always uses current version)
 curl https://cloud-api.phala.network/api/v1/cvms \
@@ -47,7 +47,7 @@ import { createClient } from '@phala/cloud'
 // Use a specific version
 const client = createClient({
   apiKey: 'your-api-key',
-  version: '2025-10-28'  // Optional, defaults to the latest version for new tokens
+  version: '2026-01-21'  // Optional, defaults to the latest version for new tokens
 })
 
 // Use the LATEST version (always uses current version)
@@ -60,13 +60,25 @@ const latestClient = createClient({
 ### Using the CLI
 
 ```bash
-phala config set api-version 2025-10-28
+# Override API version for a single command
+phala cvms ls --api-version 2026-01-21
+
+# Use an older version
+phala cvms ls --api-version 2025-10-28
 ```
 
 ## Version History
 
-### `2025-10-28` (Latest)
-The current version with all available features and improvements.
+### `2026-01-21` (Latest)
+The current version with the latest features and performance improvements.
+- **New CVM response structure**: `CVMInfo` / `CVMInfoDetail` types with DB-only queries for faster responses
+- **New Auth response structure**: Includes workspace context in user/auth endpoints
+- **Apps endpoints**: Use full `CVMInfo` for app CVM listings
+- **New fields**: `created_at`, `deleted_at`, `listed`, `project_type`, and more
+- New API tokens created after this date default to this version
+
+### `2025-10-28`
+Feature release that filters legacy nodes.
 - **Breaking Change**: `/teepods/available` endpoint no longer returns v0.3.x nodes
 - The `v03x_only` parameter is ignored when using this version
 - New API tokens created after this date default to this version
@@ -98,7 +110,7 @@ You can test how your integration works with different versions without changing
 // Test with a specific version
 const testClient = createClient({
   apiKey: 'your-api-key',
-  version: '2025-05-31'  // Test with older version
+  version: '2025-10-28'  // Test with older version
 })
 
 // Your production client continues using default
@@ -130,7 +142,7 @@ We recommend explicitly specifying your API version in production:
 // ✅ Good: Explicit version for predictability
 const client = createClient({
   apiKey: process.env.PHALA_API_KEY,
-  version: '2025-10-28'
+  version: '2026-01-21'
 })
 
 // ❌ Avoid: Implicit version may change
@@ -155,7 +167,7 @@ Check what's new in the version you're upgrading to. Look for:
 // Test with the new version
 const client = createClient({
   apiKey: 'your-dev-api-key',
-  version: '2025-10-28'  // New version
+  version: '2026-01-21'  // New version
 })
 
 // Run your test suite
@@ -170,7 +182,7 @@ Once testing is complete, update your production configuration:
 // Update your production code
 const client = createClient({
   apiKey: process.env.PHALA_API_KEY,
-  version: '2025-10-28'  // Updated version
+  version: '2026-01-21'  // Updated version
 })
 ```
 
@@ -196,7 +208,7 @@ When a version is deprecated:
 
 ### What version does my API token use?
 
-- **New API tokens**: Automatically use the latest version (`2025-10-28`) by default
+- **New API tokens**: Automatically use the latest version (`2026-01-21`) by default
 - **Existing tokens created before versioning**: Keep their original version (`2025-05-31`)
 - You can override the default by using the `X-Phala-Version` header or the SDK's `version` parameter
 
