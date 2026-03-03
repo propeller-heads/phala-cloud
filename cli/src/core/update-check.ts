@@ -44,6 +44,16 @@ export type FetchLike = (
 const DEFAULT_TIMEOUT_MS = 200;
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
+const GITHUB_REPO = "Phala-Network/phala-cloud";
+const RELEASE_TAG_PREFIX = "cli-v";
+
+function getChangelogUrl(
+	currentVersion: string,
+	latestVersion: string,
+): string {
+	return `https://github.com/${GITHUB_REPO}/compare/${RELEASE_TAG_PREFIX}${currentVersion}...${RELEASE_TAG_PREFIX}${latestVersion}`;
+}
+
 function isTruthyEnv(value: string | undefined): boolean {
 	if (!value) return false;
 	return value === "1" || value.toLowerCase() === "true";
@@ -154,15 +164,19 @@ export function getCachedUpdateNotice(
 
 		const packageManager = detectPackageManager(env, runtime);
 		const spec =
-			channel === "latest"
-				? `${packageName}@latest`
-				: `${packageName}@${channel}`;
+			packageManager === "bun"
+				? `${packageName}@${cachedLatest}`
+				: channel === "latest"
+					? `${packageName}@latest`
+					: `${packageName}@${channel}`;
 		const installCommand = formatGlobalInstallCommand(packageManager, spec);
+		const changelogUrl = getChangelogUrl(currentValid, cachedLatest);
 
 		const message = `${[
 			chalk.yellow(
 				`Update available: v${currentValid} -> v${cachedLatest}${channel === "latest" ? "" : ` (${channel})`}.`,
 			),
+			chalk.gray(changelogUrl),
 			chalk.gray(
 				`Update with: "${executableName} self update" (or "${installCommand}").`,
 			),
@@ -264,15 +278,19 @@ export async function checkForUpdates(
 
 			const packageManager = detectPackageManager(env, runtime);
 			const spec =
-				channel === "latest"
-					? `${packageName}@latest`
-					: `${packageName}@${channel}`;
+				packageManager === "bun"
+					? `${packageName}@${latestVersion}`
+					: channel === "latest"
+						? `${packageName}@latest`
+						: `${packageName}@${channel}`;
 			const installCommand = formatGlobalInstallCommand(packageManager, spec);
+			const changelogUrl = getChangelogUrl(currentValid, latestVersion);
 
 			const message = `${[
 				chalk.yellow(
 					`Update available: v${currentValid} -> v${latestVersion}${channel === "latest" ? "" : ` (${channel})`}.`,
 				),
+				chalk.gray(changelogUrl),
 				chalk.gray(
 					`Update with: "${executableName} self update" (or "${installCommand}").`,
 				),
