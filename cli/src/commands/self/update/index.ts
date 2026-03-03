@@ -20,6 +20,20 @@ import {
 	type SelfUpdateCommandInput,
 } from "./command";
 
+const GITHUB_REPO = "Phala-Network/phala-cloud";
+const RELEASE_TAG_PREFIX = "cli-v";
+
+function getChangelogUrl(
+	currentVersion: string,
+	latestVersion: string,
+): string {
+	return `https://github.com/${GITHUB_REPO}/compare/${RELEASE_TAG_PREFIX}${currentVersion}...${RELEASE_TAG_PREFIX}${latestVersion}`;
+}
+
+function getReleaseUrl(version: string): string {
+	return `https://github.com/${GITHUB_REPO}/releases/tag/${RELEASE_TAG_PREFIX}${version}`;
+}
+
 function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.trim().length > 0;
 }
@@ -205,6 +219,14 @@ async function runSelfUpdate(
 	const isUpToDate =
 		latestVersion && currentValid && !semver.gt(latestVersion, currentValid);
 
+	const changelogUrl =
+		!isUpToDate && latestVersion && currentValid
+			? getChangelogUrl(currentValid, latestVersion)
+			: undefined;
+	const releaseUrl = latestVersion
+		? getReleaseUrl(latestVersion)
+		: undefined;
+
 	// Display version info
 	if (!input.json) {
 		if (fetchError) {
@@ -231,14 +253,19 @@ async function runSelfUpdate(
 						`Update available: v${currentVersion} → v${latestVersion}\n`,
 					),
 				);
+				if (changelogUrl) {
+					context.stderr.write(chalk.gray(`${changelogUrl}\n`));
+				}
 			}
 		}
 	}
 
 	const spec =
-		channel === "latest"
-			? `${packageName}@latest`
-			: `${packageName}@${channel}`;
+		packageManager === "bun" && latestVersion
+			? `${packageName}@${latestVersion}`
+			: channel === "latest"
+				? `${packageName}@latest`
+				: `${packageName}@${channel}`;
 	const commandString = formatGlobalInstallCommand(packageManager, spec);
 	const { command, args } = getGlobalInstallArgs(packageManager, spec);
 
@@ -249,6 +276,8 @@ async function runSelfUpdate(
 			currentVersion,
 			latestVersion,
 			isUpToDate,
+			releaseUrl,
+			changelogUrl,
 		});
 		return 0;
 	}
@@ -270,6 +299,8 @@ async function runSelfUpdate(
 				currentVersion,
 				latestVersion,
 				isUpToDate,
+				releaseUrl,
+				changelogUrl,
 			});
 			return 0;
 		}
@@ -299,6 +330,8 @@ async function runSelfUpdate(
 				currentVersion,
 				latestVersion,
 				isUpToDate,
+				releaseUrl,
+				changelogUrl,
 			});
 		}
 		return 0;
@@ -313,6 +346,8 @@ async function runSelfUpdate(
 				currentVersion,
 				latestVersion,
 				isUpToDate,
+				releaseUrl,
+				changelogUrl,
 			});
 			return 0;
 		}
