@@ -45,11 +45,20 @@ export const jsonOption: CommandOption = {
 	group: "basic",
 };
 
+export const apiVersionOption: CommandOption = {
+	name: "api-version",
+	description: "API version to use (e.g. 2025-10-28, 2026-01-21)",
+	type: "string",
+	target: "apiVersion",
+	group: "advanced",
+};
+
 export const globalCommandOptions: readonly CommandOption[] = [
 	helpOption,
 	versionOption,
 	apiTokenOption,
 	jsonOption,
+	apiVersionOption,
 ];
 
 export const commonAuthOptions: readonly CommandOption[] = [apiTokenOption];

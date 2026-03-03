@@ -1,4 +1,5 @@
 import { createClient, type Client } from "@phala/cloud";
+import { getApiVersionOverride } from "@/src/core/api-version";
 import type { CommandContext } from "@/src/core/types";
 import { getProjectConfig } from "@/src/utils/project-config";
 import { resolveAuth, type ResolvedAuth } from "@/src/utils/credentials";
@@ -45,11 +46,12 @@ export async function getClient(
 	},
 ): Promise<CliApiClient> {
 	const auth = resolveAuthForContext(context, options);
+	const version = getApiVersionOverride() ?? API_VERSION;
 	return createClient({
 		apiKey: auth.apiKey ?? undefined,
 		baseURL: auth.baseURL,
-		version: API_VERSION,
-	});
+		version,
+	}) as CliApiClient;
 }
 
 export async function getClientWithAuth(
@@ -72,9 +74,10 @@ export async function getClientWithKey(
 		baseURL?: string;
 	},
 ): Promise<CliApiClient> {
+	const version = getApiVersionOverride() ?? API_VERSION;
 	return createClient({
 		apiKey,
 		baseURL: options?.baseURL,
-		version: API_VERSION,
-	});
+		version,
+	}) as CliApiClient;
 }

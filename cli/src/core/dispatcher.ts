@@ -1,11 +1,12 @@
 import { ZodError } from "zod";
 import chalk from "chalk";
-import type { CvmIdInput } from "@phala/cloud";
+import type { ApiVersion, CvmIdInput } from "@phala/cloud";
 import { buildCommandSchemaInput } from "./input-builder";
 import { parseCommandArguments } from "./parser";
 import type { CommandRegistry } from "./registry";
 import { formatCommandHelp, formatGlobalHelp, formatGroupHelp } from "./help";
 import type { CommandContext, CommandDefinition } from "./types";
+import { setApiVersionOverride } from "./api-version";
 import { isInJsonMode, setJsonMode } from "./json-mode";
 import { getProjectConfig } from "@/src/utils/project-config";
 import { selectCvm } from "@/src/api/cvms";
@@ -120,6 +121,11 @@ export async function dispatchCommand(
 		);
 
 		setJsonMode(parsedArguments.flags["--json"] === true);
+
+		const rawApiVersion = parsedArguments.flags["--api-version"];
+		if (typeof rawApiVersion === "string") {
+			setApiVersionOverride(rawApiVersion as ApiVersion);
+		}
 
 		if (parsedArguments.flags["--version"]) {
 			stdout.write(`${version}\n`);
