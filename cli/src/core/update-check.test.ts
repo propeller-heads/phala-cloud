@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { checkForUpdates, type ConfigValue } from "./update-check";
+import {
+	checkForUpdates,
+	getCachedUpdateNotice,
+	type ConfigValue,
+} from "./update-check";
 
 function createMemoryConfigStore(initial: Record<string, ConfigValue> = {}): {
 	get(key: string): ConfigValue;
@@ -168,6 +172,9 @@ describe("checkForUpdates", () => {
 		expect(result?.latestVersion).toBe("1.2.3");
 		expect(result?.currentVersion).toBe("1.0.0");
 		expect(result?.message).toContain("Update available: v1.0.0 -> v1.2.3.");
+		expect(result?.message).toContain(
+			"https://github.com/Phala-Network/phala-cloud/compare/cli-v1.0.0...cli-v1.2.3",
+		);
 		expect(configStore.entries().updateCheckLastAt).toBe(now);
 		expect(configStore.entries().updateCheckLatest).toBe("1.2.3");
 	});
@@ -286,6 +293,51 @@ describe("checkForUpdates", () => {
 
 		expect(result).toBeNull();
 		expect(Date.now() - start).toBeLessThan(500);
+	});
+
+	test("includes changelog URL in cached update notice", () => {
+		const configStore = createMemoryConfigStore({
+			updateCheckLastAt: Date.now(),
+			updateCheckLatest: "2.0.0",
+			updateCheckLatest_latest: "2.0.0",
+		});
+		const result = getCachedUpdateNotice({
+			executableName: "phala",
+			packageName: "phala",
+			currentVersion: "1.0.0",
+			runtime: "node",
+			env: {},
+			isJson: false,
+			stderrIsTTY: true,
+			configStore,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.message).toContain(
+			"https://github.com/Phala-Network/phala-cloud/compare/cli-v1.0.0...cli-v2.0.0",
+		);
+	});
+
+	test("uses exact version instead of @latest for bun runtime", async () => {
+		const configStore = createMemoryConfigStore();
+		const result = await checkForUpdates({
+			executableName: "phala",
+			packageName: "phala",
+			currentVersion: "1.0.0",
+			runtime: "bun",
+			env: {},
+			isJson: false,
+			stderrIsTTY: true,
+			ttlMs: 0,
+			configStore,
+			fetchImpl: async () =>
+				createFakeResponse({ "dist-tags": { latest: "1.2.3" } }),
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.message).toContain("phala@1.2.3");
+		expect(result?.message).not.toContain("phala@latest");
+		expect(result?.message).toContain("--no-cache");
 	});
 
 	test("uses prerelease channel tag when current is prerelease", async () => {

@@ -365,10 +365,20 @@ jobs:
         working-directory: ${{ env.PACKAGE }}
         run: |
           npm install -g conventional-changelog-cli conventional-changelog-conventionalcommits
+
+          # Update CHANGELOG.md (prepends latest release)
           conventional-changelog -p conventionalcommits \
             --commit-path . \
             -i CHANGELOG.md \
             -s \
+            --pkg-path ./package.json \
+            -n ../changelog.config.js \
+            --tag-prefix "${PACKAGE}-v"
+
+          # Generate release notes for GitHub Release body
+          conventional-changelog -p conventionalcommits \
+            --commit-path . \
+            -o RELEASE_NOTES.md \
             --pkg-path ./package.json \
             -n ../changelog.config.js \
             --tag-prefix "${PACKAGE}-v"
@@ -526,19 +536,37 @@ jobs:
 
       - name: Create GitHub release
         id: release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          release_name: ${{ steps.pkgmeta.outputs.npm_name }} v${{ env.NEW_VERSION }}
-          body: |
-            - Package: [${{ steps.pkgmeta.outputs.npm_name }}](${{ steps.pkgmeta.outputs.npm_url }})
-            - Version: v${{ env.NEW_VERSION }}
-            - npm tag: ${{ env.NPM_TAG }}
-            - Triggered by: ${{ env.REQUESTED_BY || 'workflow_dispatch' }}
-          draft: false
-          prerelease: ${{ env.PRERELEASE != '' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build release body: changelog + install info
+          {
+            if [ -s "${PACKAGE}/RELEASE_NOTES.md" ]; then
+              cat "${PACKAGE}/RELEASE_NOTES.md"
+            else
+              echo "Release ${PACKAGE} v${NEW_VERSION}"
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "**npm**: [${{ steps.pkgmeta.outputs.npm_name }}@${NEW_VERSION}](${{ steps.pkgmeta.outputs.npm_url }})"
+            echo ""
+            echo "\`\`\`bash"
+            echo "npm i -g ${{ steps.pkgmeta.outputs.npm_name }}@${NEW_VERSION}"
+            echo "\`\`\`"
+          } > release_body.md
+
+          PRERELEASE_FLAG=""
+          if [ -n "$PRERELEASE" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          RELEASE_URL=$(gh release create "$TAG_NAME" \
+            --title "${{ steps.pkgmeta.outputs.npm_name }} v${NEW_VERSION}" \
+            --notes-file release_body.md \
+            $PRERELEASE_FLAG)
+
+          echo "html_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
 
       - name: Comment success
         if: ${{ success() && env.ISSUE_NUMBER != '' }}

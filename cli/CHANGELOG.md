@@ -1,3 +1,14 @@
+## [1.1.12-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.11...cli-v1.1.12-beta.1) (2026-03-03)
+
+### feat
+
+* **cli:** show changelog URL in self update command ([8f569e8](https://github.com/Phala-Network/phala-cloud/commit/8f569e8c4361848708e2b0e06a423686d9461942))
+* **cli:** show changelog URL in update notifications ([22a6648](https://github.com/Phala-Network/phala-cloud/commit/22a6648b5f21384c4675f652bc25bcd6d0bb97e6))
+
+### fix
+
+* **cli:** use --no-cache and exact version for bun global installs ([a63a11d](https://github.com/Phala-Network/phala-cloud/commit/a63a11d19e0b6248e99acf93851c2dabec462fcc))
+* **cli:** use generic id field in waitForCvmReady poller ([4b2132d](https://github.com/Phala-Network/phala-cloud/commit/4b2132dd25ef752ada519570efcfb0c744b1cfcb))
 ## [1.1.11](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.10...cli-v1.1.11) (2026-03-02)
 
 ### fix

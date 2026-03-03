@@ -65,7 +65,7 @@ export function formatGlobalInstallCommand(
 ): string {
 	switch (packageManager) {
 		case "bun":
-			return `bun add -g ${packageName}`;
+			return `bun add -g --no-cache ${packageName}`;
 		case "pnpm":
 			return `pnpm add -g ${packageName}`;
 		case "yarn":
@@ -81,7 +81,10 @@ export function getGlobalInstallArgs(
 ): { command: string; args: string[] } {
 	switch (packageManager) {
 		case "bun":
-			return { command: "bun", args: ["add", "-g", packageNameOrSpec] };
+			return {
+				command: "bun",
+				args: ["add", "-g", "--no-cache", packageNameOrSpec],
+			};
 		case "pnpm":
 			return { command: "pnpm", args: ["add", "-g", packageNameOrSpec] };
 		case "yarn":
