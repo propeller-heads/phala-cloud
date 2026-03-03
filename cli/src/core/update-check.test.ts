@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { checkForUpdates, type ConfigValue } from "./update-check";
+import {
+	checkForUpdates,
+	getCachedUpdateNotice,
+	type ConfigValue,
+} from "./update-check";
 
 function createMemoryConfigStore(initial: Record<string, ConfigValue> = {}): {
 	get(key: string): ConfigValue;
@@ -289,6 +293,29 @@ describe("checkForUpdates", () => {
 
 		expect(result).toBeNull();
 		expect(Date.now() - start).toBeLessThan(500);
+	});
+
+	test("includes changelog URL in cached update notice", () => {
+		const configStore = createMemoryConfigStore({
+			updateCheckLastAt: Date.now(),
+			updateCheckLatest: "2.0.0",
+			updateCheckLatest_latest: "2.0.0",
+		});
+		const result = getCachedUpdateNotice({
+			executableName: "phala",
+			packageName: "phala",
+			currentVersion: "1.0.0",
+			runtime: "node",
+			env: {},
+			isJson: false,
+			stderrIsTTY: true,
+			configStore,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result?.message).toContain(
+			"https://github.com/Phala-Network/phala-cloud/compare/cli-v1.0.0...cli-v2.0.0",
+		);
 	});
 
 	test("uses exact version instead of @latest for bun runtime", async () => {

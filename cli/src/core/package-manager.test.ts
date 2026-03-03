@@ -3,6 +3,8 @@ import {
 	detectPackageManagerFromPath,
 	detectPackageManager,
 	detectRuntimeFromProcess,
+	formatGlobalInstallCommand,
+	getGlobalInstallArgs,
 } from "./package-manager";
 
 describe("detectPackageManagerFromPath", () => {
@@ -81,6 +83,46 @@ describe("detectPackageManager", () => {
 
 	test("falls back to npm when no detection succeeds", () => {
 		expect(detectPackageManager({}, "node")).toBe("npm");
+	});
+});
+
+describe("formatGlobalInstallCommand", () => {
+	test("includes --no-cache for bun", () => {
+		expect(formatGlobalInstallCommand("bun", "phala@1.2.3")).toBe(
+			"bun add -g --no-cache phala@1.2.3",
+		);
+	});
+
+	test("formats correctly for npm", () => {
+		expect(formatGlobalInstallCommand("npm", "phala@latest")).toBe(
+			"npm i -g phala@latest",
+		);
+	});
+
+	test("formats correctly for pnpm", () => {
+		expect(formatGlobalInstallCommand("pnpm", "phala@latest")).toBe(
+			"pnpm add -g phala@latest",
+		);
+	});
+
+	test("formats correctly for yarn", () => {
+		expect(formatGlobalInstallCommand("yarn", "phala@latest")).toBe(
+			"yarn global add phala@latest",
+		);
+	});
+});
+
+describe("getGlobalInstallArgs", () => {
+	test("includes --no-cache for bun", () => {
+		const result = getGlobalInstallArgs("bun", "phala@1.2.3");
+		expect(result.command).toBe("bun");
+		expect(result.args).toEqual(["add", "-g", "--no-cache", "phala@1.2.3"]);
+	});
+
+	test("returns correct args for npm", () => {
+		const result = getGlobalInstallArgs("npm", "phala@latest");
+		expect(result.command).toBe("npm");
+		expect(result.args).toEqual(["i", "-g", "phala@latest"]);
 	});
 });
 
