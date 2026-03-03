@@ -491,3 +491,14 @@ export {
   AppFilterOptionsSchema,
   type AppFilterOptions,
 } from "./apps/get_app_filter_options";
+
+export {
+  getAppAttestation,
+  safeGetAppAttestation,
+  AppAttestationInstanceSchema,
+  AppAttestationResponseSchema,
+  GetAppAttestationRequestSchema,
+  type AppAttestationInstance,
+  type AppAttestationResponse,
+  type GetAppAttestationRequest,
+} from "./apps/get_app_attestation";
