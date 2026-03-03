@@ -55,7 +55,7 @@ import { isValidHostname } from "../../utils/hostname";
  * const provision = await provisionCvm(client, {
  *   name: 'my-app',
  *   node_id: 123,                 // Specific node
- *   kms: 'PHALA',                 // KMS type (PHALA, BASE, ETHERUEM)
+ *   kms: 'PHALA',                 // KMS type (PHALA, BASE, ETHEREUM)
  *   disk_size: 40,
  *   image: 'dstack-0.5.5',
  *   compose_file: { /* ... *\/ },
