@@ -1,3 +1,12 @@
+## [1.1.12](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.12-beta.1...cli-v1.1.12) (2026-03-04)
+
+### feat
+
+* **cli:** add --api-version global option ([f96397f](https://github.com/Phala-Network/phala-cloud/commit/f96397f81056af09fb854b3fc99cda09721c5e2f))
+
+### fix
+
+* **cli:** validate --api-version flag against supported versions ([a6b4f68](https://github.com/Phala-Network/phala-cloud/commit/a6b4f684039cf5e676160fcce2bc6f4084e26dee))
 ## [1.1.12-beta.1](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.11...cli-v1.1.12-beta.1) (2026-03-03)
 
 ### feat
