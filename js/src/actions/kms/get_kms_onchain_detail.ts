@@ -4,6 +4,7 @@ import { defineAction } from "../../utils/define-action";
 export const OnChainDeviceSchema = z
   .object({
     device_id: z.string(),
+    node_name: z.string().nullable().optional(),
     on_chain_allowed: z.boolean().nullable(),
   })
   .passthrough();

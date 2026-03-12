@@ -41,31 +41,22 @@ async function runKmsListCommand(
 		}
 
 		// Group by (contract_address, chain_id) to show unique contracts
-		const contracts = new Map<
-			string,
-			{ address: string; chain_id: number; chain: string; slugs: string[] }
-		>();
+		const contracts = new Map<string, { address: string; chain: string }>();
 		for (const kms of data.items) {
 			const key = `${kms.kms_contract_address}:${kms.chain_id}`;
-			const existing = contracts.get(key);
-			if (existing) {
-				if (kms.slug) existing.slugs.push(kms.slug);
-			} else {
+			if (!contracts.has(key)) {
 				contracts.set(key, {
 					address: kms.kms_contract_address ?? "-",
-					chain_id: kms.chain_id ?? 0,
 					chain: CHAIN_NAMES[kms.chain_id ?? 0] ?? `chain-${kms.chain_id}`,
-					slugs: kms.slug ? [kms.slug] : [],
 				});
 			}
 		}
 
-		const columns = ["CHAIN", "CONTRACT_ADDRESS", "KMS_NODES"] as const;
+		const columns = ["CHAIN", "CONTRACT_ADDRESS"] as const;
 
 		const rows = [...contracts.values()].map((c) => ({
 			CHAIN: c.chain,
 			CONTRACT_ADDRESS: c.address,
-			KMS_NODES: c.slugs.join(", ") || "-",
 		}));
 
 		if (rows.length === 0) {

@@ -48,15 +48,13 @@ function createChainHandler(chain: string) {
 				// Devices table
 				if (contract.devices.length > 0) {
 					logger.info("Devices:");
-					const deviceColumns = ["DEVICE_ID", "ON_CHAIN"] as const;
+					const deviceColumns = ["DEVICE_ID", "NODE"] as const;
 					const deviceRows = contract.devices.map((d) => ({
 						DEVICE_ID: d.device_id,
-						ON_CHAIN:
-							d.on_chain_allowed === true
-								? "allowed"
-								: d.on_chain_allowed === false
-									? "NOT allowed"
-									: "unknown",
+						NODE:
+							typeof d.node_name === "string" && d.node_name.length > 0
+								? d.node_name
+								: "-",
 					}));
 					printTable(deviceColumns, deviceRows);
 				} else {
@@ -68,22 +66,11 @@ function createChainHandler(chain: string) {
 				// OS Images table
 				if (contract.os_images.length > 0) {
 					logger.info("OS Images:");
-					const imageColumns = [
-						"NAME",
-						"VERSION",
-						"OS_IMAGE_HASH",
-						"ON_CHAIN",
-					] as const;
+					const imageColumns = ["NAME", "VERSION", "OS_IMAGE_HASH"] as const;
 					const imageRows = contract.os_images.map((img) => ({
 						NAME: img.name,
 						VERSION: img.version,
 						OS_IMAGE_HASH: img.os_image_hash ?? "-",
-						ON_CHAIN:
-							img.on_chain_allowed === true
-								? "allowed"
-								: img.on_chain_allowed === false
-									? "NOT allowed"
-									: "unknown",
 					}));
 					printTable(imageColumns, imageRows);
 				} else {
