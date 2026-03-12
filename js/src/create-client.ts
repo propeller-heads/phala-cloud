@@ -200,6 +200,19 @@ import {
 } from "./actions/ssh_keys/sync_github_ssh_keys";
 import type { SshKey } from "./actions/ssh_keys/list_ssh_keys";
 
+import {
+  getOsImages,
+  safeGetOsImages,
+  type GetOsImagesRequest,
+  type GetOsImagesResponse,
+} from "./actions/os_images/get_os_images";
+import {
+  getKmsOnChainDetail,
+  safeGetKmsOnChainDetail,
+  type GetKmsOnChainDetailRequest,
+  type GetKmsOnChainDetailResponse,
+} from "./actions/kms/get_kms_onchain_detail";
+
 import type { KmsInfo } from "./types/kms_info";
 import type { VM } from "./types/cvm_info";
 
@@ -334,6 +347,10 @@ export function createClient<V extends ApiVersion = DefaultApiVersion>(
     readonly safeDeleteSshKey: typeof safeDeleteSshKey;
     readonly syncGithubSshKeys: typeof syncGithubSshKeys;
     readonly safeSyncGithubSshKeys: typeof safeSyncGithubSshKeys;
+    readonly getOsImages: typeof getOsImages;
+    readonly safeGetOsImages: typeof safeGetOsImages;
+    readonly getKmsOnChainDetail: typeof getKmsOnChainDetail;
+    readonly safeGetKmsOnChainDetail: typeof safeGetKmsOnChainDetail;
   } = {
     getCurrentUser,
     safeGetCurrentUser,
@@ -417,6 +434,10 @@ export function createClient<V extends ApiVersion = DefaultApiVersion>(
     safeDeleteSshKey,
     syncGithubSshKeys,
     safeSyncGithubSshKeys,
+    getOsImages,
+    safeGetOsImages,
+    getKmsOnChainDetail,
+    safeGetKmsOnChainDetail,
   };
 
   return client.extend(allActions) as unknown as Client<V>;
@@ -1183,4 +1204,48 @@ export interface Client<V extends ApiVersion = DefaultApiVersion> extends BaseCl
     SafeResult<z.infer<T>>
   >;
   safeSyncGithubSshKeys(parameters: { schema: false }): Promise<SafeResult<unknown>>;
+
+  // OS Images
+  getOsImages(request?: GetOsImagesRequest): Promise<GetOsImagesResponse>;
+  getOsImages<T extends z.ZodTypeAny>(
+    request: GetOsImagesRequest | undefined,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getOsImages(
+    request: GetOsImagesRequest | undefined,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetOsImages(request?: GetOsImagesRequest): Promise<SafeResult<GetOsImagesResponse>>;
+  safeGetOsImages<T extends z.ZodTypeAny>(
+    request: GetOsImagesRequest | undefined,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetOsImages(
+    request: GetOsImagesRequest | undefined,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
+
+  // KMS On-Chain Detail
+  getKmsOnChainDetail(request: GetKmsOnChainDetailRequest): Promise<GetKmsOnChainDetailResponse>;
+  getKmsOnChainDetail<T extends z.ZodTypeAny>(
+    request: GetKmsOnChainDetailRequest,
+    parameters: { schema: T },
+  ): Promise<z.infer<T>>;
+  getKmsOnChainDetail(
+    request: GetKmsOnChainDetailRequest,
+    parameters: { schema: false },
+  ): Promise<unknown>;
+
+  safeGetKmsOnChainDetail(
+    request: GetKmsOnChainDetailRequest,
+  ): Promise<SafeResult<GetKmsOnChainDetailResponse>>;
+  safeGetKmsOnChainDetail<T extends z.ZodTypeAny>(
+    request: GetKmsOnChainDetailRequest,
+    parameters: { schema: T },
+  ): Promise<SafeResult<z.infer<T>>>;
+  safeGetKmsOnChainDetail(
+    request: GetKmsOnChainDetailRequest,
+    parameters: { schema: false },
+  ): Promise<SafeResult<unknown>>;
 }
