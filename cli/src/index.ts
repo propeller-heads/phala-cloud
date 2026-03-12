@@ -14,7 +14,9 @@ import { dockerCommands } from "./commands/docker";
 import { linkCommand } from "./commands/link";
 import { loginCommand } from "./commands/login";
 import { logoutCommand } from "./commands/logout";
+import { kmsCommands } from "./commands/kms";
 import { nodesCommands } from "./commands/nodes";
+import { osImagesCommand } from "./commands/os-images";
 import { simulatorCommands } from "./commands/simulator";
 import { statusCommand } from "./commands/status";
 import { profilesCommand } from "./commands/profiles";
@@ -64,6 +66,7 @@ registry.registerCommand(apiCommand);
 registry.registerCommand(statusCommand);
 registry.registerCommand(whoamiCommand);
 registry.registerCommand(completionCommand);
+registry.registerCommand(osImagesCommand);
 
 // Command groups + subcommands
 registry.registerGroup(selfCommands.group);
@@ -93,6 +96,11 @@ for (const command of sshKeysCommands.commands) {
 
 registry.registerGroup(dockerCommands.group);
 for (const command of dockerCommands.commands) {
+	registry.registerCommand(command);
+}
+
+registry.registerGroup(kmsCommands.group);
+for (const command of kmsCommands.commands) {
 	registry.registerCommand(command);
 }
 

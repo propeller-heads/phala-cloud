@@ -133,6 +133,21 @@ export {
 } from "./kms/get_kms_list";
 
 export {
+  getKmsOnChainDetail,
+  safeGetKmsOnChainDetail,
+  GetKmsOnChainDetailResponseSchema,
+  GetKmsOnChainDetailRequestSchema,
+  OnChainKmsContractSchema,
+  OnChainDeviceSchema,
+  OnChainOsImageSchema,
+  type GetKmsOnChainDetailResponse,
+  type GetKmsOnChainDetailRequest,
+  type OnChainKmsContract,
+  type OnChainDevice,
+  type OnChainOsImage,
+} from "./kms/get_kms_onchain_detail";
+
+export {
   nextAppIds,
   safeNextAppIds,
   NextAppIdsSchema,
@@ -502,3 +517,15 @@ export {
   type AppAttestationResponse,
   type GetAppAttestationRequest,
 } from "./apps/get_app_attestation";
+
+// OS Images
+export {
+  getOsImages,
+  safeGetOsImages,
+  GetOsImagesResponseSchema,
+  GetOsImagesRequestSchema,
+  OSImagePublicSchema,
+  type GetOsImagesResponse,
+  type GetOsImagesRequest,
+  type OSImagePublic,
+} from "./os_images/get_os_images";
