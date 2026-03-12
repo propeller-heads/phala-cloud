@@ -19,18 +19,32 @@ async function runOsImagesCommand(
 
 		const isDev = input.dev ? true : input.prod ? false : undefined;
 
-		const result = await safeGetOsImages(client, {
-			page: 1,
-			page_size: 100,
-			is_dev: isDev,
-		});
+		const fetchPage = async (page: number) =>
+			await safeGetOsImages(client, {
+				page,
+				page_size: input.pageSize,
+				is_dev: isDev,
+			});
 
-		if (!result.success) {
-			context.fail(result.error.message);
+		const firstPageResult = await fetchPage(input.page);
+		if (!firstPageResult.success) {
+			context.fail(firstPageResult.error.message);
 			return 1;
 		}
 
-		const data = result.data;
+		let data = firstPageResult.data;
+		if (input.all && data.pages > data.page) {
+			const allItems = [...data.items];
+			for (let page = data.page + 1; page <= data.pages; page++) {
+				const pageResult = await fetchPage(page);
+				if (!pageResult.success) {
+					context.fail(pageResult.error.message);
+					return 1;
+				}
+				allItems.push(...pageResult.data.items);
+			}
+			data = { ...data, items: allItems, page_size: allItems.length, page: 1, pages: 1 };
+		}
 
 		if (input.json) {
 			context.success(data);

@@ -22,6 +22,27 @@ export const osImagesCommandMeta: CommandMeta = {
 			target: "prod",
 			group: "basic",
 		},
+		{
+			name: "page",
+			description: "Page number (1-indexed)",
+			type: "number",
+			target: "page",
+			group: "basic",
+		},
+		{
+			name: "page-size",
+			description: "Items per page (max 100)",
+			type: "number",
+			target: "pageSize",
+			group: "basic",
+		},
+		{
+			name: "all",
+			description: "Fetch all pages",
+			type: "boolean",
+			target: "all",
+			group: "basic",
+		},
 		jsonOption,
 	],
 	examples: [
@@ -34,6 +55,14 @@ export const osImagesCommandMeta: CommandMeta = {
 			value: "phala os-images --prod",
 		},
 		{
+			name: "List page 2 with page size 20",
+			value: "phala os-images --page 2 --page-size 20",
+		},
+		{
+			name: "Fetch all pages",
+			value: "phala os-images --all",
+		},
+		{
 			name: "Output as JSON",
 			value: "phala os-images --json",
 		},
@@ -43,6 +72,9 @@ export const osImagesCommandMeta: CommandMeta = {
 export const osImagesCommandSchema = z.object({
 	dev: z.boolean().default(false),
 	prod: z.boolean().default(false),
+	page: z.number().int().min(1).default(1),
+	pageSize: z.number().int().min(1).max(100).default(100),
+	all: z.boolean().default(false),
 	json: z.boolean().default(false),
 });
 
