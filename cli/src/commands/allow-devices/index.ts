@@ -266,7 +266,7 @@ async function runList(
 		if (nodesResult.success) {
 			for (const node of nodesResult.data.nodes) {
 				if (node.device_id && isValidDeviceId(node.device_id)) {
-					nodesByDeviceId.set(node.device_id.toLowerCase(), node.name);
+					nodesByDeviceId.set(normalizeDeviceId(node.device_id), node.name);
 				}
 			}
 		}
@@ -282,6 +282,7 @@ async function runList(
 		if (input.json) {
 			context.success({
 				appAddress: appContractAddress,
+				chain: chain.name,
 				owner: onChain.owner,
 				allowAnyDevice: onChain.allowAnyDevice,
 				devices: onChain.devices.map((did) => ({
@@ -292,7 +293,8 @@ async function runList(
 			return 0;
 		}
 
-		logger.info(`Contract: ${appContractAddress}  Chain: ${chain.name}`);
+		logger.info(`Contract: ${appContractAddress}`);
+		logger.info(`Chain:    ${chain.name}`);
 		logger.info(`Owner:    ${onChain.owner}`);
 		logger.info(
 			`Allow Any Device: ${onChain.allowAnyDevice ? chalk.green("yes") : chalk.red("no")}`,
