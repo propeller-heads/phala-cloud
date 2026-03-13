@@ -46,7 +46,8 @@ export const cvmsDevicesAddMeta: CommandMeta = {
 		cvmIdArgument,
 		{
 			name: "device_id",
-			description: "Device ID (bytes32 hex) to add",
+			description:
+				"Device ID (bytes32 hex) or node name to resolve device_id from available nodes",
 			required: true,
 			target: "deviceId",
 		},
@@ -66,6 +67,12 @@ export const cvmsDevicesAddMeta: CommandMeta = {
 			target: "rpcUrl",
 			group: "advanced",
 		},
+		{
+			name: "wait",
+			description: "Wait for on-chain state to reflect the change via RPC polling",
+			type: "boolean",
+			target: "wait",
+		},
 		jsonOption,
 		interactiveOption,
 	],
@@ -73,6 +80,10 @@ export const cvmsDevicesAddMeta: CommandMeta = {
 		{
 			name: "Add device to allowlist",
 			value: "phala cvms devices add app_abc123 0xaabb... --private-key 0x...",
+		},
+		{
+			name: "Add by node name and wait for on-chain confirmation",
+			value: "phala cvms devices add prod5 --wait --private-key 0x...",
 		},
 	],
 };
@@ -82,6 +93,7 @@ export const cvmsDevicesAddSchema = z.object({
 	deviceId: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
@@ -98,7 +110,8 @@ export const cvmsDevicesRemoveMeta: CommandMeta = {
 		cvmIdArgument,
 		{
 			name: "device_id",
-			description: "Device ID (bytes32 hex) to remove",
+			description:
+				"Device ID (bytes32 hex) or node name to resolve device_id from available nodes",
 			required: true,
 			target: "deviceId",
 		},
@@ -117,6 +130,12 @@ export const cvmsDevicesRemoveMeta: CommandMeta = {
 			type: "string",
 			target: "rpcUrl",
 			group: "advanced",
+		},
+		{
+			name: "wait",
+			description: "Wait for on-chain state to reflect the change via RPC polling",
+			type: "boolean",
+			target: "wait",
 		},
 		jsonOption,
 		interactiveOption,
@@ -135,6 +154,7 @@ export const cvmsDevicesRemoveSchema = z.object({
 	deviceId: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
@@ -175,6 +195,12 @@ export const cvmsDevicesAllowAnyMeta: CommandMeta = {
 			target: "rpcUrl",
 			group: "advanced",
 		},
+		{
+			name: "wait",
+			description: "Wait for on-chain state to reflect the change via RPC polling",
+			type: "boolean",
+			target: "wait",
+		},
 		jsonOption,
 		interactiveOption,
 	],
@@ -198,6 +224,7 @@ export const cvmsDevicesAllowAnySchema = z.object({
 	disable: z.boolean().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
@@ -228,6 +255,12 @@ export const cvmsDevicesDisallowAnyMeta: CommandMeta = {
 			target: "rpcUrl",
 			group: "advanced",
 		},
+		{
+			name: "wait",
+			description: "Wait for on-chain state to reflect the change via RPC polling",
+			type: "boolean",
+			target: "wait",
+		},
 		jsonOption,
 		interactiveOption,
 	],
@@ -244,6 +277,7 @@ export const cvmsDevicesDisallowAnySchema = z.object({
 	cvmId: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });
@@ -287,6 +321,12 @@ export const cvmsDevicesToggleAllowAnyMeta: CommandMeta = {
 			target: "rpcUrl",
 			group: "advanced",
 		},
+		{
+			name: "wait",
+			description: "Wait for on-chain state to reflect the change via RPC polling",
+			type: "boolean",
+			target: "wait",
+		},
 		jsonOption,
 		interactiveOption,
 	],
@@ -314,6 +354,7 @@ export const cvmsDevicesToggleAllowAnySchema = z.object({
 	disable: z.boolean().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	wait: z.boolean().default(false),
 	json: z.boolean().default(false),
 	interactive: z.boolean().default(false),
 });

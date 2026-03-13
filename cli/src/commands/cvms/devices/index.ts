@@ -2,6 +2,7 @@ import chalk from "chalk";
 import {
 	safeGetCvmInfo,
 	safeGetAppDeviceAllowlist,
+	safeGetAvailableNodes,
 	safeAddDevice,
 	safeRemoveDevice,
 	safeSetAllowAnyDevice,
@@ -38,6 +39,116 @@ import {
 } from "./command";
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+const DEVICE_ID_REGEX = /^(0x)?[0-9a-fA-F]{64}$/;
+
+function normalizeDeviceId(deviceId: string): `0x${string}` {
+	const normalized = deviceId.startsWith("0x") ? deviceId : `0x${deviceId}`;
+	return normalized.toLowerCase() as `0x${string}`;
+}
+
+function isValidDeviceId(deviceId: string): boolean {
+	return DEVICE_ID_REGEX.test(deviceId);
+}
+
+function txExplorerUrl(
+	chain: (typeof SUPPORTED_CHAINS)[keyof typeof SUPPORTED_CHAINS],
+	txHash: string | undefined,
+): string | null {
+	if (!txHash) return null;
+	const baseUrl = chain.blockExplorers?.default?.url;
+	if (!baseUrl) return null;
+	return `${baseUrl}/tx/${txHash}`;
+}
+
+async function waitForAllowlistState(
+	params: {
+		chain: (typeof SUPPORTED_CHAINS)[keyof typeof SUPPORTED_CHAINS];
+		rpcUrl?: string;
+		appAddress: `0x${string}`;
+		condition: (result: Awaited<ReturnType<typeof getAllowedDevices>>) => boolean;
+		description: string;
+		timeoutMs?: number;
+		intervalMs?: number;
+	},
+): Promise<boolean> {
+	const { chain, rpcUrl, appAddress, condition, description } = params;
+	const timeoutMs = params.timeoutMs ?? 60_000;
+	const intervalMs = params.intervalMs ?? 2_000;
+	const deadline = Date.now() + timeoutMs;
+
+	while (Date.now() < deadline) {
+		const result = await getAllowedDevices({
+			chain,
+			rpcUrl,
+			appAddress,
+		});
+		if (condition(result)) {
+			return true;
+		}
+		await new Promise((resolve) => {
+			setTimeout(resolve, intervalMs);
+		});
+	}
+
+	logger.warn(`Timeout waiting for on-chain state: ${description}`);
+	return false;
+}
+
+async function resolveDeviceIdOrNodeName(
+	input: { cvmId?: string; deviceId?: string },
+	context: CommandContext,
+): Promise<`0x${string}`> {
+	let deviceInput = input.deviceId;
+	// Support omitting <cvm> when phala.toml provides it: first positional becomes device/node.
+	if (!deviceInput && input.cvmId && context.cvmId) {
+		deviceInput = input.cvmId;
+	}
+
+	if (!deviceInput) {
+		throw new Error("Device ID or node name is required.");
+	}
+
+	if (isValidDeviceId(deviceInput)) {
+		return normalizeDeviceId(deviceInput);
+	}
+
+	if (deviceInput.startsWith("0x")) {
+		throw new Error(
+			`Invalid device ID format: ${deviceInput}. Expected 32-byte hex (0x + 64 hex chars).`,
+		);
+	}
+
+	const client = await getClient();
+	const nodesResult = await safeGetAvailableNodes(client);
+	if (!nodesResult.success) {
+		throw new Error(
+			`Failed to resolve node name "${deviceInput}": ${nodesResult.error.message}`,
+		);
+	}
+
+	const matches = nodesResult.data.nodes.filter(
+		(node) => node.name.toLowerCase() === deviceInput.toLowerCase(),
+	);
+	if (matches.length === 0) {
+		throw new Error(
+			`Node "${deviceInput}" not found. Provide a valid node name or device ID.`,
+		);
+	}
+	if (matches.length > 1) {
+		throw new Error(
+			`Node name "${deviceInput}" is ambiguous (${matches.length} matches). Use an explicit device ID.`,
+		);
+	}
+
+	const resolvedDeviceId = matches[0].device_id;
+	if (!resolvedDeviceId || !isValidDeviceId(resolvedDeviceId)) {
+		throw new Error(
+			`Node "${matches[0].name}" has no valid device_id. Use an explicit device ID.`,
+		);
+	}
+	return normalizeDeviceId(resolvedDeviceId);
+}
 
 async function resolveAppContract(context: CommandContext) {
 	if (!context.cvmId) {
@@ -176,24 +287,20 @@ async function runAdd(
 	input: CvmsDevicesAddInput,
 	context: CommandContext,
 ): Promise<number> {
-	if (!input.deviceId) {
-		context.fail("Device ID is required.");
-		return 1;
-	}
-
 	try {
 		const resolved = await resolveAppContract(context);
 		if (!resolved) return 1;
 
 		const { chain, appContractAddress } = resolved;
 		const privateKey = resolvePrivateKey(input);
+		const deviceId = await resolveDeviceIdOrNodeName(input, context);
 
 		const spinner = logger.startSpinner("Submitting addDevice transaction...");
 		const result = await safeAddDevice({
 			chain,
 			rpcUrl: input.rpcUrl,
 			appAddress: appContractAddress,
-			deviceId: input.deviceId,
+			deviceId,
 			privateKey: privateKey as `0x${string}`,
 		});
 		spinner.stop(true);
@@ -206,17 +313,54 @@ async function runAdd(
 
 		const data = result.data as AddDevice;
 
-		if (input.json) {
-			context.success(data);
-			return 0;
+		const explorerUrl = txExplorerUrl(chain, data.transactionHash);
+		if (!input.json) {
+			logger.break();
+			logger.success("Device added successfully!");
+			logger.keyValueTable({
+				"Device ID": deviceId,
+				Transaction: data.transactionHash,
+			});
+			if (explorerUrl) {
+				logger.info(`Explorer: ${explorerUrl}`);
+			}
 		}
 
-		logger.break();
-		logger.success("Device added successfully!");
-		logger.keyValueTable({
-			"Device ID": input.deviceId,
-			Transaction: data.transactionHash,
-		});
+		if (input.wait) {
+			const waitSpinner = logger.startSpinner(
+				"Waiting for on-chain allowlist update via RPC...",
+			);
+			const ok = await waitForAllowlistState({
+				chain,
+				rpcUrl: input.rpcUrl,
+				appAddress: appContractAddress,
+				description: `device ${deviceId} to be allowed`,
+				condition: (state) =>
+					state.devices.some(
+						(d) => d.toLowerCase() === deviceId.toLowerCase(),
+					),
+			});
+			waitSpinner.stop(true);
+			if (!ok) {
+				context.fail(
+					`Device ${deviceId} not observed on-chain within timeout.`,
+				);
+				return 1;
+			}
+			logger.success("On-chain allowlist updated.");
+		} else if (!input.json) {
+			logger.info(
+				"Backend allowlist API may lag behind chain. Use --wait to verify via RPC.",
+			);
+		}
+
+		if (input.json) {
+			context.success({
+				...data,
+				deviceId,
+				explorer: explorerUrl ?? undefined,
+			});
+		}
 
 		return 0;
 	} catch (error) {
@@ -234,17 +378,13 @@ async function runRemove(
 	input: CvmsDevicesRemoveInput,
 	context: CommandContext,
 ): Promise<number> {
-	if (!input.deviceId) {
-		context.fail("Device ID is required.");
-		return 1;
-	}
-
 	try {
 		const resolved = await resolveAppContract(context);
 		if (!resolved) return 1;
 
 		const { chain, appContractAddress } = resolved;
 		const privateKey = resolvePrivateKey(input);
+		const deviceId = await resolveDeviceIdOrNodeName(input, context);
 
 		const spinner = logger.startSpinner(
 			"Submitting removeDevice transaction...",
@@ -253,7 +393,7 @@ async function runRemove(
 			chain,
 			rpcUrl: input.rpcUrl,
 			appAddress: appContractAddress,
-			deviceId: input.deviceId,
+			deviceId,
 			privateKey: privateKey as `0x${string}`,
 		});
 		spinner.stop(true);
@@ -266,17 +406,54 @@ async function runRemove(
 
 		const data = result.data as RemoveDevice;
 
-		if (input.json) {
-			context.success(data);
-			return 0;
+		const explorerUrl = txExplorerUrl(chain, data.transactionHash);
+		if (!input.json) {
+			logger.break();
+			logger.success("Device removed successfully!");
+			logger.keyValueTable({
+				"Device ID": deviceId,
+				Transaction: data.transactionHash,
+			});
+			if (explorerUrl) {
+				logger.info(`Explorer: ${explorerUrl}`);
+			}
 		}
 
-		logger.break();
-		logger.success("Device removed successfully!");
-		logger.keyValueTable({
-			"Device ID": input.deviceId,
-			Transaction: data.transactionHash,
-		});
+		if (input.wait) {
+			const waitSpinner = logger.startSpinner(
+				"Waiting for on-chain allowlist update via RPC...",
+			);
+			const ok = await waitForAllowlistState({
+				chain,
+				rpcUrl: input.rpcUrl,
+				appAddress: appContractAddress,
+				description: `device ${deviceId} to be removed`,
+				condition: (state) =>
+					!state.devices.some(
+						(d) => d.toLowerCase() === deviceId.toLowerCase(),
+					),
+			});
+			waitSpinner.stop(true);
+			if (!ok) {
+				context.fail(
+					`Device ${deviceId} still appears on-chain after timeout.`,
+				);
+				return 1;
+			}
+			logger.success("On-chain allowlist updated.");
+		} else if (!input.json) {
+			logger.info(
+				"Backend allowlist API may lag behind chain. Use --wait to verify via RPC.",
+			);
+		}
+
+		if (input.json) {
+			context.success({
+				...data,
+				deviceId,
+				explorer: explorerUrl ?? undefined,
+			});
+		}
 
 		return 0;
 	} catch (error) {
@@ -379,6 +556,7 @@ async function executeSetAllowAny(
 	input: {
 		privateKey?: string;
 		rpcUrl?: string;
+		wait?: boolean;
 		json?: boolean;
 	},
 	context: CommandContext,
@@ -410,18 +588,51 @@ async function executeSetAllowAny(
 	}
 
 	const data = result.data as SetAllowAnyDevice;
-	if (input.json) {
-		context.success(data);
-		return 0;
+	const explorerUrl = txExplorerUrl(chain, data.transactionHash);
+	if (!input.json) {
+		logger.break();
+		logger.success(
+			`Allow-any-device ${allow ? "enabled" : "disabled"} successfully!`,
+		);
+		logger.keyValueTable({
+			Transaction: data.transactionHash,
+		});
+		if (explorerUrl) {
+			logger.info(`Explorer: ${explorerUrl}`);
+		}
 	}
 
-	logger.break();
-	logger.success(
-		`Allow-any-device ${allow ? "enabled" : "disabled"} successfully!`,
-	);
-	logger.keyValueTable({
-		Transaction: data.transactionHash,
-	});
+	if (input.wait) {
+		const waitSpinner = logger.startSpinner(
+			"Waiting for on-chain allow-any state via RPC...",
+		);
+		const ok = await waitForAllowlistState({
+			chain,
+			rpcUrl: input.rpcUrl,
+			appAddress: appContractAddress,
+			description: `allowAnyDevice=${allow}`,
+			condition: (state) => state.allowAnyDevice === allow,
+		});
+		waitSpinner.stop(true);
+		if (!ok) {
+			context.fail(
+				`allowAnyDevice did not become ${allow} within timeout.`,
+			);
+			return 1;
+		}
+		logger.success("On-chain allow-any state updated.");
+	} else if (!input.json) {
+		logger.info(
+			"Backend allowlist API may lag behind chain. Use --wait to verify via RPC.",
+		);
+	}
+
+	if (input.json) {
+		context.success({
+			...data,
+			explorer: explorerUrl ?? undefined,
+		});
+	}
 
 	return 0;
 }
