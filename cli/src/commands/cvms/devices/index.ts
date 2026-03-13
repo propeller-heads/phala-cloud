@@ -250,8 +250,9 @@ async function runList(
 			return 0;
 		}
 
+		logger.info(`Contract: ${appContractAddress}  Chain: ${chain.name}`);
 		logger.info(
-			`Contract: ${appContractAddress}  Chain: ${chain.name}  Allow Any: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
+			`Allow Any Device: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
 		);
 
 		if (allowlist.devices.length === 0) {

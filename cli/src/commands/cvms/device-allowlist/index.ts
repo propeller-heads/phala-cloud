@@ -62,7 +62,10 @@ async function runCvmsDeviceAllowlistCommand(
 		}
 
 		logger.info(
-			`Chain: ${allowlist.chain_id ?? "N/A"}  Contract: ${allowlist.app_contract_address ?? "N/A"}  Allow Any: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
+			`Chain: ${allowlist.chain_id ?? "N/A"}  Contract: ${allowlist.app_contract_address ?? "N/A"}`,
+		);
+		logger.info(
+			`Allow Any Device: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
 		);
 
 		if (allowlist.devices.length === 0) {
