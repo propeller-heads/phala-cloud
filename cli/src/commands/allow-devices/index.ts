@@ -292,7 +292,7 @@ async function runAdd(
 		const resolved = await resolveAppContract(input.cvm, context);
 		if (!resolved) return 1;
 
-		const { chain, appContractAddress } = resolved;
+		const { chain, appContractAddress, allowlist } = resolved;
 		const privateKey = resolvePrivateKey(input);
 
 		let deviceIds: `0x${string}`[];
@@ -305,12 +305,20 @@ async function runAdd(
 				return 1;
 			}
 
-			const nodesWithDeviceId = nodesResult.data.nodes.filter(
-				(n) => n.device_id && isValidDeviceId(n.device_id),
+			// Exclude devices already in the allowlist
+			const alreadyAllowed = new Set(
+				allowlist.devices.map((d) => d.device_id.toLowerCase()),
 			);
-			if (nodesWithDeviceId.length === 0) {
-				context.fail("No nodes with valid device IDs found.");
-				return 1;
+
+			const candidates = nodesResult.data.nodes.filter(
+				(n) =>
+					n.device_id &&
+					isValidDeviceId(n.device_id) &&
+					!alreadyAllowed.has(n.device_id.toLowerCase()),
+			);
+			if (candidates.length === 0) {
+				logger.info("All available devices are already in the allowlist.");
+				return 0;
 			}
 
 			const { selected } = await inquirer.prompt<{
@@ -320,7 +328,7 @@ async function runAdd(
 					type: "checkbox",
 					name: "selected",
 					message: "Select devices to add:",
-					choices: nodesWithDeviceId.map((n) => ({
+					choices: candidates.map((n) => ({
 						name: `${n.name}  ${n.device_id}`,
 						value: n.device_id as string,
 					})),
