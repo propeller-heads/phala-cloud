@@ -223,9 +223,7 @@ async function runSelfUpdate(
 		!isUpToDate && latestVersion && currentValid
 			? getChangelogUrl(currentValid, latestVersion)
 			: undefined;
-	const releaseUrl = latestVersion
-		? getReleaseUrl(latestVersion)
-		: undefined;
+	const releaseUrl = latestVersion ? getReleaseUrl(latestVersion) : undefined;
 
 	// Display version info
 	if (!input.json) {

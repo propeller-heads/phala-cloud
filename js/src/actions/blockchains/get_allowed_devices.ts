@@ -1,19 +1,13 @@
 import { z } from "zod";
-import {
-  type Chain,
-  type Address,
-  type Hash,
-  type PublicClient,
-  createPublicClient,
-  http,
-} from "viem";
+import { type Chain, type Address, type PublicClient, createPublicClient, http } from "viem";
+import { asHex } from "../../utils";
 import { dstackAppAbi } from "./abi/dstack_app";
 
 /**
  * Query the on-chain device allowlist for a DstackApp contract.
  *
- * Reconstructs the current device list by scanning DeviceAdded / DeviceRemoved
- * events and computing the diff.
+ * Checks a list of candidate device IDs against the contract's
+ * `allowedDeviceIds` mapping and returns the ones that are allowed.
  *
  * @group Actions
  * @since 0.6.0
@@ -27,8 +21,9 @@ import { dstackAppAbi } from "./abi/dstack_app";
  * const result = await getAllowedDevices({
  *   chain: base,
  *   appAddress: "0x1234...abcd",
+ *   deviceIds: ["0xaa...", "0xbb..."],
  * })
- * console.log(result.devices)       // ["0xaa...", "0xbb..."]
+ * console.log(result.devices)       // ["0xaa..."]
  * console.log(result.allowAnyDevice) // false
  * ```
  */
@@ -39,6 +34,8 @@ export type GetAllowedDevicesRequest = {
   chain?: Chain;
   rpcUrl?: string;
   appAddress: Address;
+  /** Candidate device IDs to check against the on-chain allowlist. */
+  deviceIds: string[];
   publicClient?: PublicClient;
 };
 
@@ -57,7 +54,7 @@ export type GetAllowedDevices = z.infer<typeof GetAllowedDevicesSchema>;
 export async function getAllowedDevices(
   request: GetAllowedDevicesRequest,
 ): Promise<GetAllowedDevices> {
-  const { chain, rpcUrl, appAddress, publicClient: providedPublicClient } = request;
+  const { chain, rpcUrl, appAddress, deviceIds, publicClient: providedPublicClient } = request;
 
   const contractAddress = (appAddress.startsWith("0x") ? appAddress : `0x${appAddress}`) as Address;
 
@@ -69,89 +66,40 @@ export async function getAllowedDevices(
       })();
 
   // Read allowAnyDevice flag
-  const allowAnyDevice = await publicClient.readContract({
+  const allowAnyDevice = (await publicClient.readContract({
     address: contractAddress,
     abi: dstackAppAbi,
     functionName: "allowAnyDevice",
-  });
+  })) as boolean;
 
-  // Scan DeviceAdded / DeviceRemoved events
-  const currentBlock = await publicClient.getBlockNumber();
+  // If allowAnyDevice is true, all candidate devices are allowed
+  if (allowAnyDevice) {
+    return {
+      appAddress: contractAddress,
+      allowAnyDevice: true,
+      devices: deviceIds.map((id) => asHex(id)),
+    };
+  }
 
-  const [addedEvents, removedEvents] = await Promise.all([
-    publicClient.getLogs({
-      address: contractAddress,
-      event: {
-        type: "event" as const,
-        name: "DeviceAdded" as const,
-        inputs: [{ name: "deviceId", type: "bytes32", indexed: false, internalType: "bytes32" }],
-      },
-      fromBlock: BigInt(0),
-      toBlock: currentBlock,
+  // Check each candidate device against the on-chain allowlist
+  const results = await Promise.all(
+    deviceIds.map(async (deviceId) => {
+      const hex = asHex(deviceId);
+      const allowed = (await publicClient.readContract({
+        address: contractAddress,
+        abi: dstackAppAbi,
+        functionName: "allowedDeviceIds",
+        args: [hex],
+      })) as boolean;
+      return { deviceId: hex, allowed };
     }),
-    publicClient.getLogs({
-      address: contractAddress,
-      event: {
-        type: "event" as const,
-        name: "DeviceRemoved" as const,
-        inputs: [{ name: "deviceId", type: "bytes32", indexed: false, internalType: "bytes32" }],
-      },
-      fromBlock: BigInt(0),
-      toBlock: currentBlock,
-    }),
-  ]);
+  );
 
-  // Merge all events, tag with action, sort chronologically, then replay
-  type DeviceEvent = {
-    deviceId: Hash;
-    action: "add" | "remove";
-    blockNumber: bigint;
-    logIndex: number;
-  };
-  const allEvents: DeviceEvent[] = [];
-
-  for (const event of addedEvents) {
-    if (event.args?.deviceId) {
-      allEvents.push({
-        deviceId: event.args.deviceId as Hash,
-        action: "add",
-        blockNumber: event.blockNumber,
-        logIndex: event.logIndex,
-      });
-    }
-  }
-  for (const event of removedEvents) {
-    if (event.args?.deviceId) {
-      allEvents.push({
-        deviceId: event.args.deviceId as Hash,
-        action: "remove",
-        blockNumber: event.blockNumber,
-        logIndex: event.logIndex,
-      });
-    }
-  }
-
-  // Sort by block number, then by log index within the same block
-  allEvents.sort((a, b) => {
-    if (a.blockNumber !== b.blockNumber) return a.blockNumber < b.blockNumber ? -1 : 1;
-    return a.logIndex - b.logIndex;
-  });
-
-  // Replay events to compute final state
-  const activeDevices = new Set<Hash>();
-  for (const event of allEvents) {
-    if (event.action === "add") {
-      activeDevices.add(event.deviceId);
-    } else {
-      activeDevices.delete(event.deviceId);
-    }
-  }
-
-  const devices = Array.from(activeDevices);
+  const devices = results.filter((r) => r.allowed).map((r) => r.deviceId);
 
   return {
     appAddress: contractAddress,
-    allowAnyDevice: allowAnyDevice as boolean,
+    allowAnyDevice: false,
     devices,
   };
 }

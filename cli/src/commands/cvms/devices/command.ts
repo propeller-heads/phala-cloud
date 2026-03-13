@@ -16,6 +16,7 @@ export const cvmsDevicesGroup: CommandGroup = {
 
 export const cvmsDevicesListMeta: CommandMeta = {
 	name: "list",
+	aliases: ["ls"],
 	description: "List allowed devices from the on-chain contract",
 	stability: "unstable",
 	arguments: [cvmIdArgument],
@@ -69,7 +70,8 @@ export const cvmsDevicesAddMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description: "Wait for on-chain state to reflect the change via RPC polling",
+			description:
+				"Wait for on-chain state to reflect the change via RPC polling",
 			type: "boolean",
 			target: "wait",
 		},
@@ -133,7 +135,8 @@ export const cvmsDevicesRemoveMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description: "Wait for on-chain state to reflect the change via RPC polling",
+			description:
+				"Wait for on-chain state to reflect the change via RPC polling",
 			type: "boolean",
 			target: "wait",
 		},
@@ -197,7 +200,8 @@ export const cvmsDevicesAllowAnyMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description: "Wait for on-chain state to reflect the change via RPC polling",
+			description:
+				"Wait for on-chain state to reflect the change via RPC polling",
 			type: "boolean",
 			target: "wait",
 		},
@@ -257,7 +261,8 @@ export const cvmsDevicesDisallowAnyMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description: "Wait for on-chain state to reflect the change via RPC polling",
+			description:
+				"Wait for on-chain state to reflect the change via RPC polling",
 			type: "boolean",
 			target: "wait",
 		},
@@ -267,8 +272,7 @@ export const cvmsDevicesDisallowAnyMeta: CommandMeta = {
 	examples: [
 		{
 			name: "Disable allow-any-device",
-			value:
-				"phala cvms devices disallow-any app_abc123 --private-key 0x...",
+			value: "phala cvms devices disallow-any app_abc123 --private-key 0x...",
 		},
 	],
 };
@@ -323,7 +327,8 @@ export const cvmsDevicesToggleAllowAnyMeta: CommandMeta = {
 		},
 		{
 			name: "wait",
-			description: "Wait for on-chain state to reflect the change via RPC polling",
+			description:
+				"Wait for on-chain state to reflect the change via RPC polling",
 			type: "boolean",
 			target: "wait",
 		},
@@ -333,7 +338,8 @@ export const cvmsDevicesToggleAllowAnyMeta: CommandMeta = {
 	examples: [
 		{
 			name: "Toggle based on current state",
-			value: "phala cvms devices toggle-allow-any app_abc123 --private-key 0x...",
+			value:
+				"phala cvms devices toggle-allow-any app_abc123 --private-key 0x...",
 		},
 		{
 			name: "Force enable",

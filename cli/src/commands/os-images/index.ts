@@ -43,7 +43,13 @@ async function runOsImagesCommand(
 				}
 				allItems.push(...pageResult.data.items);
 			}
-			data = { ...data, items: allItems, page_size: allItems.length, page: 1, pages: 1 };
+			data = {
+				...data,
+				items: allItems,
+				page_size: allItems.length,
+				page: 1,
+				pages: 1,
+			};
 		}
 
 		if (input.json) {
