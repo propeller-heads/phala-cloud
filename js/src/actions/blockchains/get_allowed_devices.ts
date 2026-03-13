@@ -43,6 +43,7 @@ export type GetAllowedDevicesRequest = {
 
 export const GetAllowedDevicesSchema = z.object({
   appAddress: z.string(),
+  owner: z.string(),
   allowAnyDevice: z.boolean(),
   devices: z.array(z.string()),
 });
@@ -65,17 +66,25 @@ export async function getAllowedDevices(
         return createPublicClient({ chain, transport: http(rpcUrl) });
       })();
 
-  // Read allowAnyDevice flag
-  const allowAnyDevice = (await publicClient.readContract({
-    address: contractAddress,
-    abi: dstackAppAbi,
-    functionName: "allowAnyDevice",
-  })) as boolean;
+  // Read allowAnyDevice flag and owner in parallel
+  const [allowAnyDevice, owner] = await Promise.all([
+    publicClient.readContract({
+      address: contractAddress,
+      abi: dstackAppAbi,
+      functionName: "allowAnyDevice",
+    }) as Promise<boolean>,
+    publicClient.readContract({
+      address: contractAddress,
+      abi: dstackAppAbi,
+      functionName: "owner",
+    }) as Promise<Address>,
+  ]);
 
   // If allowAnyDevice is true, all candidate devices are allowed
   if (allowAnyDevice) {
     return {
       appAddress: contractAddress,
+      owner,
       allowAnyDevice: true,
       devices: deviceIds.map((id) => asHex(id)),
     };
@@ -99,6 +108,7 @@ export async function getAllowedDevices(
 
   return {
     appAddress: contractAddress,
+    owner,
     allowAnyDevice: false,
     devices,
   };

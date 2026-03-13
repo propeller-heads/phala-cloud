@@ -232,9 +232,17 @@ async function runList(
 
 		const { chain, appContractAddress, allowlist } = resolved;
 
+		// Query contract owner from chain
+		const onChain = await getAllowedDevices({
+			chain,
+			appAddress: appContractAddress,
+			deviceIds: [],
+		});
+
 		if (input.json) {
 			context.success({
 				appAddress: appContractAddress,
+				owner: onChain.owner,
 				allowAnyDevice: allowlist.allow_any_device ?? false,
 				devices: allowlist.devices.map((d) => ({
 					deviceId: d.device_id,
@@ -246,6 +254,7 @@ async function runList(
 		}
 
 		logger.info(`Contract: ${appContractAddress}  Chain: ${chain.name}`);
+		logger.info(`Owner:    ${onChain.owner}`);
 		logger.info(
 			`Allow Any Device: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
 		);
