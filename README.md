@@ -23,7 +23,9 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 
 ## Clone With Submodules
 
-The Terraform provider now lives in its own repository and is included here as a git submodule.
+This repository uses git submodules for components that live in their own repositories.
+Today that includes the Terraform provider in [`/terraform`](./terraform), and the clone
+commands below will also pick up any future submodules automatically.
 
 Clone this repository with:
 
