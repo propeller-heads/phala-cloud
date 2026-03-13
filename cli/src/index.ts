@@ -33,6 +33,7 @@ import { instanceTypesCommand } from "./commands/instance-types";
 import { cvmsRuntimeConfigCommand } from "./commands/cvms/runtime-config";
 import { sshKeysCommands } from "./commands/ssh-keys";
 import { whoamiCommand } from "./commands/whoami";
+import { allowDevicesCommands } from "./commands/allow-devices";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -123,6 +124,11 @@ for (const command of nodesCommands.commands) {
 
 registry.registerGroup(simulatorCommands.group);
 for (const command of simulatorCommands.commands) {
+	registry.registerCommand(command);
+}
+
+registry.registerGroup(allowDevicesCommands.group);
+for (const command of allowDevicesCommands.commands) {
 	registry.registerCommand(command);
 }
 
