@@ -257,24 +257,36 @@ async function runList(
 		const resolved = await resolveAppContract(input.cvm, context);
 		if (!resolved) return 1;
 
-		const { chain, appContractAddress, allowlist } = resolved;
+		const { chain, appContractAddress } = resolved;
 
-		// Query contract owner from chain
+		// Get all platform nodes to build device_id → node_name map
+		const client = await getClient();
+		const nodesResult = await safeGetAvailableNodes(client);
+		const nodesByDeviceId = new Map<string, string>();
+		if (nodesResult.success) {
+			for (const node of nodesResult.data.nodes) {
+				if (node.device_id && isValidDeviceId(node.device_id)) {
+					nodesByDeviceId.set(node.device_id.toLowerCase(), node.name);
+				}
+			}
+		}
+
+		// Query chain directly with all known device IDs
+		const allDeviceIds = Array.from(nodesByDeviceId.keys());
 		const onChain = await getAllowedDevices({
 			chain,
 			appAddress: appContractAddress,
-			deviceIds: [],
+			deviceIds: allDeviceIds,
 		});
 
 		if (input.json) {
 			context.success({
 				appAddress: appContractAddress,
 				owner: onChain.owner,
-				allowAnyDevice: allowlist.allow_any_device ?? false,
-				devices: allowlist.devices.map((d) => ({
-					deviceId: d.device_id,
-					nodeName: d.node_name,
-					status: d.status,
+				allowAnyDevice: onChain.allowAnyDevice,
+				devices: onChain.devices.map((did) => ({
+					deviceId: did,
+					nodeName: nodesByDeviceId.get(did.toLowerCase()) ?? null,
 				})),
 			});
 			return 0;
@@ -283,18 +295,18 @@ async function runList(
 		logger.info(`Contract: ${appContractAddress}  Chain: ${chain.name}`);
 		logger.info(`Owner:    ${onChain.owner}`);
 		logger.info(
-			`Allow Any Device: ${allowlist.allow_any_device ? chalk.green("yes") : chalk.red("no")}`,
+			`Allow Any Device: ${onChain.allowAnyDevice ? chalk.green("yes") : chalk.red("no")}`,
 		);
 
-		if (allowlist.devices.length === 0) {
+		if (onChain.devices.length === 0) {
 			logger.info("No devices found");
 			return 0;
 		}
 
 		const columns = ["DEVICE_ID", "NODE"] as const;
-		const rows = allowlist.devices.map((d) => ({
-			DEVICE_ID: d.device_id,
-			NODE: d.node_name ?? "-",
+		const rows = onChain.devices.map((did) => ({
+			DEVICE_ID: did,
+			NODE: nodesByDeviceId.get(did.toLowerCase()) ?? "-",
 		}));
 
 		printTable(columns, rows);
