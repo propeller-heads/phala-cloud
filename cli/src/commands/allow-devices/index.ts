@@ -1,6 +1,15 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
 import {
+	type Chain,
+	type PublicClient,
+	type WalletClient,
+	createPublicClient,
+	createWalletClient,
+	http,
+} from "viem";
+import { privateKeyToAccount, nonceManager } from "viem/accounts";
+import {
 	safeGetCvmInfo,
 	safeGetAppDeviceAllowlist,
 	safeGetAvailableNodes,
@@ -107,14 +116,32 @@ function isExitPromptError(error: unknown): boolean {
 	);
 }
 
-function resolvePrivateKey(input: { privateKey?: string }): string {
+function resolvePrivateKey(input: { privateKey?: string }): `0x${string}` {
 	const key = input.privateKey || process.env.PRIVATE_KEY;
 	if (!key) {
 		throw new Error(
 			"Private key required. Use --private-key or set PRIVATE_KEY env var.",
 		);
 	}
-	return key.startsWith("0x") ? key : `0x${key}`;
+	return (key.startsWith("0x") ? key : `0x${key}`) as `0x${string}`;
+}
+
+function createSharedClients(
+	chain: Chain,
+	privateKey: `0x${string}`,
+	rpcUrl?: string,
+) {
+	const account = privateKeyToAccount(privateKey, { nonceManager });
+	const publicClient = createPublicClient({
+		chain,
+		transport: http(rpcUrl),
+	}) as unknown as PublicClient;
+	const walletClient = createWalletClient({
+		account,
+		chain,
+		transport: http(rpcUrl),
+	}) as unknown as WalletClient;
+	return { publicClient, walletClient };
 }
 
 async function resolveDeviceIdOrNodeName(
@@ -349,6 +376,12 @@ async function runAdd(
 			return 1;
 		}
 
+		const { publicClient, walletClient } = createSharedClients(
+			chain,
+			privateKey,
+			input.rpcUrl,
+		);
+
 		const results: {
 			deviceId: string;
 			txHash: string;
@@ -358,10 +391,10 @@ async function runAdd(
 		for (const deviceId of deviceIds) {
 			const result = await safeAddDevice({
 				chain,
-				rpcUrl: input.rpcUrl,
 				appAddress: appContractAddress,
 				deviceId,
-				privateKey: privateKey as `0x${string}`,
+				walletClient,
+				publicClient,
 			});
 
 			if (!result.success) {
@@ -483,6 +516,12 @@ async function runRemove(
 			return 1;
 		}
 
+		const { publicClient, walletClient } = createSharedClients(
+			chain,
+			privateKey,
+			input.rpcUrl,
+		);
+
 		const results: {
 			deviceId: string;
 			txHash: string;
@@ -492,10 +531,10 @@ async function runRemove(
 		for (const deviceId of deviceIds) {
 			const result = await safeRemoveDevice({
 				chain,
-				rpcUrl: input.rpcUrl,
 				appAddress: appContractAddress,
 				deviceId,
-				privateKey: privateKey as `0x${string}`,
+				walletClient,
+				publicClient,
 			});
 
 			if (!result.success) {
