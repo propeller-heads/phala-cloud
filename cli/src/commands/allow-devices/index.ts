@@ -407,6 +407,7 @@ async function runAdd(
 				deviceId,
 				walletClient,
 				publicClient,
+				skipPrerequisiteChecks: true,
 			});
 
 			if (!result.success) {
@@ -547,6 +548,7 @@ async function runRemove(
 				deviceId,
 				walletClient,
 				publicClient,
+				skipPrerequisiteChecks: true,
 			});
 
 			if (!result.success) {
