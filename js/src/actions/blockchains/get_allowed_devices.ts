@@ -90,21 +90,29 @@ export async function getAllowedDevices(
     };
   }
 
-  // Check each candidate device against the on-chain allowlist
-  const results = await Promise.all(
-    deviceIds.map(async (deviceId) => {
-      const hex = asHex(deviceId);
-      const allowed = (await publicClient.readContract({
-        address: contractAddress,
-        abi: dstackAppAbi,
-        functionName: "allowedDeviceIds",
-        args: [hex],
-      })) as boolean;
-      return { deviceId: hex, allowed };
-    }),
-  );
+  // Batch-check all candidate devices via multicall (single RPC request)
+  let devices: `0x${string}`[];
 
-  const devices = results.filter((r) => r.allowed).map((r) => r.deviceId);
+  if (deviceIds.length === 0) {
+    devices = [];
+  } else {
+    const calls = deviceIds.map((deviceId) => ({
+      address: contractAddress,
+      abi: dstackAppAbi,
+      functionName: "allowedDeviceIds" as const,
+      args: [asHex(deviceId)] as const,
+    }));
+
+    const multicallResults = await publicClient.multicall({ contracts: calls });
+
+    devices = deviceIds
+      .map((deviceId, i) => ({
+        deviceId: asHex(deviceId),
+        allowed: multicallResults[i]?.status === "success" && multicallResults[i]?.result === true,
+      }))
+      .filter((r) => r.allowed)
+      .map((r) => r.deviceId);
+  }
 
   return {
     appAddress: contractAddress,
