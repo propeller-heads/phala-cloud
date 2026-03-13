@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import inquirer from "inquirer";
 import {
 	safeGetCvmInfo,
 	safeGetAppDeviceAllowlist,
@@ -215,6 +216,15 @@ async function resolveAppContract(context: CommandContext) {
 	};
 }
 
+function isExitPromptError(error: unknown): boolean {
+	return (
+		error !== null &&
+		typeof error === "object" &&
+		"name" in error &&
+		(error as { name: string }).name === "ExitPromptError"
+	);
+}
+
 function resolvePrivateKey(input: { privateKey?: string }): string {
 	const key = input.privateKey || process.env.PRIVATE_KEY;
 	if (!key) {
@@ -290,39 +300,94 @@ async function runAdd(
 
 		const { chain, appContractAddress } = resolved;
 		const privateKey = resolvePrivateKey(input);
-		const deviceId = await resolveDeviceIdOrNodeName(input, context);
 
-		const result = await safeAddDevice({
-			chain,
-			rpcUrl: input.rpcUrl,
-			appAddress: appContractAddress,
-			deviceId,
-			privateKey: privateKey as `0x${string}`,
-		});
+		let deviceIds: `0x${string}`[];
 
-		if (!result.success) {
-			const err = result as { success: false; error: { message: string } };
-			context.fail(err.error.message);
-			return 1;
+		if (input.interactive && !input.deviceId) {
+			// Interactive: fetch available nodes, let user multi-select
+			const client = await getClient();
+			const nodesResult = await safeGetAvailableNodes(client);
+			if (!nodesResult.success) {
+				context.fail(nodesResult.error.message);
+				return 1;
+			}
+
+			const nodesWithDeviceId = nodesResult.data.nodes.filter(
+				(n) => n.device_id && isValidDeviceId(n.device_id),
+			);
+			if (nodesWithDeviceId.length === 0) {
+				context.fail("No nodes with valid device IDs found.");
+				return 1;
+			}
+
+			const { selected } = await inquirer.prompt<{
+				selected: string[];
+			}>([
+				{
+					type: "checkbox",
+					name: "selected",
+					message: "Select devices to add:",
+					choices: nodesWithDeviceId.map((n) => ({
+						name: `${n.name}  ${n.device_id}`,
+						value: n.device_id as string,
+					})),
+				},
+			]);
+
+			if (selected.length === 0) {
+				logger.info("No devices selected.");
+				return 0;
+			}
+
+			deviceIds = selected.map((id) => normalizeDeviceId(id));
+		} else {
+			const deviceId = await resolveDeviceIdOrNodeName(input, context);
+			deviceIds = [deviceId];
 		}
 
-		const data = result.data as AddDevice;
-		const explorerUrl = txExplorerUrl(chain, data.transactionHash);
+		const results: {
+			deviceId: string;
+			txHash: string;
+			explorer: string | null;
+		}[] = [];
+
+		for (const deviceId of deviceIds) {
+			const result = await safeAddDevice({
+				chain,
+				rpcUrl: input.rpcUrl,
+				appAddress: appContractAddress,
+				deviceId,
+				privateKey: privateKey as `0x${string}`,
+			});
+
+			if (!result.success) {
+				const err = result as {
+					success: false;
+					error: { message: string };
+				};
+				context.fail(`Failed to add ${deviceId}: ${err.error.message}`);
+				return 1;
+			}
+
+			const data = result.data as AddDevice;
+			results.push({
+				deviceId,
+				txHash: data.transactionHash,
+				explorer: txExplorerUrl(chain, data.transactionHash),
+			});
+		}
 
 		if (input.json) {
-			context.success({
-				...data,
-				deviceId,
-				explorer: explorerUrl ?? undefined,
-			});
+			context.success(results);
 			return 0;
 		}
 
-		logger.success("Device added successfully!");
-		logger.info(`Device ID:   ${deviceId}`);
-		logger.info(`Transaction: ${data.transactionHash}`);
-		if (explorerUrl) {
-			logger.info(`Explorer:    ${explorerUrl}`);
+		for (const r of results) {
+			logger.success(`Added ${r.deviceId}`);
+			logger.info(`Transaction: ${r.txHash}`);
+			if (r.explorer) {
+				logger.info(`Explorer:    ${r.explorer}`);
+			}
 		}
 
 		if (input.wait) {
@@ -330,15 +395,15 @@ async function runAdd(
 				chain,
 				rpcUrl: input.rpcUrl,
 				appAddress: appContractAddress,
-				deviceIds: [deviceId],
-				description: `device ${deviceId} to be allowed`,
+				deviceIds,
+				description: "devices to be allowed",
 				condition: (state) =>
-					state.devices.some((d) => d.toLowerCase() === deviceId.toLowerCase()),
+					deviceIds.every((id) =>
+						state.devices.some((d) => d.toLowerCase() === id.toLowerCase()),
+					),
 			});
 			if (!ok) {
-				context.fail(
-					`Device ${deviceId} not observed on-chain within timeout.`,
-				);
+				context.fail("Devices not observed on-chain within timeout.");
 				return 1;
 			}
 			logger.success("On-chain allowlist updated.");
@@ -350,6 +415,10 @@ async function runAdd(
 
 		return 0;
 	} catch (error) {
+		if (isExitPromptError(error)) {
+			logger.info("Cancelled.");
+			return 0;
+		}
 		logger.logDetailedError(error);
 		context.fail(
 			`Failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -368,41 +437,89 @@ async function runRemove(
 		const resolved = await resolveAppContract(context);
 		if (!resolved) return 1;
 
-		const { chain, appContractAddress } = resolved;
+		const { chain, appContractAddress, allowlist } = resolved;
 		const privateKey = resolvePrivateKey(input);
-		const deviceId = await resolveDeviceIdOrNodeName(input, context);
 
-		const result = await safeRemoveDevice({
-			chain,
-			rpcUrl: input.rpcUrl,
-			appAddress: appContractAddress,
-			deviceId,
-			privateKey: privateKey as `0x${string}`,
-		});
+		let deviceIds: `0x${string}`[];
 
-		if (!result.success) {
-			const err = result as { success: false; error: { message: string } };
-			context.fail(err.error.message);
-			return 1;
+		if (input.interactive && !input.deviceId) {
+			// Interactive: let user multi-select from currently allowed devices
+			const allowedDevices = allowlist.devices.filter(
+				(d) => d.status === "allowed",
+			);
+			if (allowedDevices.length === 0) {
+				context.fail("No allowed devices found to remove.");
+				return 1;
+			}
+
+			const { selected } = await inquirer.prompt<{
+				selected: string[];
+			}>([
+				{
+					type: "checkbox",
+					name: "selected",
+					message: "Select devices to remove:",
+					choices: allowedDevices.map((d) => ({
+						name: `${d.node_name ?? "-"}  ${d.device_id}`,
+						value: d.device_id,
+					})),
+				},
+			]);
+
+			if (selected.length === 0) {
+				logger.info("No devices selected.");
+				return 0;
+			}
+
+			deviceIds = selected.map((id) => normalizeDeviceId(id));
+		} else {
+			const deviceId = await resolveDeviceIdOrNodeName(input, context);
+			deviceIds = [deviceId];
 		}
 
-		const data = result.data as RemoveDevice;
-		const explorerUrl = txExplorerUrl(chain, data.transactionHash);
+		const results: {
+			deviceId: string;
+			txHash: string;
+			explorer: string | null;
+		}[] = [];
+
+		for (const deviceId of deviceIds) {
+			const result = await safeRemoveDevice({
+				chain,
+				rpcUrl: input.rpcUrl,
+				appAddress: appContractAddress,
+				deviceId,
+				privateKey: privateKey as `0x${string}`,
+			});
+
+			if (!result.success) {
+				const err = result as {
+					success: false;
+					error: { message: string };
+				};
+				context.fail(`Failed to remove ${deviceId}: ${err.error.message}`);
+				return 1;
+			}
+
+			const data = result.data as RemoveDevice;
+			results.push({
+				deviceId,
+				txHash: data.transactionHash,
+				explorer: txExplorerUrl(chain, data.transactionHash),
+			});
+		}
 
 		if (input.json) {
-			context.success({
-				...data,
-				deviceId,
-				explorer: explorerUrl ?? undefined,
-			});
+			context.success(results);
 			return 0;
 		}
 
-		logger.success("Device removed successfully!");
-		logger.info(`Device ID:   ${deviceId}`);
-		logger.info(`Transaction: ${data.transactionHash}`);
-		if (explorerUrl) {
-			logger.info(`Explorer:    ${explorerUrl}`);
+		for (const r of results) {
+			logger.success(`Removed ${r.deviceId}`);
+			logger.info(`Transaction: ${r.txHash}`);
+			if (r.explorer) {
+				logger.info(`Explorer:    ${r.explorer}`);
+			}
 		}
 
 		if (input.wait) {
@@ -410,17 +527,16 @@ async function runRemove(
 				chain,
 				rpcUrl: input.rpcUrl,
 				appAddress: appContractAddress,
-				deviceIds: [deviceId],
-				description: `device ${deviceId} to be removed`,
+				deviceIds,
+				description: "devices to be removed",
 				condition: (state) =>
-					!state.devices.some(
-						(d) => d.toLowerCase() === deviceId.toLowerCase(),
+					deviceIds.every(
+						(id) =>
+							!state.devices.some((d) => d.toLowerCase() === id.toLowerCase()),
 					),
 			});
 			if (!ok) {
-				context.fail(
-					`Device ${deviceId} still appears on-chain after timeout.`,
-				);
+				context.fail("Devices still appear on-chain after timeout.");
 				return 1;
 			}
 			logger.success("On-chain allowlist updated.");
@@ -432,6 +548,10 @@ async function runRemove(
 
 		return 0;
 	} catch (error) {
+		if (isExitPromptError(error)) {
+			logger.info("Cancelled.");
+			return 0;
+		}
 		logger.logDetailedError(error);
 		context.fail(
 			`Failed: ${error instanceof Error ? error.message : String(error)}`,

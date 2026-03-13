@@ -106,6 +106,7 @@ export type CvmsDevicesAddInput = z.infer<typeof cvmsDevicesAddSchema>;
 
 export const cvmsDevicesRemoveMeta: CommandMeta = {
 	name: "remove",
+	aliases: ["rm"],
 	description: "Remove a device from the on-chain allowlist",
 	stability: "unstable",
 	arguments: [
