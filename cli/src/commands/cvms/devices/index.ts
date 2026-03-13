@@ -260,12 +260,10 @@ async function runList(
 			return 0;
 		}
 
-		const columns = ["DEVICE_ID", "NODE", "STATUS"] as const;
+		const columns = ["DEVICE_ID", "NODE"] as const;
 		const rows = allowlist.devices.map((d) => ({
 			DEVICE_ID: d.device_id,
 			NODE: d.node_name ?? "-",
-			STATUS:
-				d.status === "allowed" ? chalk.green(d.status) : chalk.red(d.status),
 		}));
 
 		printTable(columns, rows);
