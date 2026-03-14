@@ -10,6 +10,7 @@ import { authCommands } from "./commands/auth";
 import { configCommands } from "./commands/config";
 import { cvmsCommands } from "./commands/cvms";
 import { deployCommand } from "./commands/deploy";
+import { envsCommands } from "./commands/envs";
 import { dockerCommands } from "./commands/docker";
 import { linkCommand } from "./commands/link";
 import { loginCommand } from "./commands/login";
@@ -86,6 +87,11 @@ for (const command of configCommands.commands) {
 
 registry.registerGroup(cvmsCommands.group);
 for (const command of cvmsCommands.commands) {
+	registry.registerCommand(command);
+}
+
+registry.registerGroup(envsCommands.group);
+for (const command of envsCommands.commands) {
 	registry.registerCommand(command);
 }
 
