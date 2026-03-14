@@ -1,7 +1,15 @@
 PYTHONPATH ?= src
 PYTEST ?= python -m pytest
 
-.PHONY: test e2e
+.PHONY: test e2e lint fmt check
+
+lint:
+	ruff check .
+
+fmt:
+	ruff format .
+
+check: fmt lint test
 
 test:
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$(PYTHONPATH) $(PYTEST) -q -p no:cacheprovider
