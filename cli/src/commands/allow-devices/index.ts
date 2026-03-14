@@ -53,16 +53,16 @@ import {
 
 const DEVICE_ID_REGEX = /^(0x)?[0-9a-fA-F]{64}$/;
 
-function normalizeDeviceId(deviceId: string): `0x${string}` {
+export function normalizeDeviceId(deviceId: string): `0x${string}` {
 	const normalized = deviceId.startsWith("0x") ? deviceId : `0x${deviceId}`;
 	return normalized.toLowerCase() as `0x${string}`;
 }
 
-function isValidDeviceId(deviceId: string): boolean {
+export function isValidDeviceId(deviceId: string): boolean {
 	return DEVICE_ID_REGEX.test(deviceId);
 }
 
-function txExplorerUrl(
+export function txExplorerUrl(
 	chain: (typeof SUPPORTED_CHAINS)[keyof typeof SUPPORTED_CHAINS],
 	txHash: string | undefined,
 ): string | null {
@@ -70,6 +70,43 @@ function txExplorerUrl(
 	const baseUrl = chain.blockExplorers?.default?.url;
 	if (!baseUrl) return null;
 	return `${baseUrl}/tx/${txHash}`;
+}
+
+/**
+ * Determine the allow-any flag value for the `allow-any` command.
+ * Returns null if neither --enable nor --disable was specified (caller should fail).
+ */
+export function resolveAllowAnyFlag(input: {
+	enable?: boolean;
+	disable?: boolean;
+}): boolean | null {
+	if (input.enable && input.disable) return null; // conflict
+	if (!input.enable && !input.disable) return null; // ambiguous
+	return !!input.enable;
+}
+
+/**
+ * Determine the toggled value for allow-any-device.
+ * Handles null/undefined `currentValue` by defaulting to false.
+ */
+export function resolveToggleAllowAny(input: {
+	enable?: boolean;
+	disable?: boolean;
+	currentValue: boolean | null | undefined;
+}): boolean | null {
+	if (input.enable && input.disable) return null; // conflict
+	if (input.enable === true) return true;
+	if (input.disable === true) return false;
+	return !(input.currentValue ?? false);
+}
+
+/**
+ * Build the set of already-allowed device IDs with consistent normalization.
+ */
+export function buildAlreadyAllowedSet(
+	devices: { device_id: string }[],
+): Set<string> {
+	return new Set(devices.map((d) => normalizeDeviceId(d.device_id)));
 }
 
 async function waitForAllowlistState(params: {
@@ -269,6 +306,10 @@ async function runList(
 					nodesByDeviceId.set(normalizeDeviceId(node.device_id), node.name);
 				}
 			}
+		} else {
+			logger.warn(
+				"Could not fetch platform nodes — node names will not be shown.",
+			);
 		}
 
 		// Query chain directly with all known device IDs
@@ -346,16 +387,14 @@ async function runAdd(
 				return 1;
 			}
 
-			// Exclude devices already in the allowlist
-			const alreadyAllowed = new Set(
-				allowlist.devices.map((d) => d.device_id.toLowerCase()),
-			);
+			// Exclude devices already in the allowlist (normalize to match chain format)
+			const alreadyAllowed = buildAlreadyAllowedSet(allowlist.devices);
 
 			const candidates = nodesResult.data.nodes.filter(
 				(n) =>
 					n.device_id &&
 					isValidDeviceId(n.device_id) &&
-					!alreadyAllowed.has(n.device_id.toLowerCase()),
+					!alreadyAllowed.has(normalizeDeviceId(n.device_id)),
 			);
 			if (candidates.length === 0) {
 				logger.info("All available devices are already in the allowlist.");
@@ -449,10 +488,14 @@ async function runAdd(
 				appAddress: appContractAddress,
 				deviceIds,
 				description: "devices to be allowed",
-				condition: (state) =>
-					deviceIds.every((id) =>
+				condition: (state) => {
+					// When allowAnyDevice is true, all devices pass the check
+					// regardless of per-device state. Skip wait to avoid false positive.
+					if (state.allowAnyDevice) return true;
+					return deviceIds.every((id) =>
 						state.devices.some((d) => d.toLowerCase() === id.toLowerCase()),
-					),
+					);
+				},
 			});
 			if (!ok) {
 				context.fail("Devices not observed on-chain within timeout.");
@@ -584,23 +627,40 @@ async function runRemove(
 		}
 
 		if (input.wait) {
-			const ok = await waitForAllowlistState({
+			// When allowAnyDevice is true, removed devices still appear as "allowed"
+			// because getAllowedDevices short-circuits. Warn and skip the wait.
+			const preCheck = await getAllowedDevices({
 				chain,
 				rpcUrl: input.rpcUrl,
 				appAddress: appContractAddress,
-				deviceIds,
-				description: "devices to be removed",
-				condition: (state) =>
-					deviceIds.every(
-						(id) =>
-							!state.devices.some((d) => d.toLowerCase() === id.toLowerCase()),
-					),
+				deviceIds: [],
 			});
-			if (!ok) {
-				context.fail("Devices still appear on-chain after timeout.");
-				return 1;
+			if (preCheck.allowAnyDevice) {
+				logger.warn(
+					"allowAnyDevice is enabled — removed devices still appear as allowed. " +
+						"Disable allow-any-device first if you want per-device enforcement.",
+				);
+			} else {
+				const ok = await waitForAllowlistState({
+					chain,
+					rpcUrl: input.rpcUrl,
+					appAddress: appContractAddress,
+					deviceIds,
+					description: "devices to be removed",
+					condition: (state) =>
+						deviceIds.every(
+							(id) =>
+								!state.devices.some(
+									(d) => d.toLowerCase() === id.toLowerCase(),
+								),
+						),
+				});
+				if (!ok) {
+					context.fail("Devices still appear on-chain after timeout.");
+					return 1;
+				}
+				logger.success("On-chain allowlist updated.");
 			}
-			logger.success("On-chain allowlist updated.");
 		} else {
 			logger.info(
 				"Backend allowlist API may lag behind chain. Use --wait to verify via RPC.",
@@ -627,12 +687,15 @@ async function runAllowAny(
 	input: AllowDevicesAllowAnyInput,
 	context: CommandContext,
 ): Promise<number> {
-	if (input.enable && input.disable) {
-		context.fail("Cannot use both --enable and --disable.");
+	const allow = resolveAllowAnyFlag(input);
+	if (allow === null) {
+		context.fail(
+			input.enable && input.disable
+				? "Cannot use both --enable and --disable."
+				: "Specify --enable or --disable to set the allow-any-device flag.",
+		);
 		return 1;
 	}
-
-	const allow = !input.disable;
 
 	try {
 		const resolved = await resolveAppContract(input.cvm, context);
@@ -678,21 +741,19 @@ async function runToggleAllowAny(
 	input: AllowDevicesToggleAllowAnyInput,
 	context: CommandContext,
 ): Promise<number> {
-	if (input.enable && input.disable) {
-		context.fail("Cannot use both --enable and --disable.");
-		return 1;
-	}
-
 	try {
 		const resolved = await resolveAppContract(input.cvm, context);
 		if (!resolved) return 1;
 
-		const allow =
-			input.enable === true
-				? true
-				: input.disable === true
-					? false
-					: !resolved.allowlist.allow_any_device;
+		const allow = resolveToggleAllowAny({
+			enable: input.enable,
+			disable: input.disable,
+			currentValue: resolved.allowlist.allow_any_device,
+		});
+		if (allow === null) {
+			context.fail("Cannot use both --enable and --disable.");
+			return 1;
+		}
 
 		return await executeSetAllowAny(input, context, {
 			chain: resolved.chain,

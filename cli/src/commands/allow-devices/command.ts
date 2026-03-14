@@ -187,7 +187,7 @@ export const allowDevicesAllowAnyMeta: CommandMeta = {
 	options: [
 		{
 			name: "enable",
-			description: "Enable allow-any-device (default)",
+			description: "Enable allow-any-device",
 			type: "boolean",
 			target: "enable",
 		},
