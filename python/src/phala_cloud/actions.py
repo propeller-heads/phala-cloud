@@ -122,347 +122,462 @@ __all__ = [
     "safe_deploy_app_auth",
 ]
 
+
 def get_current_user(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_current_user(*args, **kwargs)
+
 
 def safe_get_current_user(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_current_user(*args, **kwargs)
 
+
 def get_available_nodes(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_available_nodes(*args, **kwargs)
+
 
 def safe_get_available_nodes(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_available_nodes(*args, **kwargs)
 
+
 def get_cvm_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_list(*args, **kwargs)
+
 
 def safe_get_cvm_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_list(*args, **kwargs)
 
+
 def get_kms_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_kms_list(*args, **kwargs)
+
 
 def safe_get_kms_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_kms_list(*args, **kwargs)
 
+
 def list_all_instance_type_families(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.list_all_instance_type_families(*args, **kwargs)
+
 
 def safe_list_all_instance_type_families(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_list_all_instance_type_families(*args, **kwargs)
 
+
 def list_family_instance_types(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.list_family_instance_types(*args, **kwargs)
+
 
 def safe_list_family_instance_types(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_list_family_instance_types(*args, **kwargs)
 
+
 def list_workspaces(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.list_workspaces(*args, **kwargs)
+
 
 def safe_list_workspaces(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_list_workspaces(*args, **kwargs)
 
+
 def get_workspace(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_workspace(*args, **kwargs)
+
 
 def safe_get_workspace(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_workspace(*args, **kwargs)
 
+
 def get_workspace_nodes(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_workspace_nodes(*args, **kwargs)
+
 
 def safe_get_workspace_nodes(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_workspace_nodes(*args, **kwargs)
 
+
 def get_workspace_quotas(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_workspace_quotas(*args, **kwargs)
+
 
 def safe_get_workspace_quotas(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_workspace_quotas(*args, **kwargs)
 
+
 def get_cvm_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_info(*args, **kwargs)
+
 
 def safe_get_cvm_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_info(*args, **kwargs)
 
+
 def provision_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.provision_cvm(*args, **kwargs)
+
 
 def safe_provision_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_provision_cvm(*args, **kwargs)
 
+
 def commit_cvm_provision(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.commit_cvm_provision(*args, **kwargs)
+
 
 def safe_commit_cvm_provision(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_commit_cvm_provision(*args, **kwargs)
 
+
 def get_cvm_compose_file(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_compose_file(*args, **kwargs)
+
 
 def safe_get_cvm_compose_file(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_compose_file(*args, **kwargs)
 
+
 def provision_cvm_compose_file_update(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.provision_cvm_compose_file_update(*args, **kwargs)
+
 
 def safe_provision_cvm_compose_file_update(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_provision_cvm_compose_file_update(*args, **kwargs)
 
+
 def commit_cvm_compose_file_update(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.commit_cvm_compose_file_update(*args, **kwargs)
+
 
 def safe_commit_cvm_compose_file_update(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_commit_cvm_compose_file_update(*args, **kwargs)
 
+
 def update_cvm_envs(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_cvm_envs(*args, **kwargs)
+
 
 def safe_update_cvm_envs(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_cvm_envs(*args, **kwargs)
 
+
 def update_docker_compose(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_docker_compose(*args, **kwargs)
+
 
 def safe_update_docker_compose(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_docker_compose(*args, **kwargs)
 
+
 def update_pre_launch_script(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_pre_launch_script(*args, **kwargs)
+
 
 def safe_update_pre_launch_script(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_pre_launch_script(*args, **kwargs)
 
+
 def get_cvm_pre_launch_script(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_pre_launch_script(*args, **kwargs)
+
 
 def safe_get_cvm_pre_launch_script(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_pre_launch_script(*args, **kwargs)
 
+
 def start_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.start_cvm(*args, **kwargs)
+
 
 def safe_start_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_start_cvm(*args, **kwargs)
 
+
 def stop_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.stop_cvm(*args, **kwargs)
+
 
 def safe_stop_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_stop_cvm(*args, **kwargs)
 
+
 def shutdown_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.shutdown_cvm(*args, **kwargs)
+
 
 def safe_shutdown_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_shutdown_cvm(*args, **kwargs)
 
+
 def restart_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.restart_cvm(*args, **kwargs)
+
 
 def safe_restart_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_restart_cvm(*args, **kwargs)
 
+
 def delete_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.delete_cvm(*args, **kwargs)
+
 
 def safe_delete_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_delete_cvm(*args, **kwargs)
 
+
 def get_cvm_stats(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_stats(*args, **kwargs)
+
 
 def safe_get_cvm_stats(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_stats(*args, **kwargs)
 
+
 def get_cvm_network(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_network(*args, **kwargs)
+
 
 def safe_get_cvm_network(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_network(*args, **kwargs)
 
+
 def get_cvm_docker_compose(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_docker_compose(*args, **kwargs)
+
 
 def safe_get_cvm_docker_compose(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_docker_compose(*args, **kwargs)
 
+
 def get_cvm_containers_stats(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_containers_stats(*args, **kwargs)
+
 
 def safe_get_cvm_containers_stats(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_containers_stats(*args, **kwargs)
 
+
 def get_cvm_attestation(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_attestation(*args, **kwargs)
+
 
 def safe_get_cvm_attestation(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_attestation(*args, **kwargs)
 
+
 def update_cvm_resources(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_cvm_resources(*args, **kwargs)
+
 
 def safe_update_cvm_resources(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_cvm_resources(*args, **kwargs)
 
+
 def update_cvm_visibility(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_cvm_visibility(*args, **kwargs)
+
 
 def safe_update_cvm_visibility(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_cvm_visibility(*args, **kwargs)
 
+
 def get_available_os_images(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_available_os_images(*args, **kwargs)
+
 
 def safe_get_available_os_images(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_available_os_images(*args, **kwargs)
 
+
 def update_os_image(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.update_os_image(*args, **kwargs)
+
 
 def safe_update_os_image(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_update_os_image(*args, **kwargs)
 
+
 def get_cvm_state(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_state(*args, **kwargs)
+
 
 def safe_get_cvm_state(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_state(*args, **kwargs)
 
+
 def watch_cvm_state(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.watch_cvm_state(*args, **kwargs)
+
 
 def get_kms_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_kms_info(*args, **kwargs)
 
+
 def safe_get_kms_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_kms_info(*args, **kwargs)
+
 
 def get_app_env_encrypt_pub_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_env_encrypt_pub_key(*args, **kwargs)
 
+
 def safe_get_app_env_encrypt_pub_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_env_encrypt_pub_key(*args, **kwargs)
+
 
 def next_app_ids(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.next_app_ids(*args, **kwargs)
 
+
 def safe_next_app_ids(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_next_app_ids(*args, **kwargs)
+
 
 def list_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.list_ssh_keys(*args, **kwargs)
 
+
 def safe_list_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_list_ssh_keys(*args, **kwargs)
+
 
 def import_github_profile_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.import_github_profile_ssh_keys(*args, **kwargs)
 
+
 def safe_import_github_profile_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_import_github_profile_ssh_keys(*args, **kwargs)
+
 
 def create_ssh_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.create_ssh_key(*args, **kwargs)
 
+
 def safe_create_ssh_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_create_ssh_key(*args, **kwargs)
+
 
 def delete_ssh_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.delete_ssh_key(*args, **kwargs)
 
+
 def safe_delete_ssh_key(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_delete_ssh_key(*args, **kwargs)
+
 
 def sync_github_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.sync_github_ssh_keys(*args, **kwargs)
 
+
 def safe_sync_github_ssh_keys(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_sync_github_ssh_keys(*args, **kwargs)
+
 
 def get_cvm_status_batch(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_status_batch(*args, **kwargs)
 
+
 def safe_get_cvm_status_batch(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_status_batch(*args, **kwargs)
+
 
 def get_cvm_user_config(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_cvm_user_config(*args, **kwargs)
 
+
 def safe_get_cvm_user_config(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_cvm_user_config(*args, **kwargs)
+
 
 def refresh_cvm_instance_id(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.refresh_cvm_instance_id(*args, **kwargs)
 
+
 def safe_refresh_cvm_instance_id(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_refresh_cvm_instance_id(*args, **kwargs)
+
 
 def refresh_cvm_instance_ids(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.refresh_cvm_instance_ids(*args, **kwargs)
 
+
 def safe_refresh_cvm_instance_ids(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_refresh_cvm_instance_ids(*args, **kwargs)
+
 
 def replicate_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.replicate_cvm(*args, **kwargs)
 
+
 def safe_replicate_cvm(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_replicate_cvm(*args, **kwargs)
+
 
 def get_app_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_list(*args, **kwargs)
 
+
 def safe_get_app_list(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_list(*args, **kwargs)
+
 
 def get_app_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_info(*args, **kwargs)
 
+
 def safe_get_app_info(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_info(*args, **kwargs)
+
 
 def get_app_cvms(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_cvms(*args, **kwargs)
 
+
 def safe_get_app_cvms(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_cvms(*args, **kwargs)
+
 
 def get_app_revisions(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_revisions(*args, **kwargs)
 
+
 def safe_get_app_revisions(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_revisions(*args, **kwargs)
+
 
 def get_app_revision_detail(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_revision_detail(*args, **kwargs)
 
+
 def safe_get_app_revision_detail(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_revision_detail(*args, **kwargs)
+
 
 def get_app_filter_options(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_filter_options(*args, **kwargs)
 
+
 def safe_get_app_filter_options(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_filter_options(*args, **kwargs)
+
 
 def get_app_attestation(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.get_app_attestation(*args, **kwargs)
 
+
 def safe_get_app_attestation(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_get_app_attestation(*args, **kwargs)
+
 
 def add_compose_hash(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.add_compose_hash(*args, **kwargs)
 
+
 def safe_add_compose_hash(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_add_compose_hash(*args, **kwargs)
 
+
 def deploy_app_auth(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.deploy_app_auth(*args, **kwargs)
+
 
 def safe_deploy_app_auth(client: Any, *args: Any, **kwargs: Any) -> Any:
     return client.safe_deploy_app_auth(*args, **kwargs)

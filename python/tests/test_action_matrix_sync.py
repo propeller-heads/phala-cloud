@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import httpx
@@ -58,29 +57,103 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "GET" and path.startswith("/api/v1/instance-types/"):
         return _json_response({"items": [], "total": 0, "family": "cpu"})
     if method == "GET" and path == "/api/v1/workspaces":
-        return _json_response({"data": [{"id": "w", "name": "n", "slug": "s", "tier": "free", "role": "owner"}], "pagination": {}})
+        return _json_response(
+            {
+                "data": [{"id": "w", "name": "n", "slug": "s", "tier": "free", "role": "owner"}],
+                "pagination": {},
+            }
+        )
     if method == "GET" and path.endswith("/nodes"):
         return _json_response({"items": [], "total": 0, "page": 1, "page_size": 20, "pages": 0})
     if method == "GET" and path.endswith("/quotas"):
-        return _json_response({"team_slug": "s", "tier": "free", "quotas": {}, "reserved_nodes": {}, "reserved_gpu": {}, "as_of": "now"})
+        return _json_response(
+            {
+                "team_slug": "s",
+                "tier": "free",
+                "quotas": {},
+                "reserved_nodes": {},
+                "reserved_gpu": {},
+                "as_of": "now",
+            }
+        )
     if method == "GET" and path.startswith("/api/v1/workspaces/"):
-        return _json_response({"id": "w", "name": "n", "slug": "s", "tier": "free", "role": "owner"})
+        return _json_response(
+            {"id": "w", "name": "n", "slug": "s", "tier": "free", "role": "owner"}
+        )
 
     # kms
     if method == "GET" and path == "/api/v1/kms":
-        return _json_response({"items": [{"id": "k1", "slug": "phala", "url": "u", "version": "1", "chain_id": None, "kms_contract_address": None, "gateway_app_id": None}], "total": 1, "page": 1, "page_size": 10, "pages": 1})
+        return _json_response(
+            {
+                "items": [
+                    {
+                        "id": "k1",
+                        "slug": "phala",
+                        "url": "u",
+                        "version": "1",
+                        "chain_id": None,
+                        "kms_contract_address": None,
+                        "gateway_app_id": None,
+                    }
+                ],
+                "total": 1,
+                "page": 1,
+                "page_size": 10,
+                "pages": 1,
+            }
+        )
     if method == "GET" and path.startswith("/api/v1/kms/") and "/pubkey/" in path:
         return _json_response({"public_key": "pk", "signature": "sig"})
     if method == "GET" and path == "/api/v1/kms/phala/next_app_id":
         return _json_response({"app_ids": [{"app_id": "a", "nonce": 1}]})
     if method == "GET" and path.startswith("/api/v1/kms/"):
-        return _json_response({"id": "k1", "slug": "phala", "url": "u", "version": "1", "chain_id": None, "kms_contract_address": None, "gateway_app_id": None})
+        return _json_response(
+            {
+                "id": "k1",
+                "slug": "phala",
+                "url": "u",
+                "version": "1",
+                "chain_id": None,
+                "kms_contract_address": None,
+                "gateway_app_id": None,
+            }
+        )
 
     # cvm list/info
     if method == "GET" and path == "/api/v1/cvms/paginated":
         if request.headers.get("X-Phala-Version") == "2025-10-28":
-            return _json_response({"items": [{"hosted": {"id": "1", "name": "n", "status": "running", "app_id": "a", "instance_id": None}, "name": "n", "status": "running", "in_progress": False, "kms_info": None}], "total": 1, "page": 1, "page_size": 10, "pages": 1})
-        return _json_response({"items": [{"id": "1", "name": "n", "resource": {}, "status": "running"}], "total": 1, "page": 1, "page_size": 10, "pages": 1})
+            return _json_response(
+                {
+                    "items": [
+                        {
+                            "hosted": {
+                                "id": "1",
+                                "name": "n",
+                                "status": "running",
+                                "app_id": "a",
+                                "instance_id": None,
+                            },
+                            "name": "n",
+                            "status": "running",
+                            "in_progress": False,
+                            "kms_info": None,
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 10,
+                    "pages": 1,
+                }
+            )
+        return _json_response(
+            {
+                "items": [{"id": "1", "name": "n", "resource": {}, "status": "running"}],
+                "total": 1,
+                "page": 1,
+                "page_size": 10,
+                "pages": 1,
+            }
+        )
     if method == "GET" and path.startswith("/api/v1/cvms/"):
         if path.endswith("/compose_file"):
             return _json_response({"name": "app", "docker_compose_file": "services: {}"})
@@ -120,7 +193,9 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "PATCH" and path.endswith("/pre-launch-script"):
         return _json_response({"status": "in_progress", "message": "ok", "correlation_id": "c"})
 
-    if method == "POST" and any(path.endswith(s) for s in ["/start", "/stop", "/shutdown", "/restart", "/replicas"]):
+    if method == "POST" and any(
+        path.endswith(s) for s in ["/start", "/stop", "/shutdown", "/restart", "/replicas"]
+    ):
         return _json_response({"id": 1, "name": "n", "status": "running"})
     if method == "DELETE" and path.startswith("/api/v1/cvms/"):
         return httpx.Response(204)
@@ -131,7 +206,18 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "PATCH" and path.endswith("/instance-id"):
         return _json_response({"status": "updated"})
     if method == "PATCH" and path == "/api/v1/cvms/instance-ids":
-        return _json_response({"total": 1, "scanned": 1, "updated": 1, "unchanged": 0, "skipped": 0, "conflicts": 0, "errors": 0, "items": []})
+        return _json_response(
+            {
+                "total": 1,
+                "scanned": 1,
+                "updated": 1,
+                "unchanged": 0,
+                "skipped": 0,
+                "conflicts": 0,
+                "errors": 0,
+                "items": [],
+            }
+        )
 
     # ssh
     if method == "GET" and path == "/api/v1/user/ssh-keys":
@@ -141,15 +227,29 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "DELETE" and path.startswith("/api/v1/user/ssh-keys/"):
         return httpx.Response(204)
     if method == "POST" and path.endswith("/github-profile"):
-        return _json_response({"github_username": "octo", "keys_added": 1, "keys_skipped": 0, "errors": []})
+        return _json_response(
+            {"github_username": "octo", "keys_added": 1, "keys_skipped": 0, "errors": []}
+        )
     if method == "POST" and path.endswith("/github-sync"):
-        return _json_response({"synced_count": 1, "keys_added": 1, "keys_updated": 0, "keys_removed": 0, "errors": []})
+        return _json_response(
+            {"synced_count": 1, "keys_added": 1, "keys_updated": 0, "keys_removed": 0, "errors": []}
+        )
 
     # apps
     if method == "GET" and path == "/api/v1/apps":
         return _json_response({"items": [], "total": 0, "page": 1, "page_size": 10, "pages": 0})
     if method == "GET" and path.endswith("/filter-options"):
-        return _json_response({"statuses": [], "image_versions": [], "instance_types": [], "kms_slugs": [], "kms_types": [], "regions": [], "nodes": []})
+        return _json_response(
+            {
+                "statuses": [],
+                "image_versions": [],
+                "instance_types": [],
+                "kms_slugs": [],
+                "kms_types": [],
+                "regions": [],
+                "nodes": [],
+            }
+        )
     if method == "GET" and path.endswith("/attestations"):
         return _json_response({"instances": []})
     if method == "GET" and path.endswith("/cvms") and path.startswith("/api/v1/apps/"):
@@ -184,10 +284,14 @@ def test_sync_action_matrix_and_safe() -> None:
             lambda: c.get_workspace_nodes({"teamSlug": "team"}),
             lambda: c.get_workspace_quotas("team"),
             lambda: c.get_cvm_info({"id": "c1"}),
-            lambda: c.provision_cvm({"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}}),
+            lambda: c.provision_cvm(
+                {"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}}
+            ),
             lambda: c.commit_cvm_provision({"app_id": "a", "compose_hash": "h"}),
             lambda: c.get_cvm_compose_file({"id": "c1"}),
-            lambda: c.provision_cvm_compose_file_update({"id": "c1", "app_compose": {"docker_compose_file": "services: {}"}}),
+            lambda: c.provision_cvm_compose_file_update(
+                {"id": "c1", "app_compose": {"docker_compose_file": "services: {}"}}
+            ),
             lambda: c.commit_cvm_compose_file_update({"id": "c1", "compose_hash": "h"}),
             lambda: c.update_cvm_envs({"id": "c1", "encrypted_env": "x"}),
             lambda: c.update_docker_compose({"id": "c1", "docker_compose_file": "services: {}"}),
@@ -204,7 +308,9 @@ def test_sync_action_matrix_and_safe() -> None:
             lambda: c.get_cvm_containers_stats({"id": "c1"}),
             lambda: c.get_cvm_attestation({"id": "c1"}),
             lambda: c.update_cvm_resources({"id": "c1", "vcpu": 1}),
-            lambda: c.update_cvm_visibility({"id": "c1", "public_sysinfo": True, "public_logs": False}),
+            lambda: c.update_cvm_visibility(
+                {"id": "c1", "public_sysinfo": True, "public_logs": False}
+            ),
             lambda: c.get_available_os_images({"id": "c1"}),
             lambda: c.update_os_image({"id": "c1", "os_image_name": "prod"}),
             lambda: c.get_cvm_state({"id": "c1"}),
@@ -251,10 +357,14 @@ def test_safe_matrix_sync_all_actions() -> None:
             "safe_get_workspace_nodes": ({"teamSlug": "team"},),
             "safe_get_workspace_quotas": ("team",),
             "safe_get_cvm_info": ({"id": "c1"},),
-            "safe_provision_cvm": ({"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}},),
+            "safe_provision_cvm": (
+                {"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}},
+            ),
             "safe_commit_cvm_provision": ({"app_id": "a", "compose_hash": "h"},),
             "safe_get_cvm_compose_file": ({"id": "c1"},),
-            "safe_provision_cvm_compose_file_update": ({"id": "c1", "app_compose": {"docker_compose_file": "services: {}"}},),
+            "safe_provision_cvm_compose_file_update": (
+                {"id": "c1", "app_compose": {"docker_compose_file": "services: {}"}},
+            ),
             "safe_commit_cvm_compose_file_update": ({"id": "c1", "compose_hash": "h"},),
             "safe_update_cvm_envs": ({"id": "c1", "encrypted_env": "x"},),
             "safe_update_docker_compose": ({"id": "c1", "docker_compose_file": "services: {}"},),
@@ -271,7 +381,9 @@ def test_safe_matrix_sync_all_actions() -> None:
             "safe_get_cvm_containers_stats": ({"id": "c1"},),
             "safe_get_cvm_attestation": ({"id": "c1"},),
             "safe_update_cvm_resources": ({"id": "c1", "vcpu": 1},),
-            "safe_update_cvm_visibility": ({"id": "c1", "public_sysinfo": True, "public_logs": False},),
+            "safe_update_cvm_visibility": (
+                {"id": "c1", "public_sysinfo": True, "public_logs": False},
+            ),
             "safe_get_available_os_images": ({"id": "c1"},),
             "safe_update_os_image": ({"id": "c1", "os_image_name": "prod"},),
             "safe_get_cvm_state": ({"id": "c1"},),
@@ -323,7 +435,13 @@ def test_version_branch_legacy_sync() -> None:
                 json={
                     "items": [
                         {
-                            "hosted": {"id": "1", "name": "n", "status": "running", "app_id": "a", "instance_id": None},
+                            "hosted": {
+                                "id": "1",
+                                "name": "n",
+                                "status": "running",
+                                "app_id": "a",
+                                "instance_id": None,
+                            },
                             "name": "n",
                             "status": "running",
                             "in_progress": False,
@@ -350,7 +468,16 @@ def test_version_branch_legacy_sync() -> None:
 def test_465_precondition_sync() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/envs"):
-            return httpx.Response(465, json={"message": "need hash", "compose_hash": "h", "app_id": "a", "device_id": "d", "kms_info": {}})
+            return httpx.Response(
+                465,
+                json={
+                    "message": "need hash",
+                    "compose_hash": "h",
+                    "app_id": "a",
+                    "device_id": "d",
+                    "kms_info": {},
+                },
+            )
         return _mock_handler(request)
 
     transport = httpx.MockTransport(handler)
@@ -362,14 +489,17 @@ def test_465_precondition_sync() -> None:
 
 def test_watch_cvm_state_sse_sync() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/state") and request.headers.get("Accept") == "text/event-stream":
+        if (
+            request.url.path.endswith("/state")
+            and request.headers.get("Accept") == "text/event-stream"
+        ):
             body = "\n".join(
                 [
                     "event: state",
-                    "data: {\"status\":\"starting\"}",
+                    'data: {"status":"starting"}',
                     "",
                     "event: complete",
-                    "data: {\"status\":\"running\"}",
+                    'data: {"status":"running"}',
                     "",
                 ]
             )

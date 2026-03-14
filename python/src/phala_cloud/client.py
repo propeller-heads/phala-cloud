@@ -97,7 +97,7 @@ class AsyncPhalaCloud:
         )
         self._owns_client = http_client is None
 
-    async def __aenter__(self) -> "AsyncPhalaCloud":
+    async def __aenter__(self) -> AsyncPhalaCloud:
         return self
 
     async def __aexit__(self, *_: object) -> None:
@@ -107,7 +107,7 @@ class AsyncPhalaCloud:
         if self._owns_client:
             await self._client.aclose()
 
-    def with_version(self, version: ApiVersion) -> "AsyncPhalaCloud":
+    def with_version(self, version: ApiVersion) -> AsyncPhalaCloud:
         return AsyncPhalaCloud(
             api_key=self.config.api_key,
             base_url=self.config.base_url,
@@ -159,7 +159,9 @@ class AsyncPhalaCloud:
     async def safe_request_method(self, method: str, path: str, **kwargs: Any) -> SafeResult[Any]:
         return await self.safe(self.request, method, path, **kwargs)
 
-    async def safe_request_full(self, method: str, path: str, **kwargs: Any) -> SafeResult[dict[str, Any]]:
+    async def safe_request_full(
+        self, method: str, path: str, **kwargs: Any
+    ) -> SafeResult[dict[str, Any]]:
         return await self.safe(self.request_full, method, path, **kwargs)
 
     async def get_current_user(self) -> CurrentUser:
@@ -292,7 +294,7 @@ class PhalaCloud:
         )
         self._owns_client = http_client is None
 
-    def __enter__(self) -> "PhalaCloud":
+    def __enter__(self) -> PhalaCloud:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -302,7 +304,7 @@ class PhalaCloud:
         if self._owns_client:
             self._client.close()
 
-    def with_version(self, version: ApiVersion) -> "PhalaCloud":
+    def with_version(self, version: ApiVersion) -> PhalaCloud:
         return PhalaCloud(
             api_key=self.config.api_key,
             base_url=self.config.base_url,
@@ -354,7 +356,9 @@ class PhalaCloud:
     def safe_request_method(self, method: str, path: str, **kwargs: Any) -> SafeResult[Any]:
         return self.safe(self.request, method, path, **kwargs)
 
-    def safe_request_full(self, method: str, path: str, **kwargs: Any) -> SafeResult[dict[str, Any]]:
+    def safe_request_full(
+        self, method: str, path: str, **kwargs: Any
+    ) -> SafeResult[dict[str, Any]]:
         return self.safe(self.request_full, method, path, **kwargs)
 
     def get_current_user(self) -> CurrentUser:
