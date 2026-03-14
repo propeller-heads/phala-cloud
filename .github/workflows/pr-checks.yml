@@ -5,9 +5,13 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'js/**'
+      - 'python/**'
+      - '.github/workflows/pr-checks.yml'
   push:
     paths:
       - 'js/**'
+      - 'python/**'
+      - '.github/workflows/pr-checks.yml'
 
 jobs:
   js-sdk-checks:
@@ -134,6 +138,27 @@ jobs:
             js/test_report.txt
             js/lint_report.txt
             pr-metadata/
+
+  python-sdk-checks:
+    name: Python SDK Checks (non-e2e)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python SDK dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "./python[dev]"
+
+      - name: Run Python tests (exclude e2e)
+        working-directory: python
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python -m pytest -q -m "not e2e"
 
   compatibility-checks:
     name: Compatibility Checks
