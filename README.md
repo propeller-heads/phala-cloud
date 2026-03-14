@@ -16,7 +16,7 @@ A curated list of awesome Phala Cloud resources, tools, and templates.
 
 - **CLI** (`/cli`) - Official Phala Cloud CLI tools
 - **JavaScript/TypeScript SDK** (`/js`) - Official Phala Cloud API client for managing cloud resources
-- **Terraform Provider** (`/terraform`) - Official Phala Cloud Terraform provider, vendored here as a git submodule from `terraform-provider-phala`
+- **Terraform Provider** (`/terraform`) - Official Phala Cloud Terraform provider. Published on the Terraform Registry as `phala-network/phala` and vendored here as a git submodule from `terraform-provider-phala`
 - **Documentation & Guides** (`/docs`) - Integration guides and examples  
 - **Templates** (`/templates`) - Curated collection of Phala Cloud templates and prebuilt applications
 - **Community Issues** - Feature requests, bug reports, and discussions
@@ -42,6 +42,21 @@ git submodule update --init --recursive
 ## Use Phala Cloud
 
 It's easy to deploy arbitrary dockerized applications on Phala Cloud. Check the [documentation](https://docs.phala.network/overview/phala-network/phala-cloud) for more information.
+
+Terraform users can install the public provider directly from the Terraform Registry:
+
+```hcl
+terraform {
+  required_providers {
+    phala = {
+      source  = "phala-network/phala"
+      version = "0.2.0-beta.1"
+    }
+  }
+}
+```
+
+Provider registry page: https://registry.terraform.io/providers/phala-network/phala/latest
 
 Phala Cloud is built on top of [dstack](https://github.com/dstack-TEE/dstack/). To simulate the TEE-specific features, you can use the [tappd simulator](https://github.com/leechael/tappd-simulator/). There are several starter templates available that you can check out to learn more:
 
