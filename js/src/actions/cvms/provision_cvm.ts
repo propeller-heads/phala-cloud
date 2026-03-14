@@ -55,7 +55,7 @@ import { isValidHostname } from "../../utils/hostname";
  * const provision = await provisionCvm(client, {
  *   name: 'my-app',
  *   node_id: 123,                 // Specific node
- *   kms: 'PHALA',                 // KMS type (PHALA, BASE, ETHERUEM)
+ *   kms: 'PHALA',                 // KMS type (PHALA, BASE, ETHEREUM)
  *   disk_size: 40,
  *   image: 'dstack-0.5.5',
  *   compose_file: { /* ... *\/ },
@@ -215,6 +215,7 @@ export const ProvisionCvmRequestSchema = z
         public_sysinfo: z.boolean().optional(),
         gateway_enabled: z.boolean().optional(), // recommended
         tproxy_enabled: z.boolean().optional(), // deprecated, for compatibility
+        storage_fs: z.enum(["ext4", "zfs"]).optional(),
       })
       .superRefine((data, ctx) => {
         validateComposePayloadSize(data.docker_compose_file, data.pre_launch_script, ctx);
