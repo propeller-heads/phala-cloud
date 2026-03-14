@@ -1,0 +1,438 @@
+name: Release Python SDK
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Prerelease tag (leave empty for stable release)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - beta
+          - alpha
+          - rc
+      ref:
+        description: 'Branch/ref to release from (default: main)'
+        required: false
+        type: string
+        default: 'main'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write  # Required for PyPI Trusted Publishers (OIDC)
+
+jobs:
+  parse:
+    if: >
+      github.event_name == 'issue_comment' &&
+      (contains(github.event.comment.body, '!release') ||
+       contains(github.event.comment.body, '!Release') ||
+       contains(github.event.comment.body, '!RELEASE')) &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.parse.outputs.should_release }}
+      release_type: ${{ steps.parse.outputs.release_type }}
+      prerelease: ${{ steps.parse.outputs.prerelease }}
+      ref: ${{ steps.parse.outputs.ref }}
+      pr_branch: ${{ steps.parse.outputs.pr_branch }}
+      pr_title: ${{ steps.parse.outputs.pr_title }}
+      pr_url: ${{ steps.parse.outputs.pr_url }}
+      issue_number: ${{ steps.parse.outputs.issue_number }}
+      requested_by: ${{ steps.parse.outputs.requested_by }}
+      request_url: ${{ steps.parse.outputs.request_url }}
+    steps:
+      - name: Parse release command
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const allowedPackages = ['python', 'py'];
+            const allowedBumps = ['patch', 'minor', 'major'];
+            const allowedPrereleaseTags = ['beta', 'alpha', 'rc'];
+
+            const body = context.payload.comment.body.trim();
+            const match = body.match(/!release\s+(\S+)\s+(\S+)(?:\s+(\S+))?/i);
+
+            if (!match) {
+              return;
+            }
+
+            const packageName = match[1].toLowerCase();
+            const releaseType = match[2].toLowerCase();
+            const prereleaseTag = match[3] ? match[3].toLowerCase() : '';
+
+            // Only handle python/py - let other packages be handled by release-command.yml
+            if (!allowedPackages.includes(packageName)) {
+              return;
+            }
+
+            const allowedAssociation = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const association = context.payload.comment.author_association;
+            const actor = context.payload.comment.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = context.payload.issue.number;
+
+            const invalidBump = !allowedBumps.includes(releaseType);
+            const invalidPrerelease = prereleaseTag && !allowedPrereleaseTags.includes(prereleaseTag);
+
+            if (invalidBump || invalidPrerelease) {
+              const message = [
+                `⚠️ @${actor} I couldn't parse the release command.`,
+                '',
+                'Expected format: `!release <python|py> <patch|minor|major> [beta|alpha|rc]`',
+                '',
+                'Examples:',
+                '- `!release python patch` - stable release',
+                '- `!release py minor beta` - beta release'
+              ];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: message.join('\n')
+              });
+              return;
+            }
+
+            if (!allowedAssociation.includes(association)) {
+              const message = [
+                `⛔ @${actor} you do not have permission to trigger releases.`,
+                '',
+                'Please contact the repository maintainers if this is unexpected.'
+              ];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: message.join('\n')
+              });
+              return;
+            }
+
+            let ref = 'main';
+            let prBranch = '';
+            let prTitle = '';
+            let prUrl = '';
+
+            if (context.payload.issue.pull_request) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: issueNumber
+              });
+
+              if (!pr.head.repo || pr.head.repo.full_name !== `${owner}/${repo}`) {
+                const message = [
+                  `⛔ @${actor} releases from forked branches are not supported.`,
+                  '',
+                  'Please push the branch to this repository or run the release manually in Actions.'
+                ];
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: message.join('\n')
+                });
+                return;
+              }
+
+              ref = pr.head.ref;
+              prBranch = pr.head.ref;
+              prTitle = pr.title;
+              prUrl = pr.html_url;
+            }
+
+            const releaseTypeLabel = prereleaseTag ? `${releaseType} (${prereleaseTag})` : releaseType;
+
+            const lines = [
+              `🚀 @${actor} release command accepted: \`python\` \`${releaseTypeLabel}\`.`,
+              '',
+              'The release workflow is queued; results will be posted here.'
+            ];
+
+            if (prBranch) {
+              lines.splice(2, 0, `Target branch: \`${prBranch}\` (open PR). Version commits will be pushed to this branch.`);
+            }
+
+            if (prereleaseTag) {
+              lines.splice(2, 0, `📦 Prerelease tag: \`${prereleaseTag}\` (will publish to PyPI with pre-release version)`);
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: lines.join('\n')
+            });
+
+            core.setOutput('should_release', 'true');
+            core.setOutput('release_type', releaseType);
+            core.setOutput('prerelease', prereleaseTag);
+            core.setOutput('ref', ref);
+            core.setOutput('pr_branch', prBranch);
+            core.setOutput('pr_title', prTitle);
+            core.setOutput('pr_url', prUrl);
+            core.setOutput('issue_number', issueNumber);
+            core.setOutput('requested_by', actor);
+            core.setOutput('request_url', context.payload.comment.html_url);
+
+  release:
+    needs: [parse]
+    if: |
+      always() &&
+      (
+        (needs.parse.result == 'success' && needs.parse.outputs.should_release == 'true') ||
+        (github.event_name == 'workflow_dispatch')
+      )
+    concurrency:
+      group: release-python-${{ github.event_name == 'workflow_dispatch' && inputs.ref || needs.parse.outputs.ref }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    environment: pypi
+    env:
+      RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type || needs.parse.outputs.release_type }}
+      PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || needs.parse.outputs.prerelease }}
+      SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || needs.parse.outputs.ref }}
+      ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
+      REQUESTED_BY: ${{ github.event_name == 'workflow_dispatch' && github.actor || needs.parse.outputs.requested_by }}
+      REQUEST_URL: ${{ needs.parse.outputs.request_url }}
+      PR_TITLE: ${{ needs.parse.outputs.pr_title }}
+      PR_URL: ${{ needs.parse.outputs.pr_url }}
+      PR_BRANCH: ${{ needs.parse.outputs.pr_branch }}
+    steps:
+
+      - name: Validate context
+        run: |
+          set -e
+          if [ -z "${RELEASE_TYPE:-}" ]; then
+            echo "RELEASE_TYPE is not set"
+            exit 1
+          fi
+          case "$RELEASE_TYPE" in
+            patch|minor|major) ;;
+            *)
+              echo "Unsupported release type: $RELEASE_TYPE"
+              exit 1
+              ;;
+          esac
+          if [ -z "${SOURCE_REF:-}" ]; then
+            echo "SOURCE_REF is not set"
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.SOURCE_REF }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Bump version
+        id: bump
+        run: python scripts/bump-python-version.py "$RELEASE_TYPE" "$PRERELEASE"
+
+      - name: Export version metadata
+        run: |
+          echo "NEW_VERSION=${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
+          echo "TAG_NAME=python-v${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
+
+      - name: Run lint
+        working-directory: python
+        run: |
+          pip install ruff
+          ruff check .
+
+      - name: Run tests
+        working-directory: python
+        run: |
+          pip install -e ".[dev]"
+          pytest -q -m "not e2e"
+
+      - name: Build package
+        working-directory: python
+        run: python -m build
+
+      - name: Inspect package contents
+        id: pack_info
+        working-directory: python
+        run: |
+          pip install twine
+          twine check dist/*
+
+          # Get package info
+          whl_file=$(ls dist/*.whl 2>/dev/null | head -1)
+          tar_file=$(ls dist/*.tar.gz 2>/dev/null | head -1)
+
+          if [ -n "$whl_file" ]; then
+            whl_size=$(du -h "$whl_file" | cut -f1)
+            echo "whl_size=${whl_size}" >> "$GITHUB_OUTPUT"
+            echo "whl_file=$(basename "$whl_file")" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$tar_file" ]; then
+            tar_size=$(du -h "$tar_file" | cut -f1)
+            echo "tar_size=${tar_size}" >> "$GITHUB_OUTPUT"
+            echo "tar_file=$(basename "$tar_file")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit version change
+        run: |
+          git add python/pyproject.toml
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 1
+          fi
+          git commit -m "chore(python): release v${NEW_VERSION}"
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist/
+
+      - name: Create tag
+        run: git tag "$TAG_NAME"
+
+      - name: Push changes
+        id: push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$SOURCE_REF" = "main" ]; then
+            RELEASE_BRANCH="release/python-v${NEW_VERSION}"
+            git checkout -b "$RELEASE_BRANCH"
+            git push origin "$RELEASE_BRANCH"
+            git push origin "$TAG_NAME"
+
+            PR_URL=$(gh pr create \
+              --base main \
+              --head "$RELEASE_BRANCH" \
+              --title "chore(python): release v${NEW_VERSION}" \
+              --body "Automated release PR for python v${NEW_VERSION}. Updates pyproject.toml. The package has already been published to PyPI.")
+
+            echo "release_pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+            echo "used_release_branch=true" >> "$GITHUB_OUTPUT"
+            echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            git push origin HEAD:${SOURCE_REF}
+            git push origin "$TAG_NAME"
+            echo "used_release_branch=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "Release python v${NEW_VERSION}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "**PyPI**: [phala-cloud@${NEW_VERSION}](https://pypi.org/project/phala-cloud/${NEW_VERSION}/)"
+            echo ""
+            echo '```bash'
+            echo "pip install phala-cloud==${NEW_VERSION}"
+            echo '```'
+          } > release_body.md
+
+          PRERELEASE_FLAG=""
+          if [ -n "$PRERELEASE" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          RELEASE_URL=$(gh release create "$TAG_NAME" \
+            --title "phala-cloud v${NEW_VERSION}" \
+            --notes-file release_body.md \
+            $PRERELEASE_FLAG \
+            python/dist/*)
+
+          echo "html_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Comment success
+        if: ${{ success() && env.ISSUE_NUMBER != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const usedReleaseBranch = '${{ steps.push.outputs.used_release_branch }}' === 'true';
+            const releasePrUrl = '${{ steps.push.outputs.release_pr_url }}';
+
+            const body = [
+              `🎉 Release completed: \`python\` v${process.env.NEW_VERSION}`,
+              '',
+              `- Branch: \`${process.env.SOURCE_REF}\``,
+              `- PyPI: [phala-cloud@${process.env.NEW_VERSION}](https://pypi.org/project/phala-cloud/${process.env.NEW_VERSION}/)`,
+              `- GitHub Release: [link](${{ steps.release.outputs.html_url }})`,
+              `- Workflow logs: ${runUrl}`,
+            ];
+
+            if (usedReleaseBranch && releasePrUrl) {
+              body.push('');
+              body.push(`> ⚠️ **Action Required**: Please merge the [release PR](${releasePrUrl}) to update \`main\` branch with version changes.`);
+            }
+
+            body.push(
+              '',
+              '### 📦 Package Info',
+              `- Wheel: **${{ steps.pack_info.outputs.whl_file }}** (${{ steps.pack_info.outputs.whl_size }})`,
+              `- Source: **${{ steps.pack_info.outputs.tar_file }}** (${{ steps.pack_info.outputs.tar_size }})`,
+            );
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: body.join('\n')
+            });
+
+      - name: Comment failure
+        if: ${{ failure() && env.ISSUE_NUMBER != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const actor = process.env.REQUESTED_BY ? `@${process.env.REQUESTED_BY}` : 'Requester';
+            const version = process.env.NEW_VERSION || 'unknown version';
+            const body = [
+              `❌ ${actor} release failed: \`python\` ${version}`,
+              '',
+              `Branch: \`${process.env.SOURCE_REF}\``,
+              `Please review the workflow logs: ${runUrl}`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body
+            });
