@@ -743,7 +743,7 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             retries += 1
             if max_retries is not None and retries > max_retries:
                 break
-            if req.retry_delay > 0 and should_retry:
+            if req.retry_delay > 0:
                 time.sleep(req.retry_delay)
 
         raise TimeoutError(f"watch_cvm_state exceeded retries waiting for '{req.target}'")
@@ -1301,7 +1301,7 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             retries += 1
             if max_retries is not None and retries > max_retries:
                 break
-            if req.retry_delay > 0 and should_retry:
+            if req.retry_delay > 0:
                 await self._sleep(req.retry_delay)
 
         raise TimeoutError(f"watch_cvm_state exceeded retries waiting for '{req.target}'")
