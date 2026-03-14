@@ -32,11 +32,41 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
         )
 
     if method == "GET" and path == "/api/v1/teepods/available":
-        return httpx.Response(200, json={"tier": "free", "capacity": {}, "nodes": [], "kms_list": []})
+        return httpx.Response(
+            200, json={"tier": "free", "capacity": {}, "nodes": [], "kms_list": []}
+        )
     if method == "GET" and path == "/api/v1/kms":
-        return httpx.Response(200, json={"items": [{"id": "k1", "slug": "phala", "url": "u", "version": "1", "chain_id": None, "kms_contract_address": None, "gateway_app_id": None}], "total": 1, "page": 1, "page_size": 10, "pages": 1})
+        return httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "id": "k1",
+                        "slug": "phala",
+                        "url": "u",
+                        "version": "1",
+                        "chain_id": None,
+                        "kms_contract_address": None,
+                        "gateway_app_id": None,
+                    }
+                ],
+                "total": 1,
+                "page": 1,
+                "page_size": 10,
+                "pages": 1,
+            },
+        )
     if method == "GET" and path == "/api/v1/cvms/paginated":
-        return httpx.Response(200, json={"items": [{"id": "1", "name": "n", "resource": {}, "status": "running"}], "total": 1, "page": 1, "page_size": 10, "pages": 1})
+        return httpx.Response(
+            200,
+            json={
+                "items": [{"id": "1", "name": "n", "resource": {}, "status": "running"}],
+                "total": 1,
+                "page": 1,
+                "page_size": 10,
+                "pages": 1,
+            },
+        )
     if method == "POST" and path == "/api/v1/cvms/provision":
         return httpx.Response(200, json={"compose_hash": "h"})
     if method == "POST" and path == "/api/v1/cvms":
@@ -44,18 +74,35 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if method == "GET" and path.startswith("/api/v1/cvms/"):
         if path.endswith("/state"):
             return httpx.Response(200, json={"status": "running"})
-        return httpx.Response(200, json={"id": "1", "name": "n", "status": "running", "resource": {}})
+        return httpx.Response(
+            200, json={"id": "1", "name": "n", "status": "running", "resource": {}}
+        )
     if method == "POST" and path.endswith("/start"):
         return httpx.Response(200, json={"id": 1, "name": "n", "status": "running"})
     if method == "DELETE" and path.startswith("/api/v1/cvms/"):
         return httpx.Response(204)
     if method == "PATCH" and path.endswith("/envs"):
-        return httpx.Response(200, json={"status": "in_progress", "message": "ok", "correlation_id": "c"})
+        return httpx.Response(
+            200, json={"status": "in_progress", "message": "ok", "correlation_id": "c"}
+        )
 
     if method == "GET" and path == "/api/v1/apps":
-        return httpx.Response(200, json={"items": [], "total": 0, "page": 1, "page_size": 10, "pages": 0})
+        return httpx.Response(
+            200, json={"items": [], "total": 0, "page": 1, "page_size": 10, "pages": 0}
+        )
     if method == "GET" and path == "/api/v1/apps/filter-options":
-        return httpx.Response(200, json={"statuses": [], "image_versions": [], "instance_types": [], "kms_slugs": [], "kms_types": [], "regions": [], "nodes": []})
+        return httpx.Response(
+            200,
+            json={
+                "statuses": [],
+                "image_versions": [],
+                "instance_types": [],
+                "kms_slugs": [],
+                "kms_types": [],
+                "regions": [],
+                "nodes": [],
+            },
+        )
 
     if method == "GET" and path == "/api/v1/user/ssh-keys":
         return httpx.Response(200, json=[{"id": "k", "name": "n", "public_key": "pk"}])
@@ -68,14 +115,18 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
 
 async def test_async_action_matrix_and_safe() -> None:
     transport = httpx.MockTransport(_mock_handler)
-    async with httpx.AsyncClient(transport=transport, base_url="https://cloud-api.phala.com/api/v1") as raw:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="https://cloud-api.phala.com/api/v1"
+    ) as raw:
         c = AsyncPhalaCloud(http_client=raw)
 
         await c.get_current_user()
         await c.get_available_nodes()
         await c.get_cvm_list()
         await c.get_kms_list()
-        await c.provision_cvm({"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}})
+        await c.provision_cvm(
+            {"name": "hello1", "compose_file": {"docker_compose_file": "services: {}"}}
+        )
         await c.commit_cvm_provision({"app_id": "a", "compose_hash": "h"})
         await c.get_cvm_info({"id": "c1"})
         await c.start_cvm({"id": "c1"})
@@ -95,11 +146,22 @@ async def test_async_action_matrix_and_safe() -> None:
 async def test_465_precondition_async() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/envs"):
-            return httpx.Response(465, json={"message": "need hash", "compose_hash": "h", "app_id": "a", "device_id": "d", "kms_info": {}})
+            return httpx.Response(
+                465,
+                json={
+                    "message": "need hash",
+                    "compose_hash": "h",
+                    "app_id": "a",
+                    "device_id": "d",
+                    "kms_info": {},
+                },
+            )
         return _mock_handler(request)
 
     transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(transport=transport, base_url="https://cloud-api.phala.com/api/v1") as raw:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="https://cloud-api.phala.com/api/v1"
+    ) as raw:
         c = AsyncPhalaCloud(http_client=raw)
         out = await c.update_cvm_envs({"id": "c1", "encrypted_env": "x"})
         assert out.status == "precondition_required"
@@ -107,14 +169,17 @@ async def test_465_precondition_async() -> None:
 
 async def test_watch_cvm_state_sse_async() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/state") and request.headers.get("Accept") == "text/event-stream":
+        if (
+            request.url.path.endswith("/state")
+            and request.headers.get("Accept") == "text/event-stream"
+        ):
             body = "\n".join(
                 [
                     "event: state",
-                    "data: {\"status\":\"starting\"}",
+                    'data: {"status":"starting"}',
                     "",
                     "event: complete",
-                    "data: {\"status\":\"running\"}",
+                    'data: {"status":"running"}',
                     "",
                 ]
             )
@@ -122,7 +187,11 @@ async def test_watch_cvm_state_sse_async() -> None:
         return _mock_handler(request)
 
     transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(transport=transport, base_url="https://cloud-api.phala.com/api/v1") as raw:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="https://cloud-api.phala.com/api/v1"
+    ) as raw:
         c = AsyncPhalaCloud(http_client=raw)
-        state = await c.watch_cvm_state({"id": "c1", "target": "running", "timeout": 30, "maxRetries": 0})
+        state = await c.watch_cvm_state(
+            {"id": "c1", "target": "running", "timeout": 30, "maxRetries": 0}
+        )
         assert getattr(state, "status", None) == "running"

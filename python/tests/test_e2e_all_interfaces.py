@@ -204,7 +204,15 @@ def _wait_status_sync(client: Any, req: dict[str, Any], target: str, timeout: in
 
 def _wait_idle_sync(client: Any, req: dict[str, Any], timeout: int = 180) -> bool:
     deadline = time.time() + timeout
-    transient = {"starting", "stopping", "restarting", "shutting_down", "provisioning", "in_progress", "updating"}
+    transient = {
+        "starting",
+        "stopping",
+        "restarting",
+        "shutting_down",
+        "provisioning",
+        "in_progress",
+        "updating",
+    }
 
     while time.time() < deadline:
         info = client.safe_get_cvm_info(req)
@@ -348,7 +356,11 @@ def test_e2e_sync_all_interfaces() -> None:
         assert hasattr(client.safe_restart_cvm(req), "ok")
         assert hasattr(client.safe_update_cvm_resources({"id": cvm_id, "vcpu": 1}), "ok")
     if is_idle:
-        r = _run_with_retry(lambda: client.safe_update_cvm_visibility({"id": cvm_id, "public_sysinfo": True, "public_logs": True}))
+        r = _run_with_retry(
+            lambda: client.safe_update_cvm_visibility(
+                {"id": cvm_id, "public_sysinfo": True, "public_logs": True}
+            )
+        )
         assert r.ok, r.error
 
         # Choose a valid os image dynamically when available
@@ -365,15 +377,27 @@ def test_e2e_sync_all_interfaces() -> None:
                     image_name = dev.name
                     break
         if image_name:
-            r = _run_with_retry(lambda: client.safe_update_os_image({"id": cvm_id, "os_image_name": image_name}))
+            r = _run_with_retry(
+                lambda: client.safe_update_os_image({"id": cvm_id, "os_image_name": image_name})
+            )
             assert r.ok, r.error
 
         # Two-phase style endpoints: success may be in_progress or precondition_required
-        r = _run_with_retry(lambda: client.safe_update_cvm_envs({"id": cvm_id, "encrypted_env": "00"}))
+        r = _run_with_retry(
+            lambda: client.safe_update_cvm_envs({"id": cvm_id, "encrypted_env": "00"})
+        )
         assert r.ok, r.error
-        r = _run_with_retry(lambda: client.safe_update_docker_compose({"id": cvm_id, "docker_compose_file": "services: {}"}))
+        r = _run_with_retry(
+            lambda: client.safe_update_docker_compose(
+                {"id": cvm_id, "docker_compose_file": "services: {}"}
+            )
+        )
         assert r.ok, r.error
-        r = _run_with_retry(lambda: client.safe_update_pre_launch_script({"id": cvm_id, "pre_launch_script": "#!/bin/sh"}))
+        r = _run_with_retry(
+            lambda: client.safe_update_pre_launch_script(
+                {"id": cvm_id, "pre_launch_script": "#!/bin/sh"}
+            )
+        )
         assert r.ok, r.error
 
         r = _run_with_retry(lambda: client.safe_refresh_cvm_instance_id(req))
@@ -385,10 +409,14 @@ def test_e2e_sync_all_interfaces() -> None:
     else:
         # Busy shared env fallback: still invoke interfaces without asserting business success.
         busy_results = [
-            client.safe_update_cvm_visibility({"id": cvm_id, "public_sysinfo": True, "public_logs": True}),
+            client.safe_update_cvm_visibility(
+                {"id": cvm_id, "public_sysinfo": True, "public_logs": True}
+            ),
             client.safe_update_os_image({"id": cvm_id, "os_image_name": "prod-0.3.0"}),
             client.safe_update_cvm_envs({"id": cvm_id, "encrypted_env": "00"}),
-            client.safe_update_docker_compose({"id": cvm_id, "docker_compose_file": "services: {}"}),
+            client.safe_update_docker_compose(
+                {"id": cvm_id, "docker_compose_file": "services: {}"}
+            ),
             client.safe_update_pre_launch_script({"id": cvm_id, "pre_launch_script": "#!/bin/sh"}),
             client.safe_refresh_cvm_instance_id(req),
             client.safe_refresh_cvm_instance_ids({}),

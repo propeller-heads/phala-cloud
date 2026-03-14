@@ -63,7 +63,7 @@ class CvmIdRequest(BaseModel):
     cvmId: str | None = None
 
     @model_validator(mode="after")
-    def _check_one(self) -> "CvmIdRequest":
+    def _check_one(self) -> CvmIdRequest:
         if not any([self.id, self.uuid, self.app_id, self.instance_id, self.cvm_id, self.cvmId]):
             raise ValueError("One of id/uuid/app_id/instance_id/cvm_id/cvmId is required")
         return self
@@ -206,11 +206,19 @@ class _ExtMixin:
         m = method.upper()
 
         if m == "GET" and path == "/auth/me":
-            return CurrentUserV20251028 if self.config.version == "2025-10-28" else CurrentUserV20260121
+            return (
+                CurrentUserV20251028
+                if self.config.version == "2025-10-28"
+                else CurrentUserV20260121
+            )
         if m == "GET" and path == "/teepods/available":
             return AvailableNodes
         if m == "GET" and path == "/cvms/paginated":
-            return PaginatedCvmInfosV20251028 if self.config.version == "2025-10-28" else PaginatedCvmInfosV20260121
+            return (
+                PaginatedCvmInfosV20251028
+                if self.config.version == "2025-10-28"
+                else PaginatedCvmInfosV20260121
+            )
         if m == "GET" and path == "/kms":
             return GetKmsListResponse
         if m == "GET" and path == "/instance-types":
@@ -282,7 +290,9 @@ class _ExtMixin:
         if m == "POST" and path == "/user/ssh-keys/github-sync":
             return SyncGithubSshKeysResponse
 
-        if m == "POST" and re.fullmatch(r"/cvms/[^/]+/(start|stop|shutdown|restart|replicas)", path):
+        if m == "POST" and re.fullmatch(
+            r"/cvms/[^/]+/(start|stop|shutdown|restart|replicas)", path
+        ):
             return CvmActionResponse
         if m == "PATCH" and re.fullmatch(r"/cvms/[^/]+/visibility", path):
             return CvmVisibilityResponse
@@ -347,7 +357,14 @@ class PhalaCloud(_SyncBase, _ExtMixin):
     def get(self, path: str, *, params: Mapping[str, Any] | None = None) -> Any:
         return self.request("GET", path, params=params)
 
-    def post(self, path: str, *, json: Any | None = None, content: Any | None = None, headers: Mapping[str, str] | None = None) -> Any:
+    def post(
+        self,
+        path: str,
+        *,
+        json: Any | None = None,
+        content: Any | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> Any:
         return self.request("POST", path, json=json, content=content, headers=headers)
 
     def list_all_instance_type_families(self) -> Any:
@@ -360,7 +377,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         req = FamilyRequest.model_validate(request)
         return self._loose_validate(self.get(f"/instance-types/{req.family}"))
 
-    def safe_list_family_instance_types(self, request: FamilyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_list_family_instance_types(
+        self, request: FamilyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.list_family_instance_types, request)
 
     def list_workspaces(self, request: Mapping[str, Any] | None = None) -> Any:
@@ -378,16 +397,22 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             team_slug = req.team_slug
         return self._loose_validate(self.get(f"/workspaces/{team_slug}"))
 
-    def safe_get_workspace(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_workspace(
+        self, request: str | TeamSlugRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_workspace, request)
 
     def get_workspace_nodes(self, request: WorkspaceNodesRequest | Mapping[str, Any]) -> Any:
         req = WorkspaceNodesRequest.model_validate(request)
         params = {"page": req.page, "page_size": req.page_size}
         params = {k: v for k, v in params.items() if v is not None}
-        return self._loose_validate(self.get(f"/workspaces/{req.team_slug}/nodes", params=params or None))
+        return self._loose_validate(
+            self.get(f"/workspaces/{req.team_slug}/nodes", params=params or None)
+        )
 
-    def safe_get_workspace_nodes(self, request: WorkspaceNodesRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_workspace_nodes(
+        self, request: WorkspaceNodesRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_workspace_nodes, request)
 
     def get_workspace_quotas(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> Any:
@@ -398,7 +423,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             team_slug = req.team_slug
         return self._loose_validate(self.get(f"/workspaces/{team_slug}/quotas"))
 
-    def safe_get_workspace_quotas(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_workspace_quotas(
+        self, request: str | TeamSlugRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_workspace_quotas, request)
 
     def get_cvm_info(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
@@ -424,7 +451,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(self.get(f"/cvms/{cvm_id}/compose_file"))
 
-    def safe_get_cvm_compose_file(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_cvm_compose_file(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_cvm_compose_file, request)
 
     def provision_cvm_compose_file_update(self, request: Mapping[str, Any]) -> Any:
@@ -447,7 +476,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             "env_keys": req.get("env_keys"),
             "update_env_vars": req.get("update_env_vars"),
         }
-        return self._loose_validate(self.request("PATCH", f"/cvms/{cvm_id}/compose_file", json=body))
+        return self._loose_validate(
+            self.request("PATCH", f"/cvms/{cvm_id}/compose_file", json=body)
+        )
 
     def safe_commit_cvm_compose_file_update(self, request: Mapping[str, Any]) -> SafeResult[Any]:
         return self.safe(self.commit_cvm_compose_file_update, request)
@@ -467,14 +498,16 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     def safe_update_cvm_envs(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -501,14 +534,16 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     def safe_update_docker_compose(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -535,14 +570,16 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     def safe_update_pre_launch_script(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -552,7 +589,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return str(self.get(f"/cvms/{cvm_id}/pre-launch-script"))
 
-    def safe_get_cvm_pre_launch_script(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[str]:
+    def safe_get_cvm_pre_launch_script(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[str]:
         return self.safe(self.get_cvm_pre_launch_script, request)
 
     def start_cvm(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
@@ -578,7 +617,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
 
     def restart_cvm(self, request: RestartCvmRequest | Mapping[str, Any]) -> Any:
         req = RestartCvmRequest.model_validate(request)
-        return self._loose_validate(self.post(f"/cvms/{req.resolved}/restart", json={"force": req.force}))
+        return self._loose_validate(
+            self.post(f"/cvms/{req.resolved}/restart", json={"force": req.force})
+        )
 
     def safe_restart_cvm(self, request: RestartCvmRequest | Mapping[str, Any]) -> SafeResult[Any]:
         return self.safe(self.restart_cvm, request)
@@ -609,21 +650,27 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return str(self.get(f"/cvms/{cvm_id}/docker-compose.yml"))
 
-    def safe_get_cvm_docker_compose(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[str]:
+    def safe_get_cvm_docker_compose(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[str]:
         return self.safe(self.get_cvm_docker_compose, request)
 
     def get_cvm_containers_stats(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(self.get(f"/cvms/{cvm_id}/composition"))
 
-    def safe_get_cvm_containers_stats(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_cvm_containers_stats(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_cvm_containers_stats, request)
 
     def get_cvm_attestation(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(self.get(f"/cvms/{cvm_id}/attestation"))
 
-    def safe_get_cvm_attestation(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_cvm_attestation(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_cvm_attestation, request)
 
     def update_cvm_resources(self, request: UpdateResourcesRequest | Mapping[str, Any]) -> None:
@@ -638,7 +685,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         self.request("PATCH", f"/cvms/{req.resolved}/resources", json=body)
         return None
 
-    def safe_update_cvm_resources(self, request: UpdateResourcesRequest | Mapping[str, Any]) -> SafeResult[None]:
+    def safe_update_cvm_resources(
+        self, request: UpdateResourcesRequest | Mapping[str, Any]
+    ) -> SafeResult[None]:
         return self.safe(self.update_cvm_resources, request)
 
     def update_cvm_visibility(self, request: UpdateVisibilityRequest | Mapping[str, Any]) -> Any:
@@ -648,24 +697,34 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             "public_logs": req.public_logs,
             "public_tcbinfo": req.public_tcbinfo,
         }
-        return self._loose_validate(self.request("PATCH", f"/cvms/{req.resolved}/visibility", json=body))
+        return self._loose_validate(
+            self.request("PATCH", f"/cvms/{req.resolved}/visibility", json=body)
+        )
 
-    def safe_update_cvm_visibility(self, request: UpdateVisibilityRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_update_cvm_visibility(
+        self, request: UpdateVisibilityRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.update_cvm_visibility, request)
 
     def get_available_os_images(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(self.get(f"/cvms/{cvm_id}/available-os-images"))
 
-    def safe_get_available_os_images(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_available_os_images(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_available_os_images, request)
 
     def update_os_image(self, request: UpdateOsImageRequest | Mapping[str, Any]) -> None:
         req = UpdateOsImageRequest.model_validate(request)
-        self.request("PATCH", f"/cvms/{req.resolved}/os-image", json={"os_image_name": req.os_image_name})
+        self.request(
+            "PATCH", f"/cvms/{req.resolved}/os-image", json={"os_image_name": req.os_image_name}
+        )
         return None
 
-    def safe_update_os_image(self, request: UpdateOsImageRequest | Mapping[str, Any]) -> SafeResult[None]:
+    def safe_update_os_image(
+        self, request: UpdateOsImageRequest | Mapping[str, Any]
+    ) -> SafeResult[None]:
         return self.safe(self.update_os_image, request)
 
     def get_cvm_state(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
@@ -737,7 +796,10 @@ class PhalaCloud(_SyncBase, _ExtMixin):
             if maybe is not None:
                 return maybe
 
-            if isinstance(last_state, BaseModel) and getattr(last_state, "status", None) == req.target:
+            if (
+                isinstance(last_state, BaseModel)
+                and getattr(last_state, "status", None) == req.target
+            ):
                 return last_state
 
             retries += 1
@@ -759,14 +821,20 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         req = KmsPubkeyRequest.model_validate(request)
         return self._loose_validate(self.get(f"/kms/{req.kms}/pubkey/{req.app_id}"))
 
-    def safe_get_app_env_encrypt_pub_key(self, request: KmsPubkeyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_app_env_encrypt_pub_key(
+        self, request: KmsPubkeyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_app_env_encrypt_pub_key, request)
 
     def next_app_ids(self, request: NextAppIdsRequest | Mapping[str, Any] | None = None) -> Any:
         req = NextAppIdsRequest.model_validate(request or {})
-        return self._loose_validate(self.get("/kms/phala/next_app_id", params={"counts": req.counts}))
+        return self._loose_validate(
+            self.get("/kms/phala/next_app_id", params={"counts": req.counts})
+        )
 
-    def safe_next_app_ids(self, request: NextAppIdsRequest | Mapping[str, Any] | None = None) -> SafeResult[Any]:
+    def safe_next_app_ids(
+        self, request: NextAppIdsRequest | Mapping[str, Any] | None = None
+    ) -> SafeResult[Any]:
         return self.safe(self.next_app_ids, request)
 
     def list_ssh_keys(self) -> Any:
@@ -777,16 +845,22 @@ class PhalaCloud(_SyncBase, _ExtMixin):
 
     def import_github_profile_ssh_keys(self, request: GithubUserRequest | Mapping[str, Any]) -> Any:
         req = GithubUserRequest.model_validate(request)
-        return self._loose_validate(self.post("/user/ssh-keys/github-profile", json=req.model_dump()))
+        return self._loose_validate(
+            self.post("/user/ssh-keys/github-profile", json=req.model_dump())
+        )
 
-    def safe_import_github_profile_ssh_keys(self, request: GithubUserRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_import_github_profile_ssh_keys(
+        self, request: GithubUserRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.import_github_profile_ssh_keys, request)
 
     def create_ssh_key(self, request: CreateSshKeyRequest | Mapping[str, Any]) -> Any:
         req = CreateSshKeyRequest.model_validate(request)
         return self._loose_validate(self.post("/user/ssh-keys", json=req.model_dump()))
 
-    def safe_create_ssh_key(self, request: CreateSshKeyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_create_ssh_key(
+        self, request: CreateSshKeyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.create_ssh_key, request)
 
     def delete_ssh_key(self, request: KeyIdRequest | Mapping[str, Any]) -> None:
@@ -807,36 +881,56 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         req = StatusBatchRequest.model_validate(request)
         return self._loose_validate(self.post("/status/batch", json={"vm_uuids": req.vm_uuids}))
 
-    def safe_get_cvm_status_batch(self, request: StatusBatchRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_cvm_status_batch(
+        self, request: StatusBatchRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_cvm_status_batch, request)
 
     def get_cvm_user_config(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(self.get(f"/cvms/{cvm_id}/user_config"))
 
-    def safe_get_cvm_user_config(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_cvm_user_config(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_cvm_user_config, request)
 
-    def refresh_cvm_instance_id(self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]) -> Any:
+    def refresh_cvm_instance_id(
+        self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]
+    ) -> Any:
         req = RefreshCvmInstanceIdRequest.model_validate(request)
         body = {"overwrite": req.overwrite, "dry_run": req.dry_run}
-        return self._loose_validate(self.request("PATCH", f"/cvms/{req.resolved}/instance-id", json=body))
+        return self._loose_validate(
+            self.request("PATCH", f"/cvms/{req.resolved}/instance-id", json=body)
+        )
 
-    def safe_refresh_cvm_instance_id(self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_refresh_cvm_instance_id(
+        self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.refresh_cvm_instance_id, request)
 
-    def refresh_cvm_instance_ids(self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]) -> Any:
+    def refresh_cvm_instance_ids(
+        self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]
+    ) -> Any:
         req = RefreshCvmInstanceIdsRequest.model_validate(request)
-        return self._loose_validate(self.request("PATCH", "/cvms/instance-ids", json=req.model_dump(exclude_none=True)))
+        return self._loose_validate(
+            self.request("PATCH", "/cvms/instance-ids", json=req.model_dump(exclude_none=True))
+        )
 
-    def safe_refresh_cvm_instance_ids(self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_refresh_cvm_instance_ids(
+        self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.refresh_cvm_instance_ids, request)
 
     def replicate_cvm(self, request: ReplicateCvmRequest | Mapping[str, Any]) -> Any:
         req = ReplicateCvmRequest.model_validate(request)
-        return self._loose_validate(self.post(f"/cvms/{req.resolved}/replicas", json={"node_id": req.node_id}))
+        return self._loose_validate(
+            self.post(f"/cvms/{req.resolved}/replicas", json={"node_id": req.node_id})
+        )
 
-    def safe_replicate_cvm(self, request: ReplicateCvmRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_replicate_cvm(
+        self, request: ReplicateCvmRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.replicate_cvm, request)
 
     def get_app_list(self, request: Mapping[str, Any] | None = None) -> Any:
@@ -863,9 +957,13 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         req = AppRevisionsRequest.model_validate(request)
         params = {"page": req.page, "page_size": req.page_size}
         params = {k: v for k, v in params.items() if v is not None}
-        return self._loose_validate(self.get(f"/apps/{req.app_id}/revisions", params=params or None))
+        return self._loose_validate(
+            self.get(f"/apps/{req.app_id}/revisions", params=params or None)
+        )
 
-    def safe_get_app_revisions(self, request: AppRevisionsRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_app_revisions(
+        self, request: AppRevisionsRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_app_revisions, request)
 
     def get_app_revision_detail(self, request: AppRevisionDetailRequest | Mapping[str, Any]) -> Any:
@@ -873,9 +971,13 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         params = None
         if req.raw_compose_file is not None:
             params = {"raw_compose_file": req.raw_compose_file}
-        return self._loose_validate(self.get(f"/apps/{req.app_id}/revisions/{req.revision_id}", params=params))
+        return self._loose_validate(
+            self.get(f"/apps/{req.app_id}/revisions/{req.revision_id}", params=params)
+        )
 
-    def safe_get_app_revision_detail(self, request: AppRevisionDetailRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_app_revision_detail(
+        self, request: AppRevisionDetailRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_app_revision_detail, request)
 
     def get_app_filter_options(self) -> Any:
@@ -888,7 +990,9 @@ class PhalaCloud(_SyncBase, _ExtMixin):
         req = AppIdRequest.model_validate(request)
         return self._loose_validate(self.get(f"/apps/{req.app_id}/attestations"))
 
-    def safe_get_app_attestation(self, request: AppIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    def safe_get_app_attestation(
+        self, request: AppIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return self.safe(self.get_app_attestation, request)
 
     def add_compose_hash(self, *args: Any, **kwargs: Any) -> Any:
@@ -913,7 +1017,14 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
     async def get(self, path: str, *, params: Mapping[str, Any] | None = None) -> Any:
         return await self.request("GET", path, params=params)
 
-    async def post(self, path: str, *, json: Any | None = None, content: Any | None = None, headers: Mapping[str, str] | None = None) -> Any:
+    async def post(
+        self,
+        path: str,
+        *,
+        json: Any | None = None,
+        content: Any | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> Any:
         return await self.request("POST", path, json=json, content=content, headers=headers)
 
     async def list_all_instance_type_families(self) -> Any:
@@ -926,13 +1037,17 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         req = FamilyRequest.model_validate(request)
         return self._loose_validate(await self.get(f"/instance-types/{req.family}"))
 
-    async def safe_list_family_instance_types(self, request: FamilyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_list_family_instance_types(
+        self, request: FamilyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.list_family_instance_types, request)
 
     async def list_workspaces(self, request: Mapping[str, Any] | None = None) -> Any:
         return self._loose_validate(await self.get("/workspaces", params=dict(request or {})))
 
-    async def safe_list_workspaces(self, request: Mapping[str, Any] | None = None) -> SafeResult[Any]:
+    async def safe_list_workspaces(
+        self, request: Mapping[str, Any] | None = None
+    ) -> SafeResult[Any]:
         return await self.safe(self.list_workspaces, request)
 
     async def get_workspace(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> Any:
@@ -942,16 +1057,22 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             team_slug = TeamSlugRequest.model_validate(request).team_slug
         return self._loose_validate(await self.get(f"/workspaces/{team_slug}"))
 
-    async def safe_get_workspace(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_workspace(
+        self, request: str | TeamSlugRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_workspace, request)
 
     async def get_workspace_nodes(self, request: WorkspaceNodesRequest | Mapping[str, Any]) -> Any:
         req = WorkspaceNodesRequest.model_validate(request)
         params = {"page": req.page, "page_size": req.page_size}
         params = {k: v for k, v in params.items() if v is not None}
-        return self._loose_validate(await self.get(f"/workspaces/{req.team_slug}/nodes", params=params or None))
+        return self._loose_validate(
+            await self.get(f"/workspaces/{req.team_slug}/nodes", params=params or None)
+        )
 
-    async def safe_get_workspace_nodes(self, request: WorkspaceNodesRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_workspace_nodes(
+        self, request: WorkspaceNodesRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_workspace_nodes, request)
 
     async def get_workspace_quotas(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> Any:
@@ -961,7 +1082,9 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             team_slug = TeamSlugRequest.model_validate(request).team_slug
         return self._loose_validate(await self.get(f"/workspaces/{team_slug}/quotas"))
 
-    async def safe_get_workspace_quotas(self, request: str | TeamSlugRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_workspace_quotas(
+        self, request: str | TeamSlugRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_workspace_quotas, request)
 
     async def get_cvm_info(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
@@ -987,7 +1110,9 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/compose_file"))
 
-    async def safe_get_cvm_compose_file(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_compose_file(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_compose_file, request)
 
     async def provision_cvm_compose_file_update(self, request: Mapping[str, Any]) -> Any:
@@ -996,9 +1121,13 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         body = dict(req.get("app_compose") or {})
         if "update_env_vars" in req:
             body["update_env_vars"] = req["update_env_vars"]
-        return self._loose_validate(await self.post(f"/cvms/{cvm_id}/compose_file/provision", json=body))
+        return self._loose_validate(
+            await self.post(f"/cvms/{cvm_id}/compose_file/provision", json=body)
+        )
 
-    async def safe_provision_cvm_compose_file_update(self, request: Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_provision_cvm_compose_file_update(
+        self, request: Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.provision_cvm_compose_file_update, request)
 
     async def commit_cvm_compose_file_update(self, request: Mapping[str, Any]) -> Any:
@@ -1010,9 +1139,13 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             "env_keys": req.get("env_keys"),
             "update_env_vars": req.get("update_env_vars"),
         }
-        return self._loose_validate(await self.request("PATCH", f"/cvms/{cvm_id}/compose_file", json=body))
+        return self._loose_validate(
+            await self.request("PATCH", f"/cvms/{cvm_id}/compose_file", json=body)
+        )
 
-    async def safe_commit_cvm_compose_file_update(self, request: Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_commit_cvm_compose_file_update(
+        self, request: Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.commit_cvm_compose_file_update, request)
 
     async def update_cvm_envs(self, request: Mapping[str, Any]) -> Any:
@@ -1025,19 +1158,23 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             "transaction_hash": req.get("transaction_hash"),
         }
         try:
-            return self._loose_validate(await self.request("PATCH", f"/cvms/{cvm_id}/envs", json=body))
+            return self._loose_validate(
+                await self.request("PATCH", f"/cvms/{cvm_id}/envs", json=body)
+            )
         except Exception as exc:
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     async def safe_update_cvm_envs(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -1064,14 +1201,16 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     async def safe_update_docker_compose(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -1098,14 +1237,16 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             status = getattr(exc, "status_code", None)
             if status == 465 and hasattr(exc, "detail") and isinstance(exc.detail, dict):
                 detail = exc.detail
-                return self._loose_validate({
-                    "status": "precondition_required",
-                    "message": detail.get("message", "Compose hash verification required"),
-                    "compose_hash": detail.get("compose_hash"),
-                    "app_id": detail.get("app_id"),
-                    "device_id": detail.get("device_id"),
-                    "kms_info": detail.get("kms_info"),
-                })
+                return self._loose_validate(
+                    {
+                        "status": "precondition_required",
+                        "message": detail.get("message", "Compose hash verification required"),
+                        "compose_hash": detail.get("compose_hash"),
+                        "app_id": detail.get("app_id"),
+                        "device_id": detail.get("device_id"),
+                        "kms_info": detail.get("kms_info"),
+                    }
+                )
             raise
 
     async def safe_update_pre_launch_script(self, request: Mapping[str, Any]) -> SafeResult[Any]:
@@ -1115,7 +1256,9 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return str(await self.get(f"/cvms/{cvm_id}/pre-launch-script"))
 
-    async def safe_get_cvm_pre_launch_script(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[str]:
+    async def safe_get_cvm_pre_launch_script(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[str]:
         return await self.safe(self.get_cvm_pre_launch_script, request)
 
     async def start_cvm(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
@@ -1141,9 +1284,13 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
 
     async def restart_cvm(self, request: RestartCvmRequest | Mapping[str, Any]) -> Any:
         req = RestartCvmRequest.model_validate(request)
-        return self._loose_validate(await self.post(f"/cvms/{req.resolved}/restart", json={"force": req.force}))
+        return self._loose_validate(
+            await self.post(f"/cvms/{req.resolved}/restart", json={"force": req.force})
+        )
 
-    async def safe_restart_cvm(self, request: RestartCvmRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_restart_cvm(
+        self, request: RestartCvmRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.restart_cvm, request)
 
     async def delete_cvm(self, request: CvmIdRequest | Mapping[str, Any]) -> None:
@@ -1158,38 +1305,50 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/stats"))
 
-    async def safe_get_cvm_stats(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_stats(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_stats, request)
 
     async def get_cvm_network(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/network"))
 
-    async def safe_get_cvm_network(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_network(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_network, request)
 
     async def get_cvm_docker_compose(self, request: CvmIdRequest | Mapping[str, Any]) -> str:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return str(await self.get(f"/cvms/{cvm_id}/docker-compose.yml"))
 
-    async def safe_get_cvm_docker_compose(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[str]:
+    async def safe_get_cvm_docker_compose(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[str]:
         return await self.safe(self.get_cvm_docker_compose, request)
 
     async def get_cvm_containers_stats(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/composition"))
 
-    async def safe_get_cvm_containers_stats(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_containers_stats(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_containers_stats, request)
 
     async def get_cvm_attestation(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/attestation"))
 
-    async def safe_get_cvm_attestation(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_attestation(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_attestation, request)
 
-    async def update_cvm_resources(self, request: UpdateResourcesRequest | Mapping[str, Any]) -> None:
+    async def update_cvm_resources(
+        self, request: UpdateResourcesRequest | Mapping[str, Any]
+    ) -> None:
         req = UpdateResourcesRequest.model_validate(request)
         body = req.model_dump(exclude_none=True)
         for k in ["id", "uuid", "app_id", "instance_id", "cvm_id", "cvmId"]:
@@ -1197,41 +1356,57 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         await self.request("PATCH", f"/cvms/{req.resolved}/resources", json=body)
         return None
 
-    async def safe_update_cvm_resources(self, request: UpdateResourcesRequest | Mapping[str, Any]) -> SafeResult[None]:
+    async def safe_update_cvm_resources(
+        self, request: UpdateResourcesRequest | Mapping[str, Any]
+    ) -> SafeResult[None]:
         return await self.safe(self.update_cvm_resources, request)
 
-    async def update_cvm_visibility(self, request: UpdateVisibilityRequest | Mapping[str, Any]) -> Any:
+    async def update_cvm_visibility(
+        self, request: UpdateVisibilityRequest | Mapping[str, Any]
+    ) -> Any:
         req = UpdateVisibilityRequest.model_validate(request)
         body = {
             "public_sysinfo": req.public_sysinfo,
             "public_logs": req.public_logs,
             "public_tcbinfo": req.public_tcbinfo,
         }
-        return self._loose_validate(await self.request("PATCH", f"/cvms/{req.resolved}/visibility", json=body))
+        return self._loose_validate(
+            await self.request("PATCH", f"/cvms/{req.resolved}/visibility", json=body)
+        )
 
-    async def safe_update_cvm_visibility(self, request: UpdateVisibilityRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_update_cvm_visibility(
+        self, request: UpdateVisibilityRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.update_cvm_visibility, request)
 
     async def get_available_os_images(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/available-os-images"))
 
-    async def safe_get_available_os_images(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_available_os_images(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_available_os_images, request)
 
     async def update_os_image(self, request: UpdateOsImageRequest | Mapping[str, Any]) -> None:
         req = UpdateOsImageRequest.model_validate(request)
-        await self.request("PATCH", f"/cvms/{req.resolved}/os-image", json={"os_image_name": req.os_image_name})
+        await self.request(
+            "PATCH", f"/cvms/{req.resolved}/os-image", json={"os_image_name": req.os_image_name}
+        )
         return None
 
-    async def safe_update_os_image(self, request: UpdateOsImageRequest | Mapping[str, Any]) -> SafeResult[None]:
+    async def safe_update_os_image(
+        self, request: UpdateOsImageRequest | Mapping[str, Any]
+    ) -> SafeResult[None]:
         return await self.safe(self.update_os_image, request)
 
     async def get_cvm_state(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/state"))
 
-    async def safe_get_cvm_state(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_state(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_state, request)
 
     async def watch_cvm_state(self, request: WatchCvmStateRequest | Mapping[str, Any]) -> Any:
@@ -1295,7 +1470,10 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
             if maybe is not None:
                 return maybe
 
-            if isinstance(last_state, BaseModel) and getattr(last_state, "status", None) == req.target:
+            if (
+                isinstance(last_state, BaseModel)
+                and getattr(last_state, "status", None) == req.target
+            ):
                 return last_state
 
             retries += 1
@@ -1315,21 +1493,33 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         req = KmsInfoRequest.model_validate(request)
         return self._loose_validate(await self.get(f"/kms/{req.kms_id}"))
 
-    async def safe_get_kms_info(self, request: KmsInfoRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_kms_info(
+        self, request: KmsInfoRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_kms_info, request)
 
-    async def get_app_env_encrypt_pub_key(self, request: KmsPubkeyRequest | Mapping[str, Any]) -> Any:
+    async def get_app_env_encrypt_pub_key(
+        self, request: KmsPubkeyRequest | Mapping[str, Any]
+    ) -> Any:
         req = KmsPubkeyRequest.model_validate(request)
         return self._loose_validate(await self.get(f"/kms/{req.kms}/pubkey/{req.app_id}"))
 
-    async def safe_get_app_env_encrypt_pub_key(self, request: KmsPubkeyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_app_env_encrypt_pub_key(
+        self, request: KmsPubkeyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_app_env_encrypt_pub_key, request)
 
-    async def next_app_ids(self, request: NextAppIdsRequest | Mapping[str, Any] | None = None) -> Any:
+    async def next_app_ids(
+        self, request: NextAppIdsRequest | Mapping[str, Any] | None = None
+    ) -> Any:
         req = NextAppIdsRequest.model_validate(request or {})
-        return self._loose_validate(await self.get("/kms/phala/next_app_id", params={"counts": req.counts}))
+        return self._loose_validate(
+            await self.get("/kms/phala/next_app_id", params={"counts": req.counts})
+        )
 
-    async def safe_next_app_ids(self, request: NextAppIdsRequest | Mapping[str, Any] | None = None) -> SafeResult[Any]:
+    async def safe_next_app_ids(
+        self, request: NextAppIdsRequest | Mapping[str, Any] | None = None
+    ) -> SafeResult[Any]:
         return await self.safe(self.next_app_ids, request)
 
     async def list_ssh_keys(self) -> Any:
@@ -1338,18 +1528,26 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
     async def safe_list_ssh_keys(self) -> SafeResult[Any]:
         return await self.safe(self.list_ssh_keys)
 
-    async def import_github_profile_ssh_keys(self, request: GithubUserRequest | Mapping[str, Any]) -> Any:
+    async def import_github_profile_ssh_keys(
+        self, request: GithubUserRequest | Mapping[str, Any]
+    ) -> Any:
         req = GithubUserRequest.model_validate(request)
-        return self._loose_validate(await self.post("/user/ssh-keys/github-profile", json=req.model_dump()))
+        return self._loose_validate(
+            await self.post("/user/ssh-keys/github-profile", json=req.model_dump())
+        )
 
-    async def safe_import_github_profile_ssh_keys(self, request: GithubUserRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_import_github_profile_ssh_keys(
+        self, request: GithubUserRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.import_github_profile_ssh_keys, request)
 
     async def create_ssh_key(self, request: CreateSshKeyRequest | Mapping[str, Any]) -> Any:
         req = CreateSshKeyRequest.model_validate(request)
         return self._loose_validate(await self.post("/user/ssh-keys", json=req.model_dump()))
 
-    async def safe_create_ssh_key(self, request: CreateSshKeyRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_create_ssh_key(
+        self, request: CreateSshKeyRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.create_ssh_key, request)
 
     async def delete_ssh_key(self, request: KeyIdRequest | Mapping[str, Any]) -> None:
@@ -1357,7 +1555,9 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         await self.request("DELETE", f"/user/ssh-keys/{req.key_id}")
         return None
 
-    async def safe_delete_ssh_key(self, request: KeyIdRequest | Mapping[str, Any]) -> SafeResult[None]:
+    async def safe_delete_ssh_key(
+        self, request: KeyIdRequest | Mapping[str, Any]
+    ) -> SafeResult[None]:
         return await self.safe(self.delete_ssh_key, request)
 
     async def sync_github_ssh_keys(self) -> Any:
@@ -1368,38 +1568,62 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
 
     async def get_cvm_status_batch(self, request: StatusBatchRequest | Mapping[str, Any]) -> Any:
         req = StatusBatchRequest.model_validate(request)
-        return self._loose_validate(await self.post("/status/batch", json={"vm_uuids": req.vm_uuids}))
+        return self._loose_validate(
+            await self.post("/status/batch", json={"vm_uuids": req.vm_uuids})
+        )
 
-    async def safe_get_cvm_status_batch(self, request: StatusBatchRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_status_batch(
+        self, request: StatusBatchRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_status_batch, request)
 
     async def get_cvm_user_config(self, request: CvmIdRequest | Mapping[str, Any]) -> Any:
         cvm_id = CvmIdRequest.model_validate(request).resolved
         return self._loose_validate(await self.get(f"/cvms/{cvm_id}/user_config"))
 
-    async def safe_get_cvm_user_config(self, request: CvmIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_cvm_user_config(
+        self, request: CvmIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_cvm_user_config, request)
 
-    async def refresh_cvm_instance_id(self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]) -> Any:
+    async def refresh_cvm_instance_id(
+        self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]
+    ) -> Any:
         req = RefreshCvmInstanceIdRequest.model_validate(request)
         body = {"overwrite": req.overwrite, "dry_run": req.dry_run}
-        return self._loose_validate(await self.request("PATCH", f"/cvms/{req.resolved}/instance-id", json=body))
+        return self._loose_validate(
+            await self.request("PATCH", f"/cvms/{req.resolved}/instance-id", json=body)
+        )
 
-    async def safe_refresh_cvm_instance_id(self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_refresh_cvm_instance_id(
+        self, request: RefreshCvmInstanceIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.refresh_cvm_instance_id, request)
 
-    async def refresh_cvm_instance_ids(self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]) -> Any:
+    async def refresh_cvm_instance_ids(
+        self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]
+    ) -> Any:
         req = RefreshCvmInstanceIdsRequest.model_validate(request)
-        return self._loose_validate(await self.request("PATCH", "/cvms/instance-ids", json=req.model_dump(exclude_none=True)))
+        return self._loose_validate(
+            await self.request(
+                "PATCH", "/cvms/instance-ids", json=req.model_dump(exclude_none=True)
+            )
+        )
 
-    async def safe_refresh_cvm_instance_ids(self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_refresh_cvm_instance_ids(
+        self, request: RefreshCvmInstanceIdsRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.refresh_cvm_instance_ids, request)
 
     async def replicate_cvm(self, request: ReplicateCvmRequest | Mapping[str, Any]) -> Any:
         req = ReplicateCvmRequest.model_validate(request)
-        return self._loose_validate(await self.post(f"/cvms/{req.resolved}/replicas", json={"node_id": req.node_id}))
+        return self._loose_validate(
+            await self.post(f"/cvms/{req.resolved}/replicas", json={"node_id": req.node_id})
+        )
 
-    async def safe_replicate_cvm(self, request: ReplicateCvmRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_replicate_cvm(
+        self, request: ReplicateCvmRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.replicate_cvm, request)
 
     async def get_app_list(self, request: Mapping[str, Any] | None = None) -> Any:
@@ -1426,19 +1650,29 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         req = AppRevisionsRequest.model_validate(request)
         params = {"page": req.page, "page_size": req.page_size}
         params = {k: v for k, v in params.items() if v is not None}
-        return self._loose_validate(await self.get(f"/apps/{req.app_id}/revisions", params=params or None))
+        return self._loose_validate(
+            await self.get(f"/apps/{req.app_id}/revisions", params=params or None)
+        )
 
-    async def safe_get_app_revisions(self, request: AppRevisionsRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_app_revisions(
+        self, request: AppRevisionsRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_app_revisions, request)
 
-    async def get_app_revision_detail(self, request: AppRevisionDetailRequest | Mapping[str, Any]) -> Any:
+    async def get_app_revision_detail(
+        self, request: AppRevisionDetailRequest | Mapping[str, Any]
+    ) -> Any:
         req = AppRevisionDetailRequest.model_validate(request)
         params = None
         if req.raw_compose_file is not None:
             params = {"raw_compose_file": req.raw_compose_file}
-        return self._loose_validate(await self.get(f"/apps/{req.app_id}/revisions/{req.revision_id}", params=params))
+        return self._loose_validate(
+            await self.get(f"/apps/{req.app_id}/revisions/{req.revision_id}", params=params)
+        )
 
-    async def safe_get_app_revision_detail(self, request: AppRevisionDetailRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_app_revision_detail(
+        self, request: AppRevisionDetailRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_app_revision_detail, request)
 
     async def get_app_filter_options(self) -> Any:
@@ -1451,7 +1685,9 @@ class AsyncPhalaCloud(_AsyncBase, _ExtMixin):
         req = AppIdRequest.model_validate(request)
         return self._loose_validate(await self.get(f"/apps/{req.app_id}/attestations"))
 
-    async def safe_get_app_attestation(self, request: AppIdRequest | Mapping[str, Any]) -> SafeResult[Any]:
+    async def safe_get_app_attestation(
+        self, request: AppIdRequest | Mapping[str, Any]
+    ) -> SafeResult[Any]:
         return await self.safe(self.get_app_attestation, request)
 
     async def add_compose_hash(self, *args: Any, **kwargs: Any) -> Any:

@@ -264,10 +264,11 @@ jobs:
           echo "NEW_VERSION=${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
           echo "TAG_NAME=python-v${{ steps.bump.outputs.version }}" >> "$GITHUB_ENV"
 
-      - name: Run lint
+      - name: Run lint and format check
         working-directory: python
         run: |
-          pip install ruff
+          pip install "ruff>=0.12,<1"
+          ruff format --check .
           ruff check .
 
       - name: Run tests

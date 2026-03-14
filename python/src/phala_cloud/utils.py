@@ -18,7 +18,7 @@ def parse_env_vars(content: str) -> list[dict[str, str]]:
 
 
 def parse_env(path: str) -> list[dict[str, str]]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return parse_env_vars(f.read())
 
 
@@ -28,9 +28,7 @@ def encrypt_env_vars(*args: Any, **kwargs: Any) -> Any:
 
         return _impl(*args, **kwargs)
     except Exception as exc:  # pragma: no cover
-        raise RuntimeError(
-            "encrypt_env_vars requires dstack-sdk in Python environment"
-        ) from exc
+        raise RuntimeError("encrypt_env_vars requires dstack-sdk in Python environment") from exc
 
 
 def get_compose_hash(*args: Any, **kwargs: Any) -> Any:
