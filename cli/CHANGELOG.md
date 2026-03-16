@@ -1,3 +1,37 @@
+## [1.1.13](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.12...cli-v1.1.13) (2026-03-14)
+
+### feat
+
+* add device management blockchain actions to SDK and CLI ([290ca2a](https://github.com/Phala-Network/phala-cloud/commit/290ca2a8d4b246b8d9d4b87281132bf573128989))
+* add os-images listing, kms on-chain detail to SDK and CLI ([9fe5c9a](https://github.com/Phala-Network/phala-cloud/commit/9fe5c9a845ca6c46d3c8777eeb8eec50476a396b))
+* add phala cvms device-allowlist CLI command ([6d7b48f](https://github.com/Phala-Network/phala-cloud/commit/6d7b48f58198e85e17bc48aef56948a61f4e84dd))
+* **cli,sdk:** add --fs option to deploy command for filesystem selection ([716723d](https://github.com/Phala-Network/phala-cloud/commit/716723d5e6a4ca3f443ee073dc8f74c44af162d6))
+* **cli:** add --wait RPC verification for device allowlist ops ([97447f0](https://github.com/Phala-Network/phala-cloud/commit/97447f01a25a8642d50f8658ca3b005ec9cda6de))
+* **cli:** add `phala envs encrypt` and `phala envs update` commands ([ddd4cfc](https://github.com/Phala-Network/phala-cloud/commit/ddd4cfc4a8c56970685d0c0478b8a5e807e99fe0))
+* **cli:** add disallow-any and toggle-allow-any commands ([dbff4e5](https://github.com/Phala-Network/phala-cloud/commit/dbff4e5007d4241dad40270bfe62875011af0581))
+* **cli:** add interactive multi-select for devices add/remove ([4f0f2d4](https://github.com/Phala-Network/phala-cloud/commit/4f0f2d4560cdbfd944a784fae09d4de12ab1c002))
+* **cli:** add pagination flags to os-images command ([1ef6cd9](https://github.com/Phala-Network/phala-cloud/commit/1ef6cd941d88a9818e4ce196e145a9159427348b))
+* **cli:** move device allowlist to top-level `phala allow-devices` ([430cd9c](https://github.com/Phala-Network/phala-cloud/commit/430cd9cd7a6e44a9f89ed0f6301e82128bae06a0))
+* **kms:** simplify CLI output and include device node names ([e48019c](https://github.com/Phala-Network/phala-cloud/commit/e48019cb972c96c049aadc2e285f4b3a06de0c14))
+* query and display contract owner in allow-devices list ([37fe2e1](https://github.com/Phala-Network/phala-cloud/commit/37fe2e124880f59b3e9bb0087cafb71b350781f5))
+
+### fix
+
+* **cli:** add viem as direct dependency for CI type-check ([bcc4df3](https://github.com/Phala-Network/phala-cloud/commit/bcc4df3bebea07e564743e17ccf0456e35734a3e))
+* **cli:** address Sentry review issues in allow-devices commands ([a205282](https://github.com/Phala-Network/phala-cloud/commit/a2052828f9f5ce8324b1dbefed4df3109720c7b1))
+* **cli:** ensure timeout floor of 5000ms for small command groups ([370eb98](https://github.com/Phala-Network/phala-cloud/commit/370eb985abc7a1e7b18a1de8339688ff2f7dc7eb))
+* **cli:** exclude already-allowed devices from add interactive list ([f0a6b53](https://github.com/Phala-Network/phala-cloud/commit/f0a6b53ce52af6ad6d34624a707096e699a3d71d))
+* **cli:** fix node name matching and separate chain line in ls ([b7a4ce3](https://github.com/Phala-Network/phala-cloud/commit/b7a4ce3ba68b5cb3713c95421bfbb5ef1ee9595e))
+* **cli:** increase timeout for command existence compat tests ([a9889be](https://github.com/Phala-Network/phala-cloud/commit/a9889befdc562c4d02f38a40ad7090ab101cf7dd))
+* **cli:** query chain directly for allow-devices list ([b40d8e3](https://github.com/Phala-Network/phala-cloud/commit/b40d8e39220c9a7f6491456ea2133faa3087a626))
+* **cli:** remove redundant status column from devices list ([b49744d](https://github.com/Phala-Network/phala-cloud/commit/b49744df0407cd66b98dcfd0769b6fea644ad461))
+* **cli:** use shared walletClient with nonceManager for batch tx ([ef93049](https://github.com/Phala-Network/phala-cloud/commit/ef93049ccf2293bfa3ecf8440fc70cccc6fa9be7))
+* guard against null app_id in device-allowlist command ([0b8bdd8](https://github.com/Phala-Network/phala-cloud/commit/0b8bdd802c4d93bf8d41f1f6a77e603bdf0b506c))
+* replace event scanning with readContract for device allowlist ([fb2a4b2](https://github.com/Phala-Network/phala-cloud/commit/fb2a4b275912d4bd2931c1b12d3b5b1368a26458))
+
+### perf
+
+* **cli:** skip prerequisite checks in batch add/remove ([e814237](https://github.com/Phala-Network/phala-cloud/commit/e814237bbf9259a9d7a397a9bfb7adec2f0d29c8))
 ## [1.1.12](https://github.com/Phala-Network/phala-cloud/compare/cli-v1.1.12-beta.1...cli-v1.1.12) (2026-03-04)
 
 ### feat
