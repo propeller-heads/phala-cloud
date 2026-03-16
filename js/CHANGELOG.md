@@ -1,3 +1,33 @@
+## [0.2.5](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.4...js-v0.2.5) (2026-03-14)
+
+### docs
+
+* **js:** fix ETHEREUM typo in provision example ([15c3940](https://github.com/Phala-Network/phala-cloud/commit/15c394024467085491438fa5a52d0a1eafb565bf))
+
+### feat
+
+* add device management blockchain actions to SDK and CLI ([290ca2a](https://github.com/Phala-Network/phala-cloud/commit/290ca2a8d4b246b8d9d4b87281132bf573128989))
+* add getAppAttestation action for app-level attestation API ([4d534e9](https://github.com/Phala-Network/phala-cloud/commit/4d534e91bb3a845ab4a13549bb271f51bf85bc21))
+* add getAppDeviceAllowlist SDK action ([9b6fbf4](https://github.com/Phala-Network/phala-cloud/commit/9b6fbf4553a03308fc36783e7911806dd10b9624))
+* add os-images listing, kms on-chain detail to SDK and CLI ([9fe5c9a](https://github.com/Phala-Network/phala-cloud/commit/9fe5c9a845ca6c46d3c8777eeb8eec50476a396b))
+* **cli,sdk:** add --fs option to deploy command for filesystem selection ([716723d](https://github.com/Phala-Network/phala-cloud/commit/716723d5e6a4ca3f443ee073dc8f74c44af162d6))
+* export attestation Zod schemas for frontend reuse ([cbd3245](https://github.com/Phala-Network/phala-cloud/commit/cbd3245bec7448790b4016816cca20ac1bb0c56c))
+* **js-sdk:** add instance-id refresh actions and v20260121 field ([038810a](https://github.com/Phala-Network/phala-cloud/commit/038810a87350a00c719c430091b2a1882aed031b))
+* **js:** add confidential_models_enabled to WorkspaceResponseSchema ([6a8b924](https://github.com/Phala-Network/phala-cloud/commit/6a8b9244d103a5fafdec931270d45259780666ea))
+* **kms:** simplify CLI output and include device node names ([e48019c](https://github.com/Phala-Network/phala-cloud/commit/e48019cb972c96c049aadc2e285f4b3a06de0c14))
+* query and display contract owner in allow-devices list ([37fe2e1](https://github.com/Phala-Network/phala-cloud/commit/37fe2e124880f59b3e9bb0087cafb71b350781f5))
+* **sdk:** add replicateCvm action for CVM scaling ([1cb8203](https://github.com/Phala-Network/phala-cloud/commit/1cb820395a9d835146a034aa33f18062a6c8db40))
+
+### fix
+
+* **js-sdk:** add listed field to CvmInfoV20260121Schema ([a85adaf](https://github.com/Phala-Network/phala-cloud/commit/a85adaf3e650a6af41c27d50748a1a117f29037b))
+* make base_image optional in VMSchema ([043b81b](https://github.com/Phala-Network/phala-cloud/commit/043b81b6be0662d195b202cc28b08fc249f0ceaf))
+* replace event scanning with readContract for device allowlist ([fb2a4b2](https://github.com/Phala-Network/phala-cloud/commit/fb2a4b275912d4bd2931c1b12d3b5b1368a26458))
+* replay events chronologically in getAllowedDevices ([cccb120](https://github.com/Phala-Network/phala-cloud/commit/cccb120b9af2651e1468d98862bd0a7b713b1a59))
+
+### perf
+
+* use multicall for batch device allowlist checks ([4fb338f](https://github.com/Phala-Network/phala-cloud/commit/4fb338f0f7e383fdfee016e02712075c22ae3af0))
 ## [0.2.4](https://github.com/Phala-Network/phala-cloud/compare/js-v0.2.3...js-v0.2.4) (2026-02-25)
 
 ### feat
