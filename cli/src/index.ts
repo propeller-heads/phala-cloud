@@ -34,6 +34,7 @@ import { cvmsRuntimeConfigCommand } from "./commands/cvms/runtime-config";
 import { sshKeysCommands } from "./commands/ssh-keys";
 import { whoamiCommand } from "./commands/whoami";
 import { allowDevicesCommands } from "./commands/allow-devices";
+import { transferOwnershipCommand } from "./commands/transfer-ownership";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +70,7 @@ registry.registerCommand(statusCommand);
 registry.registerCommand(whoamiCommand);
 registry.registerCommand(completionCommand);
 registry.registerCommand(osImagesCommand);
+registry.registerCommand(transferOwnershipCommand);
 
 // Command groups + subcommands
 registry.registerGroup(selfCommands.group);
