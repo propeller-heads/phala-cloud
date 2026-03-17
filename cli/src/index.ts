@@ -35,6 +35,7 @@ import { sshKeysCommands } from "./commands/ssh-keys";
 import { whoamiCommand } from "./commands/whoami";
 import { allowDevicesCommands } from "./commands/allow-devices";
 import { transferOwnershipCommand } from "./commands/transfer-ownership";
+import { composeHashCommand } from "./commands/compose-hash";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -71,6 +72,7 @@ registry.registerCommand(whoamiCommand);
 registry.registerCommand(completionCommand);
 registry.registerCommand(osImagesCommand);
 registry.registerCommand(transferOwnershipCommand);
+registry.registerCommand(composeHashCommand);
 
 // Command groups + subcommands
 registry.registerGroup(selfCommands.group);
