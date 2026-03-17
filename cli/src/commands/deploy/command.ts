@@ -173,6 +173,14 @@ export const deployCommandMeta: CommandMeta = {
 			group: "advanced",
 		},
 		{
+			name: "skip-onchain-tx",
+			description:
+				"Skip the on-chain transaction (use when tx was submitted externally)",
+			type: "boolean",
+			target: "skipOnchainTx",
+			group: "advanced",
+		},
+		{
 			name: "wait",
 			description: "Wait for deployment/update completion",
 			type: "boolean",
@@ -301,6 +309,7 @@ export const deployCommandSchema = z.object({
 	preLaunchScript: z.string().optional(),
 	privateKey: z.string().optional(),
 	rpcUrl: z.string().optional(),
+	skipOnchainTx: z.boolean().default(false),
 	wait: z.boolean().default(false),
 	sshPubkey: z.string().optional(),
 	devOs: z.boolean().optional(),

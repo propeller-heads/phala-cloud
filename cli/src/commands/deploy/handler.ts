@@ -971,42 +971,46 @@ const updateCvm = async (
 
 	let encrypted_env: string | undefined;
 	if (cvm.kms_info?.chain_id) {
-		// Update with decentralized KMS.
-		if (!validatedOptions.privateKey) {
-			throw new Error("Private key is required for contract DstackApp");
-		}
+		if (!validatedOptions.skipOnchainTx) {
+			// Update with decentralized KMS.
+			if (!validatedOptions.privateKey) {
+				throw new Error("Private key is required for contract DstackApp");
+			}
 
-		if (validatedOptions.debug) {
-			console.log("[DEBUG] provision.compose_hash:", provision.compose_hash);
-			console.log("[DEBUG] cvm.app_id:", cvm.app_id);
-		}
+			if (validatedOptions.debug) {
+				console.log("[DEBUG] provision.compose_hash:", provision.compose_hash);
+				console.log("[DEBUG] cvm.app_id:", cvm.app_id);
+			}
 
-		const receipt_result = await safeAddComposeHash({
-			chain: cvm.kms_info?.chain,
-			rpcUrl: validatedOptions.rpcUrl,
-			appId: cvm.app_id as `0x${string}`,
-			composeHash: provision.compose_hash,
-			privateKey: validatedOptions.privateKey as `0x${string}`,
-		});
-		if (!receipt_result.success) {
-			logger.logDetailedError(receipt_result, "Add Compose Hash");
-			const errorMsg =
-				typeof receipt_result === "object" && receipt_result !== null
-					? JSON.stringify(receipt_result)
-					: String(receipt_result);
-			throw new Error(`Failed to add compose hash: ${errorMsg}`);
-		}
+			const receipt_result = await safeAddComposeHash({
+				chain: cvm.kms_info?.chain,
+				rpcUrl: validatedOptions.rpcUrl,
+				appId: cvm.app_id as `0x${string}`,
+				composeHash: provision.compose_hash,
+				privateKey: validatedOptions.privateKey as `0x${string}`,
+			});
+			if (!receipt_result.success) {
+				logger.logDetailedError(receipt_result, "Add Compose Hash");
+				const errorMsg =
+					typeof receipt_result === "object" && receipt_result !== null
+						? JSON.stringify(receipt_result)
+						: String(receipt_result);
+				throw new Error(`Failed to add compose hash: ${errorMsg}`);
+			}
 
-		if (validatedOptions.debug) {
-			const txResult = receipt_result.data as {
-				transactionHash?: string;
-				composeHash?: string;
-			};
-			console.log(
-				"[DEBUG] addComposeHash.transactionHash:",
-				txResult.transactionHash,
-			);
-			console.log("[DEBUG] addComposeHash.composeHash:", txResult.composeHash);
+			if (validatedOptions.debug) {
+				const txResult = receipt_result.data as {
+					transactionHash?: string;
+					composeHash?: string;
+				};
+				console.log(
+					"[DEBUG] addComposeHash.transactionHash:",
+					txResult.transactionHash,
+				);
+				console.log("[DEBUG] addComposeHash.composeHash:", txResult.composeHash);
+			}
+		} else {
+			logger.info("Skipping on-chain transaction (--skip-onchain-tx)");
 		}
 
 		// Encrypt environment variables for decentralized KMS
