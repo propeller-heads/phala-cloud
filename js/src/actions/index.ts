@@ -104,6 +104,17 @@ export {
   type CheckDeviceAllowedRequest,
 } from "./blockchains/check_device_allowed";
 
+export {
+  transferOwnership,
+  safeTransferOwnership,
+  type TransferOwnershipParameters,
+  type TransferOwnershipReturnType,
+  TransferOwnershipSchema,
+  type TransferOwnership,
+  type TransferOwnershipRequest,
+  type SafeTransferOwnershipResult,
+} from "./blockchains/transfer_ownership";
+
 export { dstackAppAbi } from "./blockchains/abi/dstack_app";
 
 export {

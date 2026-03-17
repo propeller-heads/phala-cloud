@@ -52,7 +52,24 @@ export const dstackAppAbi = [
     type: "function",
   },
 
+  {
+    inputs: [{ internalType: "address", name: "newOwner", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+
   // ── Events ───────────────────────────────────────────────────────
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "previousOwner", type: "address" },
+      { indexed: true, internalType: "address", name: "newOwner", type: "address" },
+    ],
+    name: "OwnershipTransferred",
+    type: "event",
+  },
   {
     anonymous: false,
     inputs: [{ indexed: false, internalType: "bytes32", name: "deviceId", type: "bytes32" }],
