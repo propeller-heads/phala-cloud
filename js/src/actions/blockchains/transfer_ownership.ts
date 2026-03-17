@@ -177,7 +177,9 @@ export async function transferOwnership<T extends z.ZodTypeAny | false | undefin
     minBalance,
   } = validatedRequest;
 
-  const appAddress = (rawAppAddress.startsWith("0x") ? rawAppAddress : `0x${rawAppAddress}`) as Address;
+  const appAddress = (
+    rawAppAddress.startsWith("0x") ? rawAppAddress : `0x${rawAppAddress}`
+  ) as Address;
   const newOwner = (rawNewOwner.startsWith("0x") ? rawNewOwner : `0x${rawNewOwner}`) as Address;
 
   let publicClient: PublicClient;
@@ -300,11 +302,7 @@ export async function transferOwnership<T extends z.ZodTypeAny | false | undefin
         signal: signal,
       } as TransactionOptions & { signal?: AbortSignal });
 
-  const result = parseTransferOwnershipResult(
-    transactionResult.receipt,
-    appAddress,
-    newOwner,
-  );
+  const result = parseTransferOwnershipResult(transactionResult.receipt, appAddress, newOwner);
 
   if (parameters?.schema === false) {
     return result as TransferOwnershipReturnType<T>;
