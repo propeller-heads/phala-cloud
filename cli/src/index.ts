@@ -36,6 +36,7 @@ import { whoamiCommand } from "./commands/whoami";
 import { allowDevicesCommands } from "./commands/allow-devices";
 import { transferOwnershipCommand } from "./commands/transfer-ownership";
 import { composeHashCommand } from "./commands/compose-hash";
+import { safeCommands } from "./commands/safe";
 import { detectRuntimeFromProcess } from "./core/package-manager";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -133,6 +134,11 @@ for (const command of simulatorCommands.commands) {
 
 registry.registerGroup(allowDevicesCommands.group);
 for (const command of allowDevicesCommands.commands) {
+	registry.registerCommand(command);
+}
+
+registry.registerGroup(safeCommands.group);
+for (const command of safeCommands.commands) {
 	registry.registerCommand(command);
 }
 
