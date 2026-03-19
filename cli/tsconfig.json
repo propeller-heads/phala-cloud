@@ -4,7 +4,8 @@
 		"isolatedModules": false,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./*"]
+			"@/*": ["./*"],
+			"punycode": ["punycode/"]
 		},
 		"rootDir": "src",
 		"moduleResolution": "bundler",

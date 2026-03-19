@@ -36,7 +36,7 @@ export default defineConfig({
 	platform: "node",
 	bundle: true,
 	splitting: false,
-	noExternal: ["@phala/cloud"],
+	noExternal: ["@phala/cloud", "punycode"],
 	esbuildOptions(options) {
 		options.banner = {
 			js: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
@@ -44,6 +44,10 @@ export default defineConfig({
 		options.define = {
 			...options.define,
 			__GIT_INFO__: JSON.stringify(getGitInfo()),
+		};
+		options.alias = {
+			...options.alias,
+			"node-fetch": "./src/shims/node-fetch.ts",
 		};
 	},
 });
